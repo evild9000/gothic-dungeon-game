@@ -21,7 +21,19 @@ class UIManager {
         const isSmallScreen = window.innerWidth <= 768 || window.innerHeight <= 600;
         const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         
-        return isMobileUA || (isSmallScreen && isTouchDevice);
+        const isMobile = isMobileUA || (isSmallScreen && isTouchDevice);
+        
+        // Debug logging
+        console.log('Mobile Detection:', {
+            userAgent: userAgent,
+            isMobileUA: isMobileUA,
+            screenSize: `${window.innerWidth}x${window.innerHeight}`,
+            isSmallScreen: isSmallScreen,
+            isTouchDevice: isTouchDevice,
+            finalResult: isMobile
+        });
+        
+        return isMobile;
     }
 
     initializeElements() {
@@ -46,19 +58,58 @@ class UIManager {
     }
 
     bindEvents() {
-        // Bind all button events
-        this.elements.newGameBtn.onclick = () => this.gameController.newGame();
-        this.elements.saveBtn.onclick = () => this.gameController.saveGame();
-        this.elements.loadBtn.onclick = () => this.gameController.loadGame();
-        this.elements.dungeonBtn.onclick = () => this.gameController.enterDungeon();
-        this.elements.craftingBtn.onclick = () => this.gameController.openCrafting();
-        this.elements.recruitBtn.onclick = () => this.gameController.openRecruitment();
-        this.elements.shopBtn.onclick = () => this.gameController.openShop();
-        this.elements.inventoryBtn.onclick = () => this.gameController.openInventory();
-        this.elements.characterBtn.onclick = () => this.gameController.openCharacterManagement();
+        // Bind all button events with visual feedback
+        this.elements.newGameBtn.onclick = () => {
+            this.flashButton(this.elements.newGameBtn);
+            this.gameController.newGame();
+        };
+        this.elements.saveBtn.onclick = () => {
+            this.flashButton(this.elements.saveBtn);
+            this.gameController.saveGame();
+        };
+        this.elements.loadBtn.onclick = () => {
+            this.flashButton(this.elements.loadBtn);
+            this.gameController.loadGame();
+        };
+        this.elements.dungeonBtn.onclick = () => {
+            this.flashButton(this.elements.dungeonBtn);
+            this.gameController.enterDungeon();
+        };
+        this.elements.craftingBtn.onclick = () => {
+            this.flashButton(this.elements.craftingBtn);
+            this.gameController.openCrafting();
+        };
+        this.elements.recruitBtn.onclick = () => {
+            this.flashButton(this.elements.recruitBtn);
+            this.gameController.openRecruitment();
+        };
+        this.elements.shopBtn.onclick = () => {
+            this.flashButton(this.elements.shopBtn);
+            this.gameController.openShop();
+        };
+        this.elements.inventoryBtn.onclick = () => {
+            this.flashButton(this.elements.inventoryBtn);
+            this.gameController.openInventory();
+        };
+        this.elements.characterBtn.onclick = () => {
+            this.flashButton(this.elements.characterBtn);
+            this.gameController.openCharacterManagement();
+        };
 
         // Add keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
+    }
+
+    flashButton(button) {
+        // Visual feedback for button clicks
+        if (button) {
+            button.style.transform = 'scale(0.95)';
+            button.style.filter = 'brightness(1.3)';
+            setTimeout(() => {
+                button.style.transform = '';
+                button.style.filter = '';
+            }, 150);
+        }
     }
 
     handleKeyPress(event) {
@@ -99,6 +150,15 @@ class UIManager {
     log(message) {
         this.gameState.chatLog.push(message);
         this.updateChatLog();
+        
+        // Add visual feedback on mobile
+        if (this.isMobile) {
+            const chatLog = this.elements.chatLog;
+            chatLog.style.border = '3px solid #d4af37';
+            setTimeout(() => {
+                chatLog.style.border = '';
+            }, 500);
+        }
     }
 
     updateChatLog() {
@@ -411,52 +471,78 @@ class UIManager {
         const spritesArea = this.elements.spritesArea;
         
         // Remove all background classes
-        spritesArea.className = spritesArea.className.replace(/\b\w+-background\b/g, '');
+        spritesArea.className = spritesArea.className.replace(/\b\w+-background\b/g, '').replace(/\bmobile-mode\b/g, '');
         
         let imagePath = '';
         let backgroundClass = '';
         
-        // Try WebP first (better compression), fallback to JPG
-        const supportsWebP = this.checkWebPSupport();
-        const imageExtension = supportsWebP ? '.webp' : '.jpg';
-        
-        // Use mobile folder for mobile devices to get smaller images
-        const basePath = this.isMobile ? 'images/backgrounds/mobile/' : 'images/backgrounds/';
+        // Determine background class first (needed for both mobile and desktop)
+        switch(backgroundType) {
+            case 'village':
+                backgroundClass = 'village-background';
+                break;
+            case 'dungeon':
+                backgroundClass = 'dungeon-background';
+                break;
+            case 'shop':
+                backgroundClass = 'shop-background';
+                break;
+            case 'crafting':
+                backgroundClass = 'crafting-background';
+                break;
+            case 'recruitment':
+                backgroundClass = 'recruitment-background';
+                break;
+            default:
+                backgroundClass = 'village-background';
+        }
         
         // On mobile, skip images entirely and use CSS gradients only for better performance
         if (this.isMobile) {
+            // Clear any existing background image
             spritesArea.style.backgroundImage = '';
+            
+            // Add the specific background class for CSS gradients
             spritesArea.classList.add(backgroundClass);
-            this.log(`Background changed to: ${backgroundType} (mobile CSS-only mode)`);
+            spritesArea.classList.add('mobile-mode');
+            
+            // Force a visual update with animation
+            spritesArea.style.transition = 'all 0.5s ease';
+            spritesArea.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                spritesArea.style.transform = 'scale(1)';
+            }, 100);
+            
+            this.log(`📱 Mobile: ${backgroundType} area loaded`);
+            console.log(`Mobile background applied: ${backgroundClass}`, spritesArea.classList.toString());
             this.currentBackground = backgroundType;
             return;
         }
         
+        // Desktop image loading logic
+        const supportsWebP = this.checkWebPSupport();
+        const imageExtension = supportsWebP ? '.webp' : '.jpg';
+        const basePath = 'images/backgrounds/';
+        
         switch(backgroundType) {
             case 'village':
                 imagePath = `${basePath}village${imageExtension}`;
-                backgroundClass = 'village-background';
                 break;
             case 'dungeon':
                 const dungeonIndex = specificImage !== null ? specificImage : Math.floor(Math.random() * this.dungeonBackgrounds.length);
                 imagePath = `${basePath}${this.dungeonBackgrounds[dungeonIndex]}${imageExtension}`;
-                backgroundClass = 'dungeon-background';
                 break;
             case 'shop':
                 imagePath = `${basePath}shop${imageExtension}`;
-                backgroundClass = 'shop-background';
                 break;
             case 'crafting':
                 imagePath = `${basePath}crafting${imageExtension}`;
-                backgroundClass = 'crafting-background';
                 break;
             case 'recruitment':
                 imagePath = `${basePath}recruitment${imageExtension}`;
-                backgroundClass = 'recruitment-background';
                 break;
             default:
                 imagePath = `${basePath}village${imageExtension}`;
-                backgroundClass = 'village-background';
         }
         
         // Test if image exists, fall back to CSS gradients if not
@@ -468,22 +554,7 @@ class UIManager {
             this.log(`Background changed to: ${backgroundType}`);
         };
         img.onerror = () => {
-            // If mobile image failed and we're on mobile, try desktop version
-            if (this.isMobile && imagePath.includes('/mobile/')) {
-                const desktopPath = imagePath.replace('/mobile/', '/');
-                const desktopImg = new Image();
-                desktopImg.onload = () => {
-                    spritesArea.style.backgroundImage = `url('${desktopPath}')`;
-                    spritesArea.classList.add(backgroundClass);
-                    this.log(`Background changed to: ${backgroundType} (desktop fallback)`);
-                };
-                desktopImg.onerror = () => {
-                    this.handleImageFallback(spritesArea, backgroundClass, backgroundType, imagePath, supportsWebP, imageExtension);
-                };
-                desktopImg.src = desktopPath;
-            } else {
-                this.handleImageFallback(spritesArea, backgroundClass, backgroundType, imagePath, supportsWebP, imageExtension);
-            }
+            this.handleImageFallback(spritesArea, backgroundClass, backgroundType, imagePath, supportsWebP, imageExtension);
         };
         img.src = imagePath;
         

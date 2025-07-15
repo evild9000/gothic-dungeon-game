@@ -248,7 +248,8 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    transition: background-image 1s ease-in-out;
+    transition: background 1s ease-in-out;
+    min-height: 300px;
 }
 
 /* Background overlay for different game states */
@@ -376,18 +377,107 @@ body {
 /* Responsive design */
 @media (max-width: 768px) {
     #gui {
-        padding: 5px;
-        gap: 5px;
+        padding: 8px;
+        gap: 8px;
+        flex-wrap: wrap;
     }
     
     #gui button {
-        padding: 8px 12px;
-        font-size: 12px;
+        padding: 10px 12px;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+        min-height: 40px;
+        flex: 1 1 calc(33.33% - 8px);
+        max-width: calc(33.33% - 8px);
     }
     
     #chat-log {
         height: 120px;
-        font-size: 11px;
+        font-size: 14px;
+        line-height: 1.4;
+        padding: 10px;
+    }
+    
+    /* Better mobile background gradients */
+    #sprites-area.village-background {
+        background: linear-gradient(135deg, 
+            #2c5530 0%, 
+            #1a3320 25%, 
+            #0d1f15 50%, 
+            #1a3320 75%, 
+            #2c5530 100%) !important;
+    }
+    
+    #sprites-area.dungeon-background {
+        background: linear-gradient(135deg, 
+            #2c1810 0%, 
+            #1a0f08 25%, 
+            #0d0804 50%, 
+            #1a0f08 75%, 
+            #2c1810 100%) !important;
+    }
+    
+    #sprites-area.shop-background {
+        background: linear-gradient(135deg, 
+            #4a3728 0%, 
+            #3d2d1f 25%, 
+            #2f2317 50%, 
+            #3d2d1f 75%, 
+            #4a3728 100%) !important;
+    }
+    
+    #sprites-area.crafting-background {
+        background: linear-gradient(135deg, 
+            #4a2c1a 0%, 
+            #3d2415 25%, 
+            #2f1c10 50%, 
+            #3d2415 75%, 
+            #4a2c1a 100%) !important;
+    }
+    
+    #sprites-area.recruitment-background {
+        background: linear-gradient(135deg, 
+            #3a4a2c 0%, 
+            #2d3d1f 25%, 
+            #202f17 50%, 
+            #2d3d1f 75%, 
+            #3a4a2c 100%) !important;
+    }
+    
+    /* Mobile touch improvements */
+    #gui button:active {
+        transform: translateY(0px) !important;
+        background: linear-gradient(145deg, 
+            rgba(100, 50, 25, 0.9) 0%, 
+            rgba(80, 40, 20, 0.9) 50%, 
+            rgba(60, 30, 15, 0.9) 100%) !important;
+    }
+    
+    /* HP indicators for mobile */
+    .hp-indicator {
+        font-size: 9px !important;
+        padding: 1px 4px !important;
+        top: -6px !important;
+    }
+    
+    /* Sprites smaller on mobile */
+    .sprite {
+        transform: scale(0.8);
+    }
+    
+    .hero-sprite {
+        width: 48px !important;
+        height: 48px !important;
+    }
+    
+    .underling-sprite {
+        width: 40px !important;
+        height: 40px !important;
+    }
+    
+    .enemy-sprite {
+        width: 44px !important;
+        height: 44px !important;
     }
 }
 
