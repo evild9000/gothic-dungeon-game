@@ -31,6 +31,16 @@ class GameController {
     }
 
     newGame() {
+        console.log('Starting new game...');
+        
+        // Close any open UI elements first
+        this.closeDockedCombatPanel();
+        
+        // Close any open modals
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(modal => modal.remove());
+        
+        // Reset game state
         this.gameState = {
             hero: {
                 name: "Hero",
@@ -52,6 +62,14 @@ class GameController {
             inDungeon: false,
             currentScreen: 'main'
         };
+        
+        // Reset UI state
+        this.ui.currentBackground = 'village';
+        this.ui.setBackground('village');
+        this.ui.clearChatLog();
+        
+        // Reset any combat state
+        this.currentSelectedItemIndex = null;
         
         this.ui.log("Started a new game!");
         this.ui.render();
