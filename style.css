@@ -26,6 +26,24 @@ body {
     flex-direction: column;
     height: 100vh;
     width: 100vw;
+    transition: all 0.3s ease;
+}
+
+/* Docked combat panel layout */
+#game-container.has-combat-panel {
+    flex-direction: row;
+}
+
+#game-container.has-combat-panel #main-game-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - 350px);
+}
+
+#main-game-area {
+    display: contents;
+    transition: all 0.3s ease;
 }
 
 #gui {
@@ -1002,6 +1020,206 @@ body {
     box-sizing: border-box;
 }
 
+/* Docked Combat Panel - New Approach */
+.combat-docked-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 350px;
+    height: 100vh;
+    background: linear-gradient(135deg, 
+        rgba(40, 20, 10, 0.98) 0%, 
+        rgba(20, 10, 5, 0.98) 100%);
+    border-left: 3px solid #8b4513;
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Cinzel', serif;
+    color: #d4af37;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.combat-docked-panel.active {
+    transform: translateX(0);
+}
+
+.docked-panel-header {
+    background: linear-gradient(135deg, 
+        rgba(60, 30, 15, 0.9) 0%, 
+        rgba(40, 20, 10, 0.9) 100%);
+    border-bottom: 2px solid #8b4513;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.docked-panel-header h3 {
+    margin: 0;
+    font-family: 'Metal Mania', cursive;
+    color: #d4af37;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    font-size: 18px;
+}
+
+.docked-panel-close {
+    background: none;
+    border: none;
+    color: #d4af37;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.docked-panel-close:hover {
+    background: rgba(139, 69, 19, 0.5);
+    color: #fff;
+    transform: rotate(90deg);
+}
+
+.docked-panel-content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.docked-item-list, .docked-target-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.docked-item-option, .docked-target-option {
+    background: linear-gradient(135deg, 
+        rgba(30, 15, 8, 0.8) 0%, 
+        rgba(20, 10, 5, 0.8) 100%);
+    border: 2px solid #8b4513;
+    border-radius: 10px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.docked-item-option::before, .docked-target-option::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.2), transparent);
+    transition: left 0.4s ease;
+}
+
+.docked-item-option:hover, .docked-target-option:hover {
+    background: linear-gradient(135deg, 
+        rgba(40, 20, 10, 0.9) 0%, 
+        rgba(30, 15, 8, 0.9) 100%);
+    border-color: #d4af37;
+    box-shadow: 
+        0 5px 15px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(212, 175, 55, 0.3);
+    transform: translateY(-2px);
+}
+
+.docked-item-option:hover::before, .docked-target-option:hover::before {
+    left: 100%;
+}
+
+.docked-item-info h4, .docked-target-info h4 {
+    margin: 0 0 8px 0;
+    color: #4ecdc4;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.docked-item-owner, .docked-target-health {
+    color: #888;
+    font-size: 12px;
+    margin-bottom: 5px;
+    font-style: italic;
+}
+
+.docked-item-effect {
+    color: #d4af37;
+    font-size: 13px;
+    font-weight: 500;
+    background: rgba(212, 175, 55, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border-left: 3px solid #d4af37;
+}
+
+.docked-target-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.docked-target-icon {
+    font-size: 24px;
+    opacity: 0.8;
+}
+
+.docked-panel-footer {
+    border-top: 2px solid #8b4513;
+    padding: 20px;
+    background: linear-gradient(135deg, 
+        rgba(30, 15, 8, 0.9) 0%, 
+        rgba(20, 10, 5, 0.9) 100%);
+}
+
+.docked-panel-footer button {
+    background: linear-gradient(145deg, 
+        rgba(60, 30, 15, 0.9) 0%, 
+        rgba(40, 20, 10, 0.9) 50%, 
+        rgba(20, 10, 5, 0.9) 100%);
+    border: 2px solid #8b4513;
+    color: #d4af37;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.docked-panel-footer button:hover {
+    background: linear-gradient(145deg, 
+        rgba(80, 40, 20, 0.9) 0%, 
+        rgba(60, 30, 15, 0.9) 50%, 
+        rgba(40, 20, 10, 0.9) 100%);
+    color: #fff;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+    transform: translateY(-2px);
+}
+
+/* Game area adjustment when panel is active */
+body.combat-panel-active #game-container {
+    padding-right: 350px;
+}
+
+body.combat-panel-active #sprites-area,
+body.combat-panel-active #gui,
+body.combat-panel-active #chat-log {
+    transition: all 0.3s ease;
+}
+
 .combat-modal-content {
     background: linear-gradient(135deg, 
         rgba(40, 20, 10, 0.95) 0%, 
@@ -1159,5 +1377,28 @@ body {
     
     .item-list, .target-list {
         max-height: 250px;
+    }
+
+    /* Docked panel mobile adjustments */
+    .combat-docked-panel {
+        width: 100%;
+        right: 0;
+    }
+
+    body.combat-panel-active #game-container {
+        padding-right: 0;
+        padding-bottom: 350px;
+    }
+
+    .combat-docked-panel {
+        top: auto;
+        bottom: 0;
+        height: 350px;
+        width: 100%;
+        transform: translateY(100%);
+    }
+
+    .combat-docked-panel.active {
+        transform: translateY(0);
     }
 }

@@ -354,33 +354,98 @@ class GameController {
         if (allConsumables.length === 0) {
             this.ui.log("No consumable items available!");
             this.ui.showNotification("No consumable items!", "error");
-            setTimeout(() => this.showCombatInterface(), 500);
             return;
         }
 
-        const itemContent = `
-            <div style="text-align: center; margin-bottom: 10px;">
-                <h4 style="color: #d4af37; margin: 0;">🧪 Use Item</h4>
-            </div>
-            <div style="max-height: 250px; overflow-y: auto;">
-                ${allConsumables.map((item, index) => `
-                    <div style="background: #2a1a3a; padding: 8px; margin: 5px 0; border-radius: 4px; border: 1px solid #6b4c93; cursor: pointer;" onclick="window.game.controller.selectCombatItem(${index})">
-                        <div style="color: #4ecdc4; font-weight: bold;">${item.name}</div>
-                        <div style="color: #888; font-size: 12px;">${item.owner ? `${item.owner}'s` : 'Hero\'s'}</div>
-                        <div style="color: #d4af37; font-size: 12px;">${item.effect} ${item.value || ''}</div>
-                    </div>
-                `).join('')}
+        // Store items for selection
+        this.currentCombatItems = allConsumables;
+
+        // Create docked panel
+        this.showDockedCombatPanel(allConsumables, 'items');
+    }
+
+    showDockedCombatPanel(items, panelType) {
+        // Remove any existing panel
+        this.closeDockedCombatPanel();
+
+        // Add body class to shrink game area
+        document.body.classList.add('combat-panel-active');
+
+        let panelContent = '';
+        let headerText = '';
+
+        if (panelType === 'items') {
+            headerText = '🧪 Use Item';
+            panelContent = `
+                <div class="docked-item-list">
+                    ${items.map((item, index) => `
+                        <div class="docked-item-option" onclick="gameController.selectCombatItem(${index})">
+                            <div class="docked-item-info">
+                                <h4>${item.name}</h4>
+                                <div class="docked-item-owner">${item.owner ? `${item.owner}'s` : 'Hero\'s'}</div>
+                                <div class="docked-item-effect">${item.effect} ${item.value || ''}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else if (panelType === 'targets') {
+            headerText = '🎯 Select Target';
+            panelContent = `
+                <div class="docked-target-list">
+                    ${items.map((target, index) => `
+                        <div class="docked-target-option" onclick="gameController.useCombatItemOnTarget(${this.currentSelectedItemIndex}, ${index})">
+                            <div class="docked-target-info">
+                                <div>
+                                    <h4>${target.name}</h4>
+                                    <div class="docked-target-health">Health: ${target.health}/${target.maxHealth}</div>
+                                </div>
+                                <div class="docked-target-icon">${target.isHero ? '👑' : '🛡️'}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        const panelHtml = `
+            <div id="combat-docked-panel" class="combat-docked-panel">
+                <div class="docked-panel-header">
+                    <h3>${headerText}</h3>
+                    <button class="docked-panel-close" onclick="gameController.closeDockedCombatPanel()">&times;</button>
+                </div>
+                <div class="docked-panel-content">
+                    ${panelContent}
+                </div>
+                <div class="docked-panel-footer">
+                    <button onclick="gameController.closeDockedCombatPanel()">Cancel</button>
+                </div>
             </div>
         `;
 
-        this.currentCombatItems = allConsumables; // Store for later reference
-
-        this.ui.createModal("Combat Items", itemContent, [
-            {
-                text: "Back to Combat",
-                onClick: () => this.showCombatInterface()
+        // Add panel to page
+        document.body.insertAdjacentHTML('beforeend', panelHtml);
+        
+        // Trigger animation
+        setTimeout(() => {
+            const panel = document.getElementById('combat-docked-panel');
+            if (panel) {
+                panel.classList.add('active');
             }
-        ]);
+        }, 10);
+    }
+
+    closeDockedCombatPanel() {
+        const panel = document.getElementById('combat-docked-panel');
+        if (panel) {
+            panel.classList.remove('active');
+            setTimeout(() => {
+                panel.remove();
+                document.body.classList.remove('combat-panel-active');
+            }, 300);
+        } else {
+            document.body.classList.remove('combat-panel-active');
+        }
     }
 
     selectCombatItem(itemIndex) {
@@ -389,6 +454,9 @@ class GameController {
             this.ui.log("Item not found!");
             return;
         }
+
+        // Store the selected item index for target selection
+        this.currentSelectedItemIndex = itemIndex;
 
         // Show target selection
         this.showCombatTargetSelection(selectedItem, itemIndex);
@@ -410,29 +478,10 @@ class GameController {
             underlingRef: u
         }))];
 
-        const targetContent = `
-            <div style="text-align: center; margin-bottom: 10px;">
-                <h4 style="color: #d4af37; margin: 0;">🎯 Select Target</h4>
-                <div style="color: #4ecdc4; font-size: 14px;">Using: ${item.name}</div>
-            </div>
-            <div style="max-height: 200px; overflow-y: auto;">
-                ${allTargets.map((target, index) => `
-                    <div style="background: #2a1a3a; padding: 8px; margin: 5px 0; border-radius: 4px; border: 1px solid #6b4c93; cursor: pointer;" onclick="window.game.controller.useCombatItemOnTarget(${itemIndex}, ${index})">
-                        <div style="color: ${target.isHero ? '#d4af37' : '#4ecdc4'}; font-weight: bold;">${target.name} ${target.isHero ? '👑' : '🛡️'}</div>
-                        <div style="color: #888; font-size: 12px;">Health: ${target.health}/${target.maxHealth}</div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-
         this.currentCombatTargets = allTargets; // Store for later reference
 
-        this.ui.createModal("Select Target", targetContent, [
-            {
-                text: "Back to Items",
-                onClick: () => this.showCombatItemSelection()
-            }
-        ]);
+        // Show target selection in docked panel
+        this.showDockedCombatPanel(allTargets, 'targets');
     }
 
     useCombatItemOnTarget(itemIndex, targetIndex) {
@@ -443,6 +492,9 @@ class GameController {
             this.ui.log("Invalid item or target selection!");
             return;
         }
+
+        // Close the docked panel
+        this.closeDockedCombatPanel();
 
         // Apply item effect
         this.applyCombatItemEffect(item, target);
