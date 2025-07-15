@@ -52,6 +52,7 @@ class UIManager {
             craftingBtn: document.getElementById('crafting-btn'),
             recruitBtn: document.getElementById('recruit-btn'),
             shopBtn: document.getElementById('shop-btn'),
+            templeBtn: document.getElementById('temple-btn'),
             inventoryBtn: document.getElementById('inventory-btn'),
             characterBtn: document.getElementById('character-btn')
         };
@@ -86,6 +87,10 @@ class UIManager {
         this.elements.shopBtn.onclick = () => {
             this.flashButton(this.elements.shopBtn);
             this.gameController.openShop();
+        };
+        this.elements.templeBtn.onclick = () => {
+            this.flashButton(this.elements.templeBtn);
+            this.gameController.openTemple();
         };
         this.elements.inventoryBtn.onclick = () => {
             this.flashButton(this.elements.inventoryBtn);
@@ -219,16 +224,43 @@ class UIManager {
 
     renderUnderling(underling, index) {
         const sprite = document.createElement('div');
-        sprite.className = 'sprite underling-sprite fade-in';
+        sprite.className = `sprite underling-sprite fade-in ${!underling.isAlive ? 'fallen-underling' : ''}`;
         sprite.style.left = `${120 + (index * 60)}px`;
         sprite.style.top = '50px';
-        sprite.title = `${underling.name} (Level ${underling.level})`;
         
-        // Add hit point indicator
-        const hpIndicator = document.createElement('div');
-        hpIndicator.className = this.getHealthClass(underling.health, underling.maxHealth);
-        hpIndicator.textContent = `${underling.health}/${underling.maxHealth}`;
-        sprite.appendChild(hpIndicator);
+        // Different display for fallen vs alive underlings
+        if (underling.isAlive) {
+            sprite.title = `${underling.name} (Level ${underling.level})`;
+            
+            // Add hit point indicator
+            const hpIndicator = document.createElement('div');
+            hpIndicator.className = this.getHealthClass(underling.health, underling.maxHealth || underling.health);
+            hpIndicator.textContent = `${underling.health}/${underling.maxHealth || underling.health}`;
+            sprite.appendChild(hpIndicator);
+        } else {
+            sprite.title = `${underling.name} (FALLEN - Needs Resurrection)`;
+            sprite.style.filter = 'grayscale(100%) brightness(0.5)';
+            
+            // Add fallen indicator
+            const fallenIndicator = document.createElement('div');
+            fallenIndicator.className = 'fallen-indicator';
+            fallenIndicator.textContent = '💀 FALLEN';
+            fallenIndicator.style.cssText = `
+                position: absolute;
+                bottom: -5px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(255, 0, 0, 0.8);
+                color: white;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-size: 10px;
+                font-weight: bold;
+                text-align: center;
+                min-width: 45px;
+            `;
+            sprite.appendChild(fallenIndicator);
+        }
         
         this.elements.spritesArea.appendChild(sprite);
     }
@@ -268,8 +300,9 @@ class UIManager {
         this.elements.craftingBtn.disabled = this.gameState.hero.level < 1 || this.gameState.inDungeon;
         this.elements.recruitBtn.disabled = this.gameState.hero.level < 1 || this.gameState.inDungeon; // Changed from level 2 to 1
         
-        // Disable shop when in dungeon
+        // Disable shop and temple when in dungeon
         this.elements.shopBtn.disabled = this.gameState.inDungeon;
+        this.elements.templeBtn.disabled = this.gameState.inDungeon;
         
         // Update button text and onclick handlers based on state
         if (this.gameState.inDungeon) {
@@ -279,6 +312,7 @@ class UIManager {
             // Update disabled button text to show why they're disabled
             this.elements.craftingBtn.textContent = `Craft Items (Disabled in Dungeon)`;
             this.elements.shopBtn.textContent = `Shop (Disabled in Dungeon)`;
+            this.elements.templeBtn.textContent = `Temple (Disabled in Dungeon)`;
             this.elements.recruitBtn.textContent = `Recruit (Disabled in Dungeon)`;
         } else {
             this.elements.dungeonBtn.textContent = `Enter Dungeon (Level ${this.gameState.dungeonLevel})`;
@@ -298,10 +332,12 @@ class UIManager {
             }
             
             this.elements.shopBtn.textContent = `Shop (Gold: ${this.gameState.hero.gold})`;
+            this.elements.templeBtn.textContent = `Temple (Healing & Resurrection)`;
             
             // Reset the onclick handlers to default (in case they were overridden)
             this.elements.craftingBtn.onclick = () => this.gameController.openCrafting();
             this.elements.shopBtn.onclick = () => this.gameController.openShop();
+            this.elements.templeBtn.onclick = () => this.gameController.openTemple();
             this.elements.recruitBtn.onclick = () => this.gameController.openRecruitment();
         }
         
@@ -493,6 +529,9 @@ class UIManager {
             case 'recruitment':
                 backgroundClass = 'recruitment-background';
                 break;
+            case 'temple':
+                backgroundClass = 'temple-background';
+                break;
             default:
                 backgroundClass = 'village-background';
         }
@@ -540,6 +579,9 @@ class UIManager {
                 break;
             case 'recruitment':
                 imagePath = `${basePath}recruitment${imageExtension}`;
+                break;
+            case 'temple':
+                imagePath = `${basePath}temple${imageExtension}`;
                 break;
             default:
                 imagePath = `${basePath}village${imageExtension}`;

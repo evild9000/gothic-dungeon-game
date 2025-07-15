@@ -70,6 +70,20 @@ class GameController {
             const data = localStorage.getItem('dungeonGameSave');
             if (data) {
                 this.gameState = JSON.parse(data);
+                
+                // Ensure backward compatibility - fix underlings without new properties
+                this.gameState.hero.underlings.forEach(underling => {
+                    if (!underling.maxHealth) {
+                        underling.maxHealth = underling.health;
+                    }
+                    if (underling.isAlive === undefined) {
+                        underling.isAlive = true;
+                    }
+                    if (!underling.equipment) {
+                        underling.equipment = [];
+                    }
+                });
+                
                 this.ui.log("Game loaded successfully!");
                 this.ui.render();
                 this.ui.showNotification("Game loaded!", "success");
@@ -192,22 +206,32 @@ class GameController {
         this.ui.log(`You attack ${target.name} for ${damage} damage!`);
         this.ui.animateSprite('.enemy-sprite', 'shake');
 
-        // Underlings also attack!
-        this.gameState.hero.underlings.forEach((underling, index) => {
+        // Living underlings also attack!
+        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+        aliveUnderlings.forEach((underling, index) => {
             if (this.gameState.currentEnemies.length > 0) {
                 const underlingTarget = this.gameState.currentEnemies[0]; // Attack same target as hero
-                const underlingAttack = 8 + (underling.level * 2); // Weaker than hero
+                
+                // Calculate attack with equipment bonuses
+                let baseAttack = 8 + (underling.level * 2);
+                const equippedWeapons = underling.equipment ? underling.equipment.filter(item => item.equipped && item.stats && item.stats.attack) : [];
+                const attackBonus = equippedWeapons.reduce((total, weapon) => total + weapon.stats.attack, 0);
+                const underlingAttack = baseAttack + attackBonus;
+                
                 const underlingDamage = Math.floor(Math.random() * underlingAttack) + 3;
                 
                 underlingTarget.health -= underlingDamage;
-                this.ui.log(`${underling.name} attacks ${underlingTarget.name} for ${underlingDamage} damage!`);
+                this.ui.log(`${underling.name} attacks ${underlingTarget.name} for ${underlingDamage} damage!${attackBonus > 0 ? ` (+${attackBonus} equipment bonus)` : ''}`);
+                
+                // Find the actual index in the full underlings array for animation
+                const actualIndex = this.gameState.hero.underlings.findIndex(u => u === underling);
                 
                 // Animate the specific underling sprite
                 setTimeout(() => {
                     const underlingSprites = document.querySelectorAll('.underling-sprite');
-                    if (underlingSprites[index]) {
-                        underlingSprites[index].classList.add('shake');
-                        setTimeout(() => underlingSprites[index].classList.remove('shake'), 500);
+                    if (underlingSprites[actualIndex]) {
+                        underlingSprites[actualIndex].classList.add('shake');
+                        setTimeout(() => underlingSprites[actualIndex].classList.remove('shake'), 500);
                     }
                 }, index * 200); // Stagger the animations
                 
@@ -300,25 +324,81 @@ class GameController {
     }
 
     enemiesAttack() {
+        // Ensure all underlings have maxHealth (for backward compatibility)
+        this.gameState.hero.underlings.forEach(underling => {
+            if (!underling.maxHealth) {
+                underling.maxHealth = underling.health;
+            }
+            if (underling.isAlive === undefined) {
+                underling.isAlive = true;
+            }
+            if (!underling.equipment) {
+                underling.equipment = [];
+            }
+        });
+
+        // Get all alive party members (hero + living underlings)
+        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+        const allTargets = [this.gameState.hero, ...aliveUnderlings];
+        
         this.gameState.currentEnemies.forEach(enemy => {
+            // Each enemy picks a random target from alive party members
+            const target = allTargets[Math.floor(Math.random() * allTargets.length)];
+            
             const damage = Math.floor(Math.random() * enemy.attack) + 2;
             const actualDamage = this.gameState.defendingThisTurn ? Math.floor(damage / 2) : damage;
             
-            this.gameState.hero.health -= actualDamage;
-            this.ui.log(`${enemy.name} attacks you for ${actualDamage} damage!`);
-            this.ui.animateSprite('.hero-sprite', 'shake');
+            target.health -= actualDamage;
             
-            // Check if player is defeated
-            if (this.gameState.hero.health <= 0) {
-                this.playerDefeated();
-                return;
+            if (target === this.gameState.hero) {
+                this.ui.log(`${enemy.name} attacks you for ${actualDamage} damage!`);
+                this.ui.animateSprite('.hero-sprite', 'shake');
+                
+                // Check if player is defeated
+                if (this.gameState.hero.health <= 0) {
+                    this.playerDefeated();
+                    return;
+                }
+            } else {
+                // Underling was attacked
+                const underlingIndex = this.gameState.hero.underlings.findIndex(u => u === target);
+                this.ui.log(`${enemy.name} attacks ${target.name} for ${actualDamage} damage!`);
+                
+                // Animate the specific underling if it exists
+                const underlingSprites = document.querySelectorAll('.underling-sprite');
+                if (underlingSprites[underlingIndex]) {
+                    this.ui.animateSprite(underlingSprites[underlingIndex], 'shake');
+                }
+                
+                // Check if underling is defeated
+                if (target.health <= 0) {
+                    target.health = 0;
+                    target.isAlive = false;
+                    this.ui.log(`${target.name} has fallen in battle!`);
+                    this.ui.showNotification(`${target.name} defeated!`, "error");
+                    
+                    // Remove from current targets list
+                    const targetIndex = allTargets.indexOf(target);
+                    if (targetIndex > -1) {
+                        allTargets.splice(targetIndex, 1);
+                    }
+                    
+                    // Check if all party members are defeated
+                    if (allTargets.length === 0 || (allTargets.length === 1 && allTargets[0] === this.gameState.hero && this.gameState.hero.health <= 0)) {
+                        this.playerDefeated();
+                        return;
+                    }
+                }
             }
         });
+        
+        // Update UI to reflect health changes and fallen underlings
+        this.ui.render();
     }
 
     playerDefeated() {
-        this.ui.log("You have been defeated!");
-        this.ui.showNotification("You were defeated! Respawning in village...", "error");
+        this.ui.log("Your party has been defeated!");
+        this.ui.showNotification("Party defeated! Awakening in the temple...", "error");
         
         // Close any open modals
         const existingModals = document.querySelectorAll('.modal-overlay');
@@ -328,15 +408,30 @@ class GameController {
         const goldLoss = Math.floor(this.gameState.hero.gold * 0.2); // 20% gold loss
         const newGold = this.gameState.hero.gold - goldLoss;
         
-        // Apply defeat penalties
-        this.gameState.hero.health = Math.floor(this.gameState.hero.maxHealth * 0.5); // Start with 50% health
+        // Apply defeat penalties - awaken in temple at 20% health
+        this.gameState.hero.health = Math.floor(this.gameState.hero.maxHealth * 0.2); // Start with 20% health
         this.gameState.hero.gold = newGold;
         
-        this.ui.log(`You were rescued but sustained injuries. Lost ${goldLoss} gold and health reduced to ${this.gameState.hero.health}/${this.gameState.hero.maxHealth}.`);
-        this.ui.log(`Gold remaining: ${this.gameState.hero.gold}`);
+        // All underlings also recover to 20% health (none die permanently from party defeat)
+        this.gameState.hero.underlings.forEach(underling => {
+            if (!underling.maxHealth) {
+                underling.maxHealth = underling.health; // Fix old underlings without maxHealth
+            }
+            underling.health = Math.floor(underling.maxHealth * 0.2);
+            underling.isAlive = true; // Ensure they're alive
+        });
         
-        // Exit dungeon and force UI re-render to update button states
+        this.ui.log(`The temple priests found your party and brought you to safety. Lost ${goldLoss} gold.`);
+        this.ui.log(`Hero health: ${this.gameState.hero.health}/${this.gameState.hero.maxHealth} | Gold remaining: ${this.gameState.hero.gold}`);
+        this.ui.log(`All party members have been stabilized at 20% health. Visit the temple for healing.`);
+        
+        // Exit dungeon and return to village, but mention temple
         this.exitDungeon();
+        
+        // Auto-open temple after a short delay to show the player they're there
+        setTimeout(() => {
+            this.openTemple();
+        }, 1000);
         
         // Add a small delay then re-render to ensure button states are updated
         setTimeout(() => {
@@ -540,7 +635,13 @@ class GameController {
             mage: { name: "Mage", type: "magic", level: 1, health: 60, attack: 20, defense: 3 }
         };
 
-        const underling = { ...underlings[type], id: Date.now() };
+        const underling = { 
+            ...underlings[type], 
+            id: Date.now(),
+            maxHealth: underlings[type].health,
+            equipment: [],
+            isAlive: true
+        };
         this.gameState.hero.underlings.push(underling);
         
         this.ui.log(`Recruited ${underling.name}!`);
@@ -564,24 +665,15 @@ class GameController {
         const shopContent = `
             <p>Items available for purchase:</p>
             <ul>
-                <li>Health Potion (25 gold) - Restores 50 HP</li>
-                <li>Full Heal (50 gold) - Restores to maximum HP</li>
                 <li>Mana Potion (30 gold) - Restores 30 MP</li>
                 <li>Experience Scroll (100 gold) - Grants 50 XP</li>
             </ul>
+            <p><strong>Note:</strong> Healing services have moved to the Temple!</p>
             <p>Your health: ${this.gameState.hero.health}/${this.gameState.hero.maxHealth}</p>
             <p>Your gold: ${this.gameState.hero.gold}</p>
         `;
 
         this.ui.createModal("Shop", shopContent, [
-            {
-                text: "Buy Health Potion",
-                onClick: () => this.buyItem('health_potion', 25)
-            },
-            {
-                text: "Buy Full Heal",
-                onClick: () => this.buyItem('full_heal', 50)
-            },
             {
                 text: "Buy Mana Potion",
                 onClick: () => this.buyItem('mana_potion', 30)
@@ -607,20 +699,6 @@ class GameController {
         this.gameState.hero.gold -= cost;
 
         switch(itemType) {
-            case 'health_potion':
-                this.gameState.hero.equipment.push({
-                    name: "Health Potion",
-                    type: "consumable",
-                    effect: "heal",
-                    value: 50
-                });
-                this.ui.log("Bought Health Potion!");
-                break;
-            case 'full_heal':
-                const healAmount = this.gameState.hero.maxHealth - this.gameState.hero.health;
-                this.gameState.hero.health = this.gameState.hero.maxHealth;
-                this.ui.log(`Full Heal used! Restored ${healAmount} HP. You are now at full health (${this.gameState.hero.health}/${this.gameState.hero.maxHealth}).`);
-                break;
             case 'mana_potion':
                 this.gameState.hero.equipment.push({
                     name: "Mana Potion",
@@ -639,6 +717,411 @@ class GameController {
 
         this.ui.showNotification("Purchase successful!", "success");
         this.ui.render();
+    }
+
+    openTemple() {
+        if (this.gameState.inDungeon) {
+            this.ui.log("You cannot access the temple while in a dungeon!");
+            this.ui.showNotification("Cannot visit temple in dungeon!", "error");
+            return;
+        }
+        
+        // Change to temple background
+        this.ui.setBackground('temple');
+        this.gameState.currentScreen = 'temple';
+        
+        this.ui.log("Welcome to the Sacred Temple of Healing!");
+        
+        // Count fallen underlings
+        const fallenUnderlings = this.gameState.hero.underlings.filter(u => !u.isAlive);
+        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+        const injuredUnderlings = aliveUnderlings.filter(u => u.health < u.maxHealth);
+        
+        const templeContent = `
+            <div style="text-align: center; color: #e6ccff; margin-bottom: 15px;">
+                <h3 style="color: #b18cf2;">🏛️ Sacred Temple of Healing 🏛️</h3>
+                <p style="font-style: italic;">"Here, the wounded find solace and the fallen find redemption"</p>
+            </div>
+            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                <div style="flex: 1; background: #2a1a3a; padding: 10px; border-radius: 8px; border: 1px solid #6b4c93;">
+                    <h4 style="color: #d4af37; margin-top: 0;">⚕️ Healing Services</h4>
+                    <p>• Health Potion (25 gold) - Restores 50 HP</p>
+                    <p>• Full Heal (50 gold) - Restores to maximum HP</p>
+                    <p>• Heal All Party (100 gold) - Heals everyone to full</p>
+                </div>
+                <div style="flex: 1; background: #2a1a3a; padding: 10px; border-radius: 8px; border: 1px solid #6b4c93;">
+                    <h4 style="color: #d4af37; margin-top: 0;">⚰️ Resurrection Services</h4>
+                    <p>• Resurrect Underling (200 gold) - Bring back a fallen ally</p>
+                    <p style="color: ${fallenUnderlings.length > 0 ? '#ff6b6b' : '#51cf66'};">
+                        Fallen Underlings: ${fallenUnderlings.length}
+                    </p>
+                </div>
+            </div>
+            <div style="background: #1a1a2e; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                <h4 style="color: #4ecdc4; margin-top: 0;">📊 Party Status</h4>
+                <p><strong>Hero:</strong> ${this.gameState.hero.health}/${this.gameState.hero.maxHealth} HP | Gold: ${this.gameState.hero.gold}</p>
+                ${aliveUnderlings.length > 0 ? 
+                    `<p><strong>Living Underlings:</strong></p>
+                    ${aliveUnderlings.map(u => `
+                        <div style="margin: 5px 0; padding: 5px; background: #2a2a2a; border-radius: 3px;">
+                            ${u.name} (${u.type}): ${u.health}/${u.maxHealth} HP ${u.health < u.maxHealth ? '🩹' : '💚'}
+                        </div>
+                    `).join('')}` : 
+                    '<p style="color: #888;">No living underlings</p>'
+                }
+                ${fallenUnderlings.length > 0 ? 
+                    `<p><strong style="color: #ff6b6b;">Fallen Underlings:</strong></p>
+                    ${fallenUnderlings.map(u => `
+                        <div style="margin: 5px 0; padding: 5px; background: #4a1a1a; border-radius: 3px; color: #ff6b6b;">
+                            💀 ${u.name} (${u.type}) - Requires Resurrection
+                        </div>
+                    `).join('')}` : ''
+                }
+            </div>
+        `;
+
+        const templeButtons = [
+            {
+                text: "Buy Health Potion (25g)",
+                onClick: () => this.buyTempleItem('health_potion', 25)
+            },
+            {
+                text: "Full Heal Hero (50g)",
+                onClick: () => this.buyTempleItem('full_heal_hero', 50)
+            }
+        ];
+
+        // Add party heal button if there are injured party members
+        if (this.gameState.hero.health < this.gameState.hero.maxHealth || injuredUnderlings.length > 0) {
+            templeButtons.push({
+                text: "Heal All Party (100g)",
+                onClick: () => this.buyTempleItem('heal_all_party', 100)
+            });
+        }
+
+        // Add resurrection button if there are fallen underlings
+        if (fallenUnderlings.length > 0) {
+            templeButtons.push({
+                text: "Resurrect Underling (200g)",
+                onClick: () => this.showResurrectionOptions()
+            });
+        }
+
+        // Add equipment management button if there are living underlings
+        if (aliveUnderlings.length > 0) {
+            templeButtons.push({
+                text: "Manage Underling Equipment",
+                onClick: () => this.manageUnderlingEquipment()
+            });
+        }
+
+        templeButtons.push({
+            text: "Leave Temple",
+            onClick: () => this.returnToVillage()
+        });
+
+        this.ui.createModal("Sacred Temple", templeContent, templeButtons);
+    }
+
+    buyTempleItem(itemType, cost) {
+        if (this.gameState.hero.gold < cost) {
+            this.ui.log("Not enough gold!");
+            this.ui.showNotification("Insufficient gold!", "error");
+            return;
+        }
+
+        this.gameState.hero.gold -= cost;
+
+        switch(itemType) {
+            case 'health_potion':
+                this.gameState.hero.equipment.push({
+                    name: "Health Potion",
+                    type: "consumable",
+                    effect: "heal",
+                    value: 50
+                });
+                this.ui.log("Bought Health Potion from the temple!");
+                break;
+            case 'full_heal_hero':
+                const healAmount = this.gameState.hero.maxHealth - this.gameState.hero.health;
+                this.gameState.hero.health = this.gameState.hero.maxHealth;
+                this.ui.log(`Temple blessing received! Restored ${healAmount} HP. You are now at full health (${this.gameState.hero.health}/${this.gameState.hero.maxHealth}).`);
+                break;
+            case 'heal_all_party':
+                const heroHealAmount = this.gameState.hero.maxHealth - this.gameState.hero.health;
+                this.gameState.hero.health = this.gameState.hero.maxHealth;
+                
+                let totalHealed = heroHealAmount;
+                this.gameState.hero.underlings.forEach(underling => {
+                    if (underling.isAlive) {
+                        const underlingHealAmount = underling.maxHealth - underling.health;
+                        underling.health = underling.maxHealth;
+                        totalHealed += underlingHealAmount;
+                    }
+                });
+                
+                this.ui.log(`Divine light heals the entire party! Restored ${totalHealed} total HP across all party members.`);
+                break;
+        }
+
+        this.ui.showNotification("Temple service completed!", "success");
+        this.ui.render();
+        // Refresh the temple modal to show updated stats
+        setTimeout(() => this.openTemple(), 100);
+    }
+
+    showResurrectionOptions() {
+        const fallenUnderlings = this.gameState.hero.underlings.filter(u => !u.isAlive);
+        
+        if (fallenUnderlings.length === 0) {
+            this.ui.log("No fallen underlings to resurrect!");
+            return;
+        }
+
+        const resurrectionContent = `
+            <div style="text-align: center; color: #e6ccff; margin-bottom: 15px;">
+                <h3 style="color: #b18cf2;">⚰️ Resurrection Chamber ⚰️</h3>
+                <p style="font-style: italic;">"Choose wisely, for each soul demands a price"</p>
+            </div>
+            <p><strong>Cost:</strong> 200 gold per resurrection</p>
+            <p><strong>Your Gold:</strong> ${this.gameState.hero.gold}</p>
+            <div style="margin-top: 15px;">
+                <h4>Fallen Underlings:</h4>
+                ${fallenUnderlings.map(underling => `
+                    <div style="background: #4a1a1a; padding: 10px; margin: 8px 0; border-radius: 5px; border: 1px solid #8b4513;">
+                        <strong style="color: #ff6b6b;">💀 ${underling.name}</strong> (${underling.type})
+                        <br><small>Level ${underling.level} | Was ${underling.maxHealth} HP</small>
+                        <br><button onclick="window.game.controller.resurrectUnderling('${underling.id}')" 
+                                  style="margin-top: 5px; padding: 5px 10px; background: #6b4c93; border: 1px solid #9966cc; color: white; border-radius: 3px; cursor: pointer;">
+                            Resurrect (200g)
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        this.ui.createModal("Resurrection Chamber", resurrectionContent, [
+            {
+                text: "Back to Temple",
+                onClick: () => this.openTemple()
+            }
+        ]);
+    }
+
+    resurrectUnderling(underlingId) {
+        const cost = 200;
+        if (this.gameState.hero.gold < cost) {
+            this.ui.log("Not enough gold for resurrection!");
+            this.ui.showNotification("Insufficient gold for resurrection!", "error");
+            return;
+        }
+
+        const underling = this.gameState.hero.underlings.find(u => u.id.toString() === underlingId.toString());
+        if (!underling || underling.isAlive) {
+            this.ui.log("Cannot find fallen underling!");
+            return;
+        }
+
+        this.gameState.hero.gold -= cost;
+        underling.isAlive = true;
+        underling.health = Math.floor(underling.maxHealth * 0.5); // Resurrect with 50% health
+
+        this.ui.log(`${underling.name} has been resurrected! They return with ${underling.health}/${underling.maxHealth} HP.`);
+        this.ui.showNotification(`${underling.name} resurrected!`, "success");
+        this.ui.render();
+        
+        // Return to main temple view
+        setTimeout(() => this.openTemple(), 500);
+    }
+
+    manageUnderlingEquipment() {
+        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+        
+        if (aliveUnderlings.length === 0) {
+            this.ui.log("No living underlings to manage equipment for!");
+            this.ui.showNotification("No living underlings!", "error");
+            return;
+        }
+
+        const equipmentContent = `
+            <div style="text-align: center; color: #e6ccff; margin-bottom: 15px;">
+                <h3 style="color: #b18cf2;">⚔️ Underling Equipment Management ⚔️</h3>
+                <p style="font-style: italic;">"Arm your followers for the battles ahead"</p>
+            </div>
+            <div style="max-height: 400px; overflow-y: auto;">
+                ${aliveUnderlings.map(underling => `
+                    <div style="background: #2a1a3a; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #6b4c93;">
+                        <h4 style="color: #d4af37; margin-bottom: 8px;">${underling.name} (${underling.type})</h4>
+                        <p style="margin-bottom: 8px;">Health: ${underling.health}/${underling.maxHealth} | Level: ${underling.level}</p>
+                        
+                        <div style="display: flex; gap: 15px;">
+                            <div style="flex: 1;">
+                                <h5 style="color: #4ecdc4; margin-bottom: 5px;">Equipped Items:</h5>
+                                ${underling.equipment && underling.equipment.filter(item => item.equipped).length > 0 ?
+                                    underling.equipment.filter(item => item.equipped).map(item => `
+                                        <div style="background: #1a1a2e; padding: 6px; margin: 3px 0; border-radius: 4px; font-size: 12px;">
+                                            <strong>${item.name}</strong> (${item.type})
+                                            ${item.stats ? Object.entries(item.stats).map(([stat, value]) => 
+                                                `<br><small>+${value} ${stat}</small>`).join('') : ''}
+                                            <br><button onclick="window.game.controller.unequipUnderlingItem('${underling.id}', '${item.name}')" 
+                                                      style="margin-top: 3px; padding: 2px 6px; background: #8b4513; border: 1px solid #d4af37; color: white; border-radius: 2px; cursor: pointer; font-size: 10px;">
+                                                Unequip
+                                            </button>
+                                        </div>
+                                    `).join('') :
+                                    '<p style="color: #888; font-size: 12px;">No equipped items</p>'
+                                }
+                            </div>
+                            
+                            <div style="flex: 1;">
+                                <h5 style="color: #4ecdc4; margin-bottom: 5px;">Available Items:</h5>
+                                ${this.getUnderlingCompatibleItems(underling).length > 0 ?
+                                    this.getUnderlingCompatibleItems(underling).map((item, itemIndex) => `
+                                        <div style="background: #1a1a2e; padding: 6px; margin: 3px 0; border-radius: 4px; font-size: 12px;">
+                                            <strong>${item.name}</strong> (${item.type})
+                                            ${item.stats ? Object.entries(item.stats).map(([stat, value]) => 
+                                                `<br><small>+${value} ${stat}</small>`).join('') : ''}
+                                            <br><button onclick="window.game.controller.equipUnderlingItem('${underling.id}', ${itemIndex})" 
+                                                      style="margin-top: 3px; padding: 2px 6px; background: #2a6b2a; border: 1px solid #51cf66; color: white; border-radius: 2px; cursor: pointer; font-size: 10px;">
+                                                Equip
+                                            </button>
+                                        </div>
+                                    `).join('') :
+                                    '<p style="color: #888; font-size: 12px;">No compatible items in inventory</p>'
+                                }
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444; font-size: 11px;">
+                            <strong>Stats with Equipment:</strong>
+                            Attack: ${this.calculateUnderlingStats(underling).attack} | 
+                            Defense: ${this.calculateUnderlingStats(underling).defense} | 
+                            Health: ${this.calculateUnderlingStats(underling).maxHealth}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        this.ui.createModal("Underling Equipment", equipmentContent, [
+            {
+                text: "Back to Temple",
+                onClick: () => this.openTemple()
+            }
+        ]);
+    }
+
+    getUnderlingCompatibleItems(underling) {
+        // Get hero's inventory items that could be equipped by underlings
+        const heroItems = this.gameState.hero.equipment.filter(item => 
+            !item.equipped && 
+            item.type !== 'consumable' &&
+            (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory')
+        );
+        
+        // For now, all non-consumable items can be equipped by underlings
+        // Later can add type restrictions (e.g., mages can't use heavy armor)
+        return heroItems;
+    }
+
+    calculateUnderlingStats(underling) {
+        let baseStats = {
+            attack: underling.attack,
+            defense: underling.defense,
+            maxHealth: underling.maxHealth
+        };
+
+        if (underling.equipment) {
+            underling.equipment.filter(item => item.equipped).forEach(item => {
+                if (item.stats) {
+                    Object.entries(item.stats).forEach(([stat, value]) => {
+                        if (baseStats[stat] !== undefined) {
+                            baseStats[stat] += value;
+                        }
+                    });
+                }
+            });
+        }
+
+        return baseStats;
+    }
+
+    equipUnderlingItem(underlingId, itemIndex) {
+        const underling = this.gameState.hero.underlings.find(u => u.id.toString() === underlingId.toString());
+        if (!underling || !underling.isAlive) {
+            this.ui.log("Cannot find living underling!");
+            return;
+        }
+
+        const availableItems = this.getUnderlingCompatibleItems(underling);
+        const item = availableItems[itemIndex];
+        if (!item) {
+            this.ui.log("Item not found!");
+            return;
+        }
+
+        // Remove from hero's equipment and add to underling's equipment
+        const heroItemIndex = this.gameState.hero.equipment.findIndex(heroItem => heroItem === item);
+        if (heroItemIndex > -1) {
+            this.gameState.hero.equipment.splice(heroItemIndex, 1);
+            
+            // Ensure underling has equipment array
+            if (!underling.equipment) {
+                underling.equipment = [];
+            }
+            
+            // Unequip same type items first
+            underling.equipment.forEach(equippedItem => {
+                if (equippedItem.type === item.type && equippedItem.equipped) {
+                    equippedItem.equipped = false;
+                    // Return to hero's inventory
+                    this.gameState.hero.equipment.push({...equippedItem, equipped: false});
+                }
+            });
+            underling.equipment = underling.equipment.filter(equippedItem => 
+                !(equippedItem.type === item.type && !equippedItem.equipped)
+            );
+            
+            // Equip new item
+            item.equipped = true;
+            underling.equipment.push(item);
+            
+            this.ui.log(`${underling.name} equipped ${item.name}!`);
+            this.ui.showNotification(`${underling.name} equipped ${item.name}!`, "success");
+            this.ui.render();
+            
+            // Refresh equipment modal
+            setTimeout(() => this.manageUnderlingEquipment(), 100);
+        }
+    }
+
+    unequipUnderlingItem(underlingId, itemName) {
+        const underling = this.gameState.hero.underlings.find(u => u.id.toString() === underlingId.toString());
+        if (!underling || !underling.isAlive) {
+            this.ui.log("Cannot find living underling!");
+            return;
+        }
+
+        const item = underling.equipment ? underling.equipment.find(item => item.name === itemName && item.equipped) : null;
+        if (!item) {
+            this.ui.log("Item not found on underling!");
+            return;
+        }
+
+        // Remove from underling and return to hero's inventory
+        const itemIndex = underling.equipment.findIndex(equippedItem => equippedItem === item);
+        if (itemIndex > -1) {
+            underling.equipment.splice(itemIndex, 1);
+            item.equipped = false;
+            this.gameState.hero.equipment.push(item);
+            
+            this.ui.log(`${underling.name} unequipped ${item.name}!`);
+            this.ui.showNotification(`${item.name} returned to inventory!`, "info");
+            this.ui.render();
+            
+            // Refresh equipment modal
+            setTimeout(() => this.manageUnderlingEquipment(), 100);
+        }
     }
 
     openInventory() {

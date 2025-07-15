@@ -444,6 +444,15 @@ body {
             #3a4a2c 100%) !important;
     }
     
+    #sprites-area.temple-background {
+        background: linear-gradient(135deg, 
+            #4a3a4a 0%, 
+            #3d2d3d 25%, 
+            #2f202f 50%, 
+            #3d2d3d 75%, 
+            #4a3a4a 100%) !important;
+    }
+    
     /* Mobile touch improvements */
     #gui button:active {
         transform: translateY(0px) !important;
@@ -537,6 +546,48 @@ body {
     transform: translate(-50%, -50%);
     font-size: 20px;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* Fallen Underling Styles */
+.underling-sprite.fallen-underling {
+    background: 
+        radial-gradient(circle, #8b1538 0%, #660022 70%, #2f0011 100%);
+    border-color: #ff4444;
+    box-shadow: 
+        0 0 15px rgba(139, 21, 56, 0.6),
+        inset 0 0 8px rgba(0, 0, 0, 0.5);
+    opacity: 0.7;
+    animation: fallenPulse 3s ease-in-out infinite alternate;
+}
+
+.underling-sprite.fallen-underling::before {
+    content: '💀';
+    color: #ff4444;
+    font-size: 18px;
+}
+
+@keyframes fallenPulse {
+    0% { 
+        opacity: 0.5;
+        box-shadow: 
+            0 0 10px rgba(139, 21, 56, 0.4),
+            inset 0 0 8px rgba(0, 0, 0, 0.5);
+    }
+    100% { 
+        opacity: 0.8;
+        box-shadow: 
+            0 0 20px rgba(139, 21, 56, 0.8),
+            inset 0 0 12px rgba(0, 0, 0, 0.7);
+    }
+}
+
+.fallen-indicator {
+    animation: fallenTextPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes fallenTextPulse {
+    0% { opacity: 0.7; }
+    100% { opacity: 1; }
 }
 
 .enemy-sprite {
