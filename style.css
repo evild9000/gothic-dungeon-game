@@ -1,0 +1,841 @@
+/* Dungeon Adventure Game Styles - Gothic/Diablo Theme */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Creepster&family=Metal+Mania&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Cinzel', serif;
+    background: 
+        radial-gradient(circle at 20% 20%, rgba(120, 20, 20, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(20, 20, 120, 0.2) 0%, transparent 50%),
+        linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 25%, #0a0a0a 50%, #1a1a0a 75%, #0a0a0a 100%);
+    color: #d4af37;
+    overflow: hidden;
+    user-select: none;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    background-attachment: fixed;
+}
+
+#game-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+}
+
+#gui {
+    background: 
+        linear-gradient(135deg, rgba(40, 20, 10, 0.95) 0%, rgba(20, 10, 5, 0.95) 100%),
+        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="%23000" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="%23000" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    padding: 15px;
+    border-bottom: 3px solid #8b4513;
+    border-image: linear-gradient(90deg, #8b4513, #d4af37, #8b4513) 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(212, 175, 55, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.8);
+    position: relative;
+}
+
+#gui::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 55, 0.1) 50%, transparent 100%);
+    pointer-events: none;
+}
+
+#gui button {
+    background: 
+        linear-gradient(145deg, 
+            rgba(60, 30, 15, 0.9) 0%, 
+            rgba(40, 20, 10, 0.9) 25%, 
+            rgba(20, 10, 5, 0.9) 75%, 
+            rgba(10, 5, 2, 0.9) 100%);
+    border: 2px solid #8b4513;
+    border-image: linear-gradient(45deg, #8b4513, #d4af37, #8b4513) 1;
+    color: #d4af37;
+    padding: 12px 18px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.4s ease;
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(212, 175, 55, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.8);
+    position: relative;
+    overflow: hidden;
+}
+
+#gui button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+#gui button:hover {
+    background: 
+        linear-gradient(145deg, 
+            rgba(80, 40, 20, 0.9) 0%, 
+            rgba(60, 30, 15, 0.9) 25%, 
+            rgba(40, 20, 10, 0.9) 75%, 
+            rgba(20, 10, 5, 0.9) 100%);
+    transform: translateY(-3px);
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(212, 175, 55, 0.4),
+        0 0 20px rgba(212, 175, 55, 0.3);
+    color: #fff;
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.8);
+}
+
+#gui button:hover::before {
+    left: 100%;
+}
+
+#gui button:active {
+    transform: translateY(-1px);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.8),
+        inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+#gui button:disabled {
+    background: 
+        linear-gradient(145deg, 
+            rgba(30, 15, 8, 0.6) 0%, 
+            rgba(20, 10, 5, 0.6) 50%, 
+            rgba(10, 5, 2, 0.6) 100%) !important;
+    color: #666 !important;
+    cursor: not-allowed !important;
+    border-color: #444 !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
+    transform: none !important;
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.6),
+        0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+#gui button:disabled::before {
+    display: none;
+}
+
+#gui button:disabled:hover {
+    background: 
+        linear-gradient(145deg, 
+            rgba(30, 15, 8, 0.6) 0%, 
+            rgba(20, 10, 5, 0.6) 50%, 
+            rgba(10, 5, 2, 0.6) 100%) !important;
+    transform: none !important;
+    color: #666 !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.6),
+        0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Combat Interface Styling */
+.combat-interface {
+    font-family: 'Cinzel', serif;
+    color: #d4af37;
+}
+
+.combat-interface h4 {
+    color: #ff6b35;
+    text-align: center;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    font-size: 1.4em;
+    margin-bottom: 15px;
+}
+
+.enemy-list {
+    background: rgba(20, 10, 5, 0.8);
+    border: 1px solid #8b4513;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 10px 0;
+    list-style: none;
+}
+
+.enemy-list li {
+    color: #ff4444;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    margin: 8px 0;
+    padding: 5px;
+    background: rgba(139, 0, 0, 0.3);
+    border-radius: 4px;
+    border-left: 3px solid #ff4444;
+}
+
+.underling-list {
+    background: rgba(5, 20, 10, 0.8);
+    border: 1px solid #4b8513;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 10px 0;
+    list-style: none;
+}
+
+.underling-list li {
+    color: #44ff44;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    margin: 8px 0;
+    padding: 5px;
+    background: rgba(0, 139, 0, 0.3);
+    border-radius: 4px;
+    border-left: 3px solid #44ff44;
+}
+
+.victory-interface {
+    font-family: 'Cinzel', serif;
+    color: #d4af37;
+    text-align: center;
+}
+
+.victory-interface h4 {
+    color: #32cd32;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    font-size: 1.5em;
+}
+
+/* Modal styling improvements for combat */
+.modal-content {
+    background: linear-gradient(145deg, 
+        rgba(30, 15, 8, 0.95) 0%, 
+        rgba(20, 10, 5, 0.95) 50%, 
+        rgba(10, 5, 2, 0.95) 100%) !important;
+    border: 2px solid #8b4513 !important;
+    box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(212, 175, 55, 0.3) !important;
+}
+
+#sprites-area {
+    flex: 1;
+    background: 
+        radial-gradient(ellipse at center, rgba(40, 20, 10, 0.3) 0%, rgba(10, 5, 2, 0.8) 70%),
+        linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 25%, #0a0a0a 50%, #1a1a0a 75%, #0a0a0a 100%);
+    position: relative;
+    overflow: hidden;
+    border: 3px solid #8b4513;
+    border-image: linear-gradient(45deg, #8b4513, #d4af37, #8b4513) 1;
+    box-shadow: 
+        inset 0 0 50px rgba(0, 0, 0, 0.8),
+        inset 0 0 100px rgba(139, 69, 19, 0.2);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: background-image 1s ease-in-out;
+}
+
+/* Background overlay for different game states */
+#sprites-area::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 30% 40%, rgba(212, 175, 55, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 70% 60%, rgba(139, 69, 19, 0.1) 0%, transparent 40%);
+    pointer-events: none;
+    animation: mysticalGlow 8s ease-in-out infinite alternate;
+    z-index: 1;
+}
+
+/* Game state specific background overlays */
+#sprites-area.village-background::before {
+    background: 
+        radial-gradient(circle at 30% 40%, rgba(212, 175, 55, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 70% 60%, rgba(139, 69, 19, 0.1) 0%, transparent 40%),
+        linear-gradient(to bottom, rgba(135, 206, 235, 0.1) 0%, transparent 30%);
+}
+
+#sprites-area.dungeon-background::before {
+    background: 
+        radial-gradient(circle at 50% 80%, rgba(139, 0, 0, 0.3) 0%, transparent 60%),
+        radial-gradient(circle at 20% 20%, rgba(75, 0, 130, 0.2) 0%, transparent 50%),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(20, 0, 0, 0.3) 100%);
+    animation: dungeonGlow 6s ease-in-out infinite alternate;
+}
+
+#sprites-area.shop-background::before {
+    background: 
+        radial-gradient(circle at 40% 30%, rgba(255, 215, 0, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(139, 69, 19, 0.15) 0%, transparent 40%),
+        linear-gradient(to bottom, rgba(160, 82, 45, 0.1) 0%, transparent 50%);
+}
+
+#sprites-area.crafting-background::before {
+    background: 
+        radial-gradient(circle at 60% 40%, rgba(255, 69, 0, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 30% 70%, rgba(255, 140, 0, 0.15) 0%, transparent 40%),
+        linear-gradient(to bottom, rgba(139, 69, 19, 0.2) 0%, transparent 60%);
+    animation: forgeGlow 4s ease-in-out infinite alternate;
+}
+
+#sprites-area.recruitment-background::before {
+    background: 
+        radial-gradient(circle at 50% 30%, rgba(0, 100, 0, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 20% 80%, rgba(34, 139, 34, 0.15) 0%, transparent 40%),
+        linear-gradient(to bottom, rgba(0, 128, 0, 0.1) 0%, transparent 50%);
+}
+
+@keyframes dungeonGlow {
+    0% { 
+        background: 
+            radial-gradient(circle at 50% 80%, rgba(139, 0, 0, 0.3) 0%, transparent 60%),
+            radial-gradient(circle at 20% 20%, rgba(75, 0, 130, 0.2) 0%, transparent 50%),
+            linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(20, 0, 0, 0.3) 100%);
+    }
+    100% { 
+        background: 
+            radial-gradient(circle at 50% 80%, rgba(139, 0, 0, 0.5) 0%, transparent 70%),
+            radial-gradient(circle at 20% 20%, rgba(75, 0, 130, 0.3) 0%, transparent 60%),
+            linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 0%, rgba(30, 0, 0, 0.4) 100%);
+    }
+}
+
+@keyframes forgeGlow {
+    0% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+@keyframes mysticalGlow {
+    0% { opacity: 0.3; }
+    100% { opacity: 0.7; }
+}
+
+#chat-log {
+    background: 
+        linear-gradient(135deg, rgba(10, 5, 2, 0.95) 0%, rgba(20, 10, 5, 0.95) 100%),
+        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50"><text x="10" y="40" font-family="serif" font-size="40" fill="%23000" opacity="0.05">⚔</text></svg>');
+    border-top: 3px solid #8b4513;
+    border-image: linear-gradient(90deg, #8b4513, #d4af37, #8b4513) 1;
+    padding: 15px;
+    height: 180px;
+    overflow-y: auto;
+    font-family: 'Metal Mania', cursive;
+    font-size: 16px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    color: #d4af37;
+    text-shadow: 
+        2px 2px 4px rgba(0, 0, 0, 0.8),
+        0 0 10px rgba(212, 175, 55, 0.3);
+    box-shadow: 
+        inset 0 4px 8px rgba(0, 0, 0, 0.6),
+        inset 0 0 20px rgba(139, 69, 19, 0.2);
+}
+
+/* Scrollbar styling for chat log */
+#chat-log::-webkit-scrollbar {
+    width: 12px;
+}
+
+#chat-log::-webkit-scrollbar-track {
+    background: linear-gradient(180deg, #1a0a0a, #0a0a0a);
+    border-radius: 6px;
+}
+
+#chat-log::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #8b4513, #d4af37);
+    border-radius: 6px;
+    border: 1px solid #5a2d0a;
+}
+
+#chat-log::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #d4af37, #8b4513);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    #gui {
+        padding: 5px;
+        gap: 5px;
+    }
+    
+    #gui button {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    #chat-log {
+        height: 120px;
+        font-size: 11px;
+    }
+}
+
+/* Game-specific styles */
+.sprite {
+    position: absolute;
+    transition: all 0.4s ease;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.8));
+    z-index: 10; /* Ensure sprites appear above background */
+}
+
+.hero-sprite {
+    width: 60px;
+    height: 60px;
+    background: 
+        radial-gradient(circle, #d4af37 0%, #b8860b  70%, #8b4513 100%);
+    border-radius: 50%;
+    border: 4px solid #fff;
+    box-shadow: 
+        0 0 20px rgba(212, 175, 55, 0.8),
+        inset 0 0 10px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.hero-sprite::before {
+    content: '⚔';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.underling-sprite {
+    width: 50px;
+    height: 50px;
+    background: 
+        radial-gradient(circle, #228b22 0%, #006400 70%, #2f4f2f 100%);
+    border-radius: 50%;
+    border: 3px solid #98fb98;
+    box-shadow: 
+        0 0 15px rgba(34, 139, 34, 0.6),
+        inset 0 0 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.underling-sprite::before {
+    content: '🛡';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.enemy-sprite {
+    width: 55px;
+    height: 55px;
+    background: 
+        radial-gradient(circle, #8b0000 0%, #660000 70%, #2f0000 100%);
+    border-radius: 50%;
+    border: 3px solid #ff6347;
+    box-shadow: 
+        0 0 20px rgba(139, 0, 0, 0.8),
+        inset 0 0 10px rgba(0, 0, 0, 0.4);
+    position: relative;
+    animation: enemyPulse 2s ease-in-out infinite alternate;
+}
+
+.enemy-sprite::before {
+    content: '💀';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 22px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+@keyframes enemyPulse {
+    0% { 
+        box-shadow: 
+            0 0 20px rgba(139, 0, 0, 0.8),
+            inset 0 0 10px rgba(0, 0, 0, 0.4);
+    }
+    100% { 
+        box-shadow: 
+            0 0 30px rgba(139, 0, 0, 1),
+            inset 0 0 15px rgba(0, 0, 0, 0.6);
+    }
+}
+
+/* Hit Point Indicators */
+.hp-indicator {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(20, 20, 20, 0.9) 100%);
+    color: #d4af37;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 8px;
+    border: 1px solid #8b4513;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(212, 175, 55, 0.3);
+    white-space: nowrap;
+    z-index: 15;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
+    animation: hpFloat 2s ease-in-out infinite alternate;
+}
+
+.hp-indicator.low-health {
+    color: #ff4444;
+    border-color: #cc0000;
+    background: linear-gradient(135deg, rgba(20, 0, 0, 0.9) 0%, rgba(40, 0, 0, 0.9) 100%);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(255, 68, 68, 0.3),
+        0 0 8px rgba(255, 68, 68, 0.4);
+    animation: hpFloatDanger 1.5s ease-in-out infinite alternate;
+}
+
+.hp-indicator.critical-health {
+    color: #ff1111;
+    border-color: #ff0000;
+    background: linear-gradient(135deg, rgba(40, 0, 0, 0.9) 0%, rgba(60, 0, 0, 0.9) 100%);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(255, 17, 17, 0.4),
+        0 0 12px rgba(255, 17, 17, 0.6);
+    animation: hpFloatCritical 1s ease-in-out infinite alternate;
+}
+
+@keyframes hpFloat {
+    0% { 
+        transform: translateX(-50%) translateY(0px);
+        opacity: 0.9;
+    }
+    100% { 
+        transform: translateX(-50%) translateY(-2px);
+        opacity: 1;
+    }
+}
+
+@keyframes hpFloatDanger {
+    0% { 
+        transform: translateX(-50%) translateY(0px);
+        opacity: 0.9;
+    }
+    100% { 
+        transform: translateX(-50%) translateY(-3px);
+        opacity: 1;
+    }
+}
+
+@keyframes hpFloatCritical {
+    0% { 
+        transform: translateX(-50%) translateY(-1px);
+        opacity: 0.8;
+    }
+    100% { 
+        transform: translateX(-50%) translateY(-4px);
+        opacity: 1;
+    }
+}
+
+/* Animation classes */
+.fade-in {
+    animation: fadeIn 0.8s ease-in;
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: scale(0.8) rotateY(180deg); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1) rotateY(0deg); 
+    }
+}
+
+.shake {
+    animation: shake 0.6s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    25% { transform: translateX(-8px) rotate(-2deg); }
+    75% { transform: translateX(8px) rotate(2deg); }
+}
+
+/* Modal improvements */
+.modal-overlay {
+    backdrop-filter: blur(5px);
+    background: rgba(0, 0, 0, 0.8) !important;
+}
+
+.modal-content {
+    max-height: 80vh;
+    overflow-y: auto;
+    background: 
+        linear-gradient(135deg, rgba(40, 20, 10, 0.95) 0%, rgba(20, 10, 5, 0.95) 100%) !important;
+    border: 3px solid #8b4513 !important;
+    border-image: linear-gradient(45deg, #8b4513, #d4af37, #8b4513) 1 !important;
+    border-radius: 15px !important;
+    box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(212, 175, 55, 0.3),
+        0 0 50px rgba(212, 175, 55, 0.2) !important;
+    font-family: 'Cinzel', serif !important;
+    color: #d4af37 !important;
+}
+
+.modal-content h3, .modal-content h4, .modal-content h5 {
+    font-family: 'Metal Mania', cursive !important;
+    color: #d4af37 !important;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8) !important;
+    margin-bottom: 15px !important;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+.modal-content button {
+    background: 
+        linear-gradient(145deg, 
+            rgba(60, 30, 15, 0.9) 0%, 
+            rgba(40, 20, 10, 0.9) 50%, 
+            rgba(20, 10, 5, 0.9) 100%) !important;
+    border: 2px solid #8b4513 !important;
+    color: #d4af37 !important;
+    padding: 10px 16px !important;
+    border-radius: 8px !important;
+    font-family: 'Cinzel', serif !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(212, 175, 55, 0.2) !important;
+}
+
+.modal-content button:hover {
+    background: 
+        linear-gradient(145deg, 
+            rgba(80, 40, 20, 0.9) 0%, 
+            rgba(60, 30, 15, 0.9) 50%, 
+            rgba(40, 20, 10, 0.9) 100%) !important;
+    color: #fff !important;
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.8) !important;
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(212, 175, 55, 0.4),
+        0 0 20px rgba(212, 175, 55, 0.3) !important;
+}
+
+/* Button variations */
+#inventory-btn {
+    background: 
+        linear-gradient(145deg, 
+            rgba(75, 0, 130, 0.9) 0%, 
+            rgba(50, 0, 100, 0.9) 50%, 
+            rgba(25, 0, 50, 0.9) 100%) !important;
+    border-color: #9370db !important;
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(147, 112, 219, 0.3),
+        0 0 15px rgba(147, 112, 219, 0.2) !important;
+}
+
+#inventory-btn:hover {
+    background: 
+        linear-gradient(145deg, 
+            rgba(100, 25, 155, 0.9) 0%, 
+            rgba(75, 0, 130, 0.9) 50%, 
+            rgba(50, 0, 100, 0.9) 100%) !important;
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(147, 112, 219, 0.4),
+        0 0 25px rgba(147, 112, 219, 0.4) !important;
+}
+
+#character-btn {
+    background: 
+        linear-gradient(145deg, 
+            rgba(70, 130, 180, 0.9) 0%, 
+            rgba(41, 98, 139, 0.9) 50%, 
+            rgba(25, 60, 85, 0.9) 100%) !important;
+    border-color: #4682b4 !important;
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(70, 130, 180, 0.3),
+        0 0 15px rgba(70, 130, 180, 0.2) !important;
+}
+
+#character-btn:hover {
+    background: 
+        linear-gradient(145deg, 
+            rgba(95, 155, 205, 0.9) 0%, 
+            rgba(70, 130, 180, 0.9) 50%, 
+            rgba(41, 98, 139, 0.9) 100%) !important;
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(70, 130, 180, 0.4),
+        0 0 25px rgba(70, 130, 180, 0.4) !important;
+}
+
+/* Character stats styling */
+.stat-bar {
+    background: 
+        linear-gradient(90deg, rgba(20, 10, 5, 0.9), rgba(40, 20, 10, 0.9));
+    border: 2px solid #8b4513;
+    border-radius: 6px;
+    overflow: hidden;
+    height: 24px;
+    margin: 8px 0;
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.6),
+        0 1px 0 rgba(212, 175, 55, 0.2);
+}
+
+.stat-fill {
+    height: 100%;
+    background: 
+        linear-gradient(90deg, #8b4513 0%, #d4af37 50%, #8b4513 100%);
+    transition: width 0.5s ease;
+    box-shadow: 
+        inset 0 1px 0 rgba(212, 175, 55, 0.4),
+        0 0 10px rgba(212, 175, 55, 0.3);
+    position: relative;
+}
+
+.stat-fill::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Equipment slot styling */
+.equipment-slot {
+    border: 3px dashed #8b4513;
+    padding: 15px;
+    margin: 8px;
+    border-radius: 10px;
+    text-align: center;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.4s ease;
+    background: 
+        linear-gradient(135deg, rgba(20, 10, 5, 0.5), rgba(40, 20, 10, 0.5));
+    font-family: 'Cinzel', serif;
+    color: #8b4513;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.equipment-slot.filled {
+    border: 3px solid #d4af37;
+    background: 
+        linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(139, 69, 19, 0.2));
+    color: #d4af37;
+    box-shadow: 
+        0 0 20px rgba(212, 175, 55, 0.3),
+        inset 0 1px 0 rgba(212, 175, 55, 0.2);
+}
+
+.equipment-slot:hover {
+    background: 
+        linear-gradient(135deg, rgba(40, 20, 10, 0.7), rgba(60, 30, 15, 0.7));
+    border-color: #d4af37;
+    color: #d4af37;
+    box-shadow: 
+        0 0 15px rgba(212, 175, 55, 0.4),
+        inset 0 0 10px rgba(212, 175, 55, 0.1);
+    transform: scale(1.02);
+}
+
+/* Responsive design enhancements */
+@media (max-width: 768px) {
+    #gui {
+        padding: 8px;
+        gap: 8px;
+    }
+    
+    #gui button {
+        padding: 10px 14px;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
+    
+    #chat-log {
+        height: 140px;
+        font-size: 12px;
+        padding: 12px;
+    }
+    
+    .sprite {
+        transform: scale(0.8);
+    }
+    
+    .modal-content {
+        margin: 10px !important;
+        padding: 15px !important;
+    }
+}
+
+/* Additional gothic elements */
+#game-container::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 10% 20%, rgba(139, 69, 19, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(212, 175, 55, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(0, 0, 0, 0.3) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+    animation: atmosphericShift 15s ease-in-out infinite alternate;
+}
+
+@keyframes atmosphericShift {
+    0% { opacity: 0.5; }
+    100% { opacity: 0.8; }
+}
