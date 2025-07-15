@@ -1209,6 +1209,70 @@ body {
     transform: translateY(-2px);
 }
 
+/* Combat-specific docked panel styles */
+.docked-combat-interface {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.docked-combat-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.docked-combat-btn {
+    background: linear-gradient(145deg, 
+        rgba(60, 30, 15, 0.9) 0%, 
+        rgba(40, 20, 10, 0.9) 50%, 
+        rgba(20, 10, 5, 0.9) 100%);
+    border: 2px solid #8b4513;
+    color: #d4af37;
+    padding: 15px 20px;
+    border-radius: 8px;
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.docked-combat-btn:hover {
+    background: linear-gradient(145deg, 
+        rgba(80, 40, 20, 0.9) 0%, 
+        rgba(60, 30, 15, 0.9) 50%, 
+        rgba(40, 20, 10, 0.9) 100%);
+    color: #fff;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+    transform: translateY(-2px);
+    border-color: #d4af37;
+}
+
+.docked-combat-btn.attack-btn:hover {
+    box-shadow: 0 0 15px rgba(255, 100, 100, 0.4);
+    border-color: #ff6464;
+}
+
+.docked-combat-btn.defend-btn:hover {
+    box-shadow: 0 0 15px rgba(100, 150, 255, 0.4);
+    border-color: #6496ff;
+}
+
+.docked-combat-btn.item-btn:hover {
+    box-shadow: 0 0 15px rgba(100, 255, 100, 0.4);
+    border-color: #64ff64;
+}
+
+.docked-combat-btn.flee-btn:hover {
+    box-shadow: 0 0 15px rgba(255, 255, 100, 0.4);
+    border-color: #ffff64;
+}
+
 /* Game area adjustment when panel is active */
 body.combat-panel-active #game-container {
     padding-right: 350px;

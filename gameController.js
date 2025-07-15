@@ -204,26 +204,8 @@ class GameController {
             </div>
         `;
 
-        const combatButtons = [
-            {
-                text: "⚔️ Attack",
-                onClick: () => this.playerAttack()
-            },
-            {
-                text: "🛡️ Defend",
-                onClick: () => this.playerDefend()
-            },
-            {
-                text: "🧪 Use Item",
-                onClick: () => this.showCombatItemSelection()
-            },
-            {
-                text: "💨 Flee",
-                onClick: () => this.playerFlee()
-            }
-        ];
-
-        this.ui.createModal("Combat", combatContent, combatButtons);
+        // Show combat as docked panel instead of modal
+        this.showDockedCombatPanel([combatContent], 'combat');
     }
 
     playerAttack() {
@@ -442,20 +424,31 @@ class GameController {
                     `).join('')}
                 </div>
             `;
+        } else if (panelType === 'combat') {
+            headerText = '⚔️ Combat';
+            panelContent = `
+                <div class="docked-combat-interface">
+                    ${items[0]}
+                    <div class="docked-combat-actions">
+                        <button class="docked-combat-btn attack-btn" onclick="gameController.playerAttack()">⚔️ Attack</button>
+                        <button class="docked-combat-btn defend-btn" onclick="gameController.playerDefend()">🛡️ Defend</button>
+                        <button class="docked-combat-btn item-btn" onclick="gameController.showCombatItemSelection()">🧪 Use Item</button>
+                        <button class="docked-combat-btn flee-btn" onclick="gameController.playerFlee()">💨 Flee</button>
+                    </div>
+                </div>
+            `;
         }
 
         const panelHtml = `
             <div id="combat-docked-panel" class="combat-docked-panel">
                 <div class="docked-panel-header">
                     <h3>${headerText}</h3>
-                    <button class="docked-panel-close" onclick="gameController.closeDockedCombatPanel()">&times;</button>
+                    ${panelType !== 'combat' ? '<button class="docked-panel-close" onclick="gameController.closeDockedCombatPanel()">&times;</button>' : ''}
                 </div>
                 <div class="docked-panel-content">
                     ${panelContent}
                 </div>
-                <div class="docked-panel-footer">
-                    <button onclick="gameController.closeDockedCombatPanel()">Cancel</button>
-                </div>
+                ${panelType !== 'combat' ? '<div class="docked-panel-footer"><button onclick="gameController.closeDockedCombatPanel()">Cancel</button></div>' : ''}
             </div>
         `;
 
@@ -675,6 +668,9 @@ class GameController {
         this.ui.log("Your party has been defeated!");
         this.ui.showNotification("Party defeated! Awakening in the temple...", "error");
         
+        // Close the docked combat panel since combat is over
+        this.closeDockedCombatPanel();
+        
         // Close any open modals
         const existingModals = document.querySelectorAll('.modal-overlay');
         existingModals.forEach(modal => modal.remove());
@@ -715,6 +711,9 @@ class GameController {
     }
 
     showVictoryOptions() {
+        // Close the docked combat panel since combat is over
+        this.closeDockedCombatPanel();
+        
         const victoryContent = `
             <div class="victory-interface">
                 <h4>🎉 Victory!</h4>
