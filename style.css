@@ -733,15 +733,16 @@ body {
 
 /* Modal improvements */
 .modal-overlay {
-    backdrop-filter: blur(5px);
-    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(2px);
+    background: rgba(0, 0, 0, 0.4) !important;
 }
 
 .modal-content {
-    max-height: 80vh;
+    max-height: 60vh;
+    max-width: 400px;
     overflow-y: auto;
     background: 
-        linear-gradient(135deg, rgba(40, 20, 10, 0.95) 0%, rgba(20, 10, 5, 0.95) 100%) !important;
+        linear-gradient(135deg, rgba(40, 20, 10, 0.98) 0%, rgba(20, 10, 5, 0.98) 100%) !important;
     border: 3px solid #8b4513 !important;
     border-image: linear-gradient(45deg, #8b4513, #d4af37, #8b4513) 1 !important;
     border-radius: 15px !important;
@@ -751,6 +752,10 @@ body {
         0 0 50px rgba(212, 175, 55, 0.2) !important;
     font-family: 'Cinzel', serif !important;
     color: #d4af37 !important;
+    margin: auto;
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .modal-content h3, .modal-content h4, .modal-content h5 {
@@ -979,4 +984,180 @@ body {
 @keyframes atmosphericShift {
     0% { opacity: 0.5; }
     100% { opacity: 0.8; }
+}
+
+/* Combat Side Modal Styles */
+.combat-side-modal {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 320px;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(3px);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-start;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.combat-modal-content {
+    background: linear-gradient(135deg, 
+        rgba(40, 20, 10, 0.95) 0%, 
+        rgba(20, 10, 5, 0.95) 100%);
+    border: 3px solid #8b4513;
+    border-radius: 12px;
+    padding: 20px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(212, 175, 55, 0.3);
+    font-family: 'Cinzel', serif;
+    color: #d4af37;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #8b4513;
+    padding-bottom: 10px;
+}
+
+.modal-header h4 {
+    margin: 0;
+    font-family: 'Metal Mania', cursive;
+    color: #d4af37;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #d4af37;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    background: rgba(139, 69, 19, 0.5);
+    color: #fff;
+    transform: rotate(90deg);
+}
+
+.item-list, .target-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 15px 0;
+}
+
+.combat-item-option, .combat-target-option {
+    background: rgba(20, 10, 5, 0.7);
+    border: 1px solid #8b4513;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 8px 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.combat-item-option:hover, .combat-target-option:hover {
+    background: rgba(40, 20, 10, 0.8);
+    border-color: #d4af37;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+    transform: translateX(5px);
+}
+
+.item-info, .target-info {
+    font-size: 14px;
+}
+
+.item-info strong, .target-info strong {
+    color: #4ecdc4;
+    font-size: 16px;
+}
+
+.item-owner, .target-health {
+    color: #888;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.item-effect {
+    color: #d4af37;
+    font-size: 12px;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.target-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-footer {
+    border-top: 2px solid #8b4513;
+    padding-top: 15px;
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.modal-footer button {
+    background: linear-gradient(145deg, 
+        rgba(60, 30, 15, 0.9) 0%, 
+        rgba(40, 20, 10, 0.9) 50%, 
+        rgba(20, 10, 5, 0.9) 100%);
+    border: 2px solid #8b4513;
+    color: #d4af37;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.modal-footer button:hover {
+    background: linear-gradient(145deg, 
+        rgba(80, 40, 20, 0.9) 0%, 
+        rgba(60, 30, 15, 0.9) 50%, 
+        rgba(40, 20, 10, 0.9) 100%);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+/* Mobile responsive for combat modals */
+@media (max-width: 768px) {
+    .combat-side-modal {
+        width: 100%;
+        padding: 10px;
+    }
+    
+    .combat-modal-content {
+        max-height: 70vh;
+        padding: 15px;
+    }
+    
+    .modal-header h4 {
+        font-size: 16px;
+    }
+    
+    .item-list, .target-list {
+        max-height: 250px;
+    }
 }

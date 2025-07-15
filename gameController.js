@@ -359,25 +359,15 @@ class GameController {
         }
 
         const itemContent = `
-            <div style="text-align: center; color: #e6ccff; margin-bottom: 15px;">
-                <h3 style="color: #b18cf2;">🧪 Use Item in Combat 🧪</h3>
-                <p style="font-style: italic;">"Choose an item and target wisely"</p>
+            <div style="text-align: center; margin-bottom: 10px;">
+                <h4 style="color: #d4af37; margin: 0;">🧪 Use Item</h4>
             </div>
-            <div style="max-height: 300px; overflow-y: auto;">
-                <h4 style="color: #d4af37; margin-bottom: 10px;">Available Items:</h4>
+            <div style="max-height: 250px; overflow-y: auto;">
                 ${allConsumables.map((item, index) => `
-                    <div style="background: #2a1a3a; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid #6b4c93;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <strong style="color: #4ecdc4;">${item.name}</strong>
-                                <small style="color: #888;"> (${item.owner ? `${item.owner}'s` : 'Hero\'s'})</small>
-                                <br><small style="color: #d4af37;">Effect: ${item.effect} ${item.value || ''}</small>
-                            </div>
-                            <button onclick="window.game.controller.selectCombatItem(${index})" 
-                                    style="padding: 6px 12px; background: #2a6b2a; border: 1px solid #51cf66; color: white; border-radius: 4px; cursor: pointer;">
-                                Use Item
-                            </button>
-                        </div>
+                    <div style="background: #2a1a3a; padding: 8px; margin: 5px 0; border-radius: 4px; border: 1px solid #6b4c93; cursor: pointer;" onclick="window.game.controller.selectCombatItem(${index})">
+                        <div style="color: #4ecdc4; font-weight: bold;">${item.name}</div>
+                        <div style="color: #888; font-size: 12px;">${item.owner ? `${item.owner}'s` : 'Hero\'s'}</div>
+                        <div style="color: #d4af37; font-size: 12px;">${item.effect} ${item.value || ''}</div>
                     </div>
                 `).join('')}
             </div>
@@ -421,26 +411,15 @@ class GameController {
         }))];
 
         const targetContent = `
-            <div style="text-align: center; color: #e6ccff; margin-bottom: 15px;">
-                <h3 style="color: #b18cf2;">🎯 Select Target 🎯</h3>
-                <p style="font-style: italic;">Using: <strong style="color: #4ecdc4;">${item.name}</strong></p>
-                <p style="color: #d4af37;">Effect: ${item.effect} ${item.value || ''}</p>
+            <div style="text-align: center; margin-bottom: 10px;">
+                <h4 style="color: #d4af37; margin: 0;">🎯 Select Target</h4>
+                <div style="color: #4ecdc4; font-size: 14px;">Using: ${item.name}</div>
             </div>
-            <div style="max-height: 250px; overflow-y: auto;">
-                <h4 style="color: #d4af37; margin-bottom: 10px;">Choose Target:</h4>
+            <div style="max-height: 200px; overflow-y: auto;">
                 ${allTargets.map((target, index) => `
-                    <div style="background: #2a1a3a; padding: 10px; margin: 6px 0; border-radius: 6px; border: 1px solid #6b4c93;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <strong style="color: ${target.isHero ? '#d4af37' : '#4ecdc4'};">${target.name}</strong>
-                                ${target.isHero ? ' 👑' : ' 🛡️'}
-                                <br><small style="color: #888;">Health: ${target.health}/${target.maxHealth}</small>
-                            </div>
-                            <button onclick="window.game.controller.useCombatItemOnTarget(${itemIndex}, ${index})" 
-                                    style="padding: 6px 12px; background: #b18cf2; border: 1px solid #d4af37; color: white; border-radius: 4px; cursor: pointer;">
-                                Use Here
-                            </button>
-                        </div>
+                    <div style="background: #2a1a3a; padding: 8px; margin: 5px 0; border-radius: 4px; border: 1px solid #6b4c93; cursor: pointer;" onclick="window.game.controller.useCombatItemOnTarget(${itemIndex}, ${index})">
+                        <div style="color: ${target.isHero ? '#d4af37' : '#4ecdc4'}; font-weight: bold;">${target.name} ${target.isHero ? '👑' : '🛡️'}</div>
+                        <div style="color: #888; font-size: 12px;">Health: ${target.health}/${target.maxHealth}</div>
                     </div>
                 `).join('')}
             </div>
