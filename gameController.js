@@ -9,6 +9,8 @@ class GameController {
                 gold: 100,
                 health: 100,
                 maxHealth: 100,
+                mana: 100,
+                maxMana: 100,
                 leadership: 1,
                 equipment: [],
                 skills: [],
@@ -37,6 +39,8 @@ class GameController {
                 gold: 100,
                 health: 100,
                 maxHealth: 100,
+                mana: 100,
+                maxMana: 100,
                 leadership: 1,
                 equipment: [],
                 skills: [],
@@ -71,6 +75,14 @@ class GameController {
             if (data) {
                 this.gameState = JSON.parse(data);
                 
+                // Ensure backward compatibility - fix hero without mana
+                if (!this.gameState.hero.mana) {
+                    this.gameState.hero.mana = this.gameState.hero.maxMana || 100;
+                }
+                if (!this.gameState.hero.maxMana) {
+                    this.gameState.hero.maxMana = 100;
+                }
+                
                 // Ensure backward compatibility - fix underlings without new properties
                 this.gameState.hero.underlings.forEach(underling => {
                     if (!underling.maxHealth) {
@@ -81,6 +93,12 @@ class GameController {
                     }
                     if (!underling.equipment) {
                         underling.equipment = [];
+                    }
+                    if (!underling.mana) {
+                        underling.mana = underling.maxMana || 50;
+                    }
+                    if (!underling.maxMana) {
+                        underling.maxMana = 50;
                     }
                 });
                 
@@ -723,8 +741,88 @@ class GameController {
         // Return to village background
         this.ui.setBackground('village');
         
+        // Restore 25% HP and mana for hero and underlings
+        this.restorePartyAfterDungeon();
+        
         this.ui.log("You exit the dungeon.");
         this.ui.render();
+    }
+
+    restorePartyAfterDungeon() {
+        let restoredMembers = [];
+        
+        // Restore hero's HP and mana
+        const heroHpBefore = this.gameState.hero.health;
+        const heroManaBefore = this.gameState.hero.mana || 0;
+        
+        const heroHpRestore = Math.floor(this.gameState.hero.maxHealth * 0.25);
+        const heroManaRestore = Math.floor((this.gameState.hero.maxMana || 100) * 0.25);
+        
+        this.gameState.hero.health = Math.min(
+            this.gameState.hero.health + heroHpRestore, 
+            this.gameState.hero.maxHealth
+        );
+        
+        if (this.gameState.hero.maxMana) {
+            this.gameState.hero.mana = Math.min(
+                (this.gameState.hero.mana || 0) + heroManaRestore, 
+                this.gameState.hero.maxMana
+            );
+        }
+        
+        // Track if hero was actually healed
+        if (heroHpBefore < this.gameState.hero.maxHealth || (this.gameState.hero.maxMana && heroManaBefore < this.gameState.hero.maxMana)) {
+            const heroHpGained = this.gameState.hero.health - heroHpBefore;
+            const heroManaGained = (this.gameState.hero.mana || 0) - heroManaBefore;
+            
+            let restoreText = `${this.gameState.hero.name || 'Hero'}`;
+            if (heroHpGained > 0) restoreText += ` +${heroHpGained} HP`;
+            if (heroManaGained > 0) restoreText += ` +${heroManaGained} MP`;
+            
+            restoredMembers.push(restoreText);
+        }
+        
+        // Restore underlings' HP and mana
+        this.gameState.hero.underlings.forEach(underling => {
+            if (underling.isAlive) {
+                const underlingHpBefore = underling.health;
+                const underlingManaBefore = underling.mana || 0;
+                
+                const underlingHpRestore = Math.floor(underling.maxHealth * 0.25);
+                const underlingManaRestore = Math.floor((underling.maxMana || 50) * 0.25);
+                
+                underling.health = Math.min(
+                    underling.health + underlingHpRestore, 
+                    underling.maxHealth
+                );
+                
+                if (underling.maxMana) {
+                    underling.mana = Math.min(
+                        (underling.mana || 0) + underlingManaRestore, 
+                        underling.maxMana
+                    );
+                }
+                
+                // Track if underling was actually healed
+                if (underlingHpBefore < underling.maxHealth || (underling.maxMana && underlingManaBefore < underling.maxMana)) {
+                    const underlingHpGained = underling.health - underlingHpBefore;
+                    const underlingManaGained = (underling.mana || 0) - underlingManaBefore;
+                    
+                    let restoreText = `${underling.name}`;
+                    if (underlingHpGained > 0) restoreText += ` +${underlingHpGained} HP`;
+                    if (underlingManaGained > 0) restoreText += ` +${underlingManaGained} MP`;
+                    
+                    restoredMembers.push(restoreText);
+                }
+            }
+        });
+        
+        // Log the restoration if anyone was healed
+        if (restoredMembers.length > 0) {
+            this.ui.log("🌿 Leaving the dungeon, your party recovers from their trials...");
+            this.ui.log(`✨ Restored: ${restoredMembers.join(', ')}`);
+            this.ui.showNotification("Party recovered 25% HP/MP!", "success");
+        }
     }
 
     openCrafting() {
@@ -869,15 +967,16 @@ class GameController {
         this.gameState.hero.gold -= cost;
         
         const underlings = {
-            archer: { name: "Archer", type: "ranged", level: 1, health: 75, attack: 15, defense: 5 },
-            warrior: { name: "Warrior", type: "tank", level: 1, health: 120, attack: 12, defense: 10 },
-            mage: { name: "Mage", type: "magic", level: 1, health: 60, attack: 20, defense: 3 }
+            archer: { name: "Archer", type: "ranged", level: 1, health: 75, mana: 40, attack: 15, defense: 5 },
+            warrior: { name: "Warrior", type: "tank", level: 1, health: 120, mana: 30, attack: 12, defense: 10 },
+            mage: { name: "Mage", type: "magic", level: 1, health: 60, mana: 80, attack: 20, defense: 3 }
         };
 
         const underling = { 
             ...underlings[type], 
             id: Date.now(),
             maxHealth: underlings[type].health,
+            maxMana: underlings[type].mana,
             equipment: [],
             isAlive: true
         };
