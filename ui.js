@@ -143,11 +143,20 @@ class UIManager {
             case 'h':
                 this.gameController.openShop();
                 break;
+            case 't':
+                this.gameController.openTemple();
+                break;
             case 'i':
                 this.gameController.openInventory();
                 break;
             case 'k':
                 this.gameController.openCharacterManagement();
+                break;
+            case 'u':
+                // Use item shortcut (in combat)
+                if (this.gameState.inDungeon && this.gameState.currentEnemies) {
+                    this.gameController.showCombatItemSelection();
+                }
                 break;
         }
     }

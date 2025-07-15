@@ -164,6 +164,7 @@ class GameController {
                 <p><strong>Your Health:</strong> ${this.gameState.hero.health || 100}/${this.gameState.hero.maxHealth || 100}</p>
                 ${underlingInfo}
                 <p>Choose your action:</p>
+                <p style="font-size: 12px; color: #888; font-style: italic;">💡 Tip: Press 'U' to quickly access items, or use the Use Item button</p>
             </div>
         `;
 
@@ -175,6 +176,10 @@ class GameController {
             {
                 text: "🛡️ Defend",
                 onClick: () => this.playerDefend()
+            },
+            {
+                text: "🧪 Use Item",
+                onClick: () => this.showCombatItemSelection()
             },
             {
                 text: "💨 Flee",
@@ -320,6 +325,209 @@ class GameController {
             this.ui.log("You failed to flee! The enemies attack!");
             this.enemiesAttack();
             setTimeout(() => this.showCombatInterface(), 1000);
+        }
+    }
+
+    showCombatItemSelection() {
+        // Get all consumable items from hero's inventory
+        const heroConsumables = this.gameState.hero.equipment.filter(item => 
+            item.type === 'consumable'
+        );
+
+        // Get all consumable items from underlings' inventories
+        let underlingConsumables = [];
+        this.gameState.hero.underlings.forEach((underling, underlingIndex) => {
+            if (underling.isAlive && underling.equipment) {
+                underling.equipment.filter(item => item.type === 'consumable').forEach(item => {
+                    underlingConsumables.push({
+                        ...item,
+                        owner: underling.name,
+                        ownerIndex: underlingIndex,
+                        isUnderling: true
+                    });
+                });
+            }
+        });
+
+        const allConsumables = [...heroConsumables, ...underlingConsumables];
+
+        if (allConsumables.length === 0) {
+            this.ui.log("No consumable items available!");
+            this.ui.showNotification("No consumable items!", "error");
+            setTimeout(() => this.showCombatInterface(), 500);
+            return;
+        }
+
+        const itemContent = `
+            <div style="text-align: center; color: #e6ccff; margin-bottom: 15px;">
+                <h3 style="color: #b18cf2;">🧪 Use Item in Combat 🧪</h3>
+                <p style="font-style: italic;">"Choose an item and target wisely"</p>
+            </div>
+            <div style="max-height: 300px; overflow-y: auto;">
+                <h4 style="color: #d4af37; margin-bottom: 10px;">Available Items:</h4>
+                ${allConsumables.map((item, index) => `
+                    <div style="background: #2a1a3a; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid #6b4c93;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="color: #4ecdc4;">${item.name}</strong>
+                                <small style="color: #888;"> (${item.owner ? `${item.owner}'s` : 'Hero\'s'})</small>
+                                <br><small style="color: #d4af37;">Effect: ${item.effect} ${item.value || ''}</small>
+                            </div>
+                            <button onclick="window.game.controller.selectCombatItem(${index})" 
+                                    style="padding: 6px 12px; background: #2a6b2a; border: 1px solid #51cf66; color: white; border-radius: 4px; cursor: pointer;">
+                                Use Item
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        this.currentCombatItems = allConsumables; // Store for later reference
+
+        this.ui.createModal("Combat Items", itemContent, [
+            {
+                text: "Back to Combat",
+                onClick: () => this.showCombatInterface()
+            }
+        ]);
+    }
+
+    selectCombatItem(itemIndex) {
+        const selectedItem = this.currentCombatItems[itemIndex];
+        if (!selectedItem) {
+            this.ui.log("Item not found!");
+            return;
+        }
+
+        // Show target selection
+        this.showCombatTargetSelection(selectedItem, itemIndex);
+    }
+
+    showCombatTargetSelection(item, itemIndex) {
+        // Get all possible targets (hero + living underlings)
+        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+        const allTargets = [{
+            name: this.gameState.hero.name || "Hero",
+            health: this.gameState.hero.health,
+            maxHealth: this.gameState.hero.maxHealth,
+            isHero: true
+        }, ...aliveUnderlings.map(u => ({
+            name: u.name,
+            health: u.health,
+            maxHealth: u.maxHealth,
+            isUnderling: true,
+            underlingRef: u
+        }))];
+
+        const targetContent = `
+            <div style="text-align: center; color: #e6ccff; margin-bottom: 15px;">
+                <h3 style="color: #b18cf2;">🎯 Select Target 🎯</h3>
+                <p style="font-style: italic;">Using: <strong style="color: #4ecdc4;">${item.name}</strong></p>
+                <p style="color: #d4af37;">Effect: ${item.effect} ${item.value || ''}</p>
+            </div>
+            <div style="max-height: 250px; overflow-y: auto;">
+                <h4 style="color: #d4af37; margin-bottom: 10px;">Choose Target:</h4>
+                ${allTargets.map((target, index) => `
+                    <div style="background: #2a1a3a; padding: 10px; margin: 6px 0; border-radius: 6px; border: 1px solid #6b4c93;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="color: ${target.isHero ? '#d4af37' : '#4ecdc4'};">${target.name}</strong>
+                                ${target.isHero ? ' 👑' : ' 🛡️'}
+                                <br><small style="color: #888;">Health: ${target.health}/${target.maxHealth}</small>
+                            </div>
+                            <button onclick="window.game.controller.useCombatItemOnTarget(${itemIndex}, ${index})" 
+                                    style="padding: 6px 12px; background: #b18cf2; border: 1px solid #d4af37; color: white; border-radius: 4px; cursor: pointer;">
+                                Use Here
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        this.currentCombatTargets = allTargets; // Store for later reference
+
+        this.ui.createModal("Select Target", targetContent, [
+            {
+                text: "Back to Items",
+                onClick: () => this.showCombatItemSelection()
+            }
+        ]);
+    }
+
+    useCombatItemOnTarget(itemIndex, targetIndex) {
+        const item = this.currentCombatItems[itemIndex];
+        const target = this.currentCombatTargets[targetIndex];
+        
+        if (!item || !target) {
+            this.ui.log("Invalid item or target selection!");
+            return;
+        }
+
+        // Apply item effect
+        this.applyCombatItemEffect(item, target);
+
+        // Remove item from inventory
+        this.removeCombatItem(item);
+
+        // Log the action
+        this.ui.log(`${item.owner || 'Hero'}'s ${item.name} used on ${target.name}!`);
+        this.ui.showNotification(`${item.name} used on ${target.name}!`, "success");
+
+        // Enemies attack after item use
+        this.enemiesAttack();
+        
+        // Return to combat interface
+        setTimeout(() => this.showCombatInterface(), 1500);
+    }
+
+    applyCombatItemEffect(item, target) {
+        switch(item.effect) {
+            case 'heal':
+                const healAmount = Math.min(item.value, target.maxHealth - target.health);
+                if (target.isHero) {
+                    this.gameState.hero.health += healAmount;
+                    this.gameState.hero.health = Math.min(this.gameState.hero.health, this.gameState.hero.maxHealth);
+                } else if (target.underlingRef) {
+                    target.underlingRef.health += healAmount;
+                    target.underlingRef.health = Math.min(target.underlingRef.health, target.underlingRef.maxHealth);
+                }
+                this.ui.log(`${target.name} healed for ${healAmount} HP!`);
+                break;
+            case 'mana':
+                // For future mana system
+                this.ui.log(`${target.name} gained ${item.value || 0} MP!`);
+                break;
+            case 'buff':
+                // For future buff system
+                this.ui.log(`${target.name} received a magical enhancement!`);
+                break;
+            default:
+                this.ui.log(`${item.name} used on ${target.name}!`);
+        }
+    }
+
+    removeCombatItem(item) {
+        if (item.isUnderling) {
+            // Remove from underling's inventory
+            const underling = this.gameState.hero.underlings[item.ownerIndex];
+            if (underling && underling.equipment) {
+                const itemIndex = underling.equipment.findIndex(invItem => 
+                    invItem.name === item.name && invItem.type === 'consumable'
+                );
+                if (itemIndex > -1) {
+                    underling.equipment.splice(itemIndex, 1);
+                }
+            }
+        } else {
+            // Remove from hero's inventory
+            const itemIndex = this.gameState.hero.equipment.findIndex(invItem => 
+                invItem.name === item.name && invItem.type === 'consumable'
+            );
+            if (itemIndex > -1) {
+                this.gameState.hero.equipment.splice(itemIndex, 1);
+            }
         }
     }
 
@@ -1012,15 +1220,13 @@ class GameController {
     }
 
     getUnderlingCompatibleItems(underling) {
-        // Get hero's inventory items that could be equipped by underlings
+        // Get hero's inventory items that could be given to underlings
         const heroItems = this.gameState.hero.equipment.filter(item => 
             !item.equipped && 
-            item.type !== 'consumable' &&
-            (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory')
+            (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory' || item.type === 'consumable')
         );
         
-        // For now, all non-consumable items can be equipped by underlings
-        // Later can add type restrictions (e.g., mages can't use heavy armor)
+        // All items can be given to underlings (equipment and consumables)
         return heroItems;
     }
 
