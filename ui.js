@@ -8,9 +8,20 @@ class UIManager {
         this.dungeonBackgrounds = [
             'dungeon1', 'dungeon2', 'dungeon3', 'dungeon4', 'dungeon5'
         ];
+        this.isMobile = this.detectMobile();
         this.initializeElements();
         this.bindEvents();
         this.setBackground('village'); // Start with village background
+    }
+
+    detectMobile() {
+        // Detect mobile devices using multiple methods
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+        const isSmallScreen = window.innerWidth <= 768 || window.innerHeight <= 600;
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        
+        return isMobileUA || (isSmallScreen && isTouchDevice);
     }
 
     initializeElements() {
@@ -409,30 +420,42 @@ class UIManager {
         const supportsWebP = this.checkWebPSupport();
         const imageExtension = supportsWebP ? '.webp' : '.jpg';
         
+        // Use mobile folder for mobile devices to get smaller images
+        const basePath = this.isMobile ? 'images/backgrounds/mobile/' : 'images/backgrounds/';
+        
+        // On mobile, skip images entirely and use CSS gradients only for better performance
+        if (this.isMobile) {
+            spritesArea.style.backgroundImage = '';
+            spritesArea.classList.add(backgroundClass);
+            this.log(`Background changed to: ${backgroundType} (mobile CSS-only mode)`);
+            this.currentBackground = backgroundType;
+            return;
+        }
+        
         switch(backgroundType) {
             case 'village':
-                imagePath = `images/backgrounds/village${imageExtension}`;
+                imagePath = `${basePath}village${imageExtension}`;
                 backgroundClass = 'village-background';
                 break;
             case 'dungeon':
                 const dungeonIndex = specificImage !== null ? specificImage : Math.floor(Math.random() * this.dungeonBackgrounds.length);
-                imagePath = `images/backgrounds/${this.dungeonBackgrounds[dungeonIndex]}${imageExtension}`;
+                imagePath = `${basePath}${this.dungeonBackgrounds[dungeonIndex]}${imageExtension}`;
                 backgroundClass = 'dungeon-background';
                 break;
             case 'shop':
-                imagePath = `images/backgrounds/shop${imageExtension}`;
+                imagePath = `${basePath}shop${imageExtension}`;
                 backgroundClass = 'shop-background';
                 break;
             case 'crafting':
-                imagePath = `images/backgrounds/crafting${imageExtension}`;
+                imagePath = `${basePath}crafting${imageExtension}`;
                 backgroundClass = 'crafting-background';
                 break;
             case 'recruitment':
-                imagePath = `images/backgrounds/recruitment${imageExtension}`;
+                imagePath = `${basePath}recruitment${imageExtension}`;
                 backgroundClass = 'recruitment-background';
                 break;
             default:
-                imagePath = `images/backgrounds/village${imageExtension}`;
+                imagePath = `${basePath}village${imageExtension}`;
                 backgroundClass = 'village-background';
         }
         
@@ -445,34 +468,53 @@ class UIManager {
             this.log(`Background changed to: ${backgroundType}`);
         };
         img.onerror = () => {
-            // If WebP failed, try JPG fallback
-            if (supportsWebP && imageExtension === '.webp') {
-                imagePath = imagePath.replace('.webp', '.jpg');
-                const fallbackImg = new Image();
-                fallbackImg.onload = () => {
-                    spritesArea.style.backgroundImage = `url('${imagePath}')`;
+            // If mobile image failed and we're on mobile, try desktop version
+            if (this.isMobile && imagePath.includes('/mobile/')) {
+                const desktopPath = imagePath.replace('/mobile/', '/');
+                const desktopImg = new Image();
+                desktopImg.onload = () => {
+                    spritesArea.style.backgroundImage = `url('${desktopPath}')`;
                     spritesArea.classList.add(backgroundClass);
-                    this.log(`Background changed to: ${backgroundType} (JPG fallback)`);
+                    this.log(`Background changed to: ${backgroundType} (desktop fallback)`);
                 };
-                fallbackImg.onerror = () => {
-                    // Both formats failed, use CSS gradient fallback
-                    spritesArea.style.backgroundImage = '';
-                    spritesArea.classList.add(backgroundClass);
-                    this.log(`Background changed to: ${backgroundType} (CSS fallback - no image found)`);
-                    console.warn(`Background image not found: ${imagePath}`);
+                desktopImg.onerror = () => {
+                    this.handleImageFallback(spritesArea, backgroundClass, backgroundType, imagePath, supportsWebP, imageExtension);
                 };
-                fallbackImg.src = imagePath;
+                desktopImg.src = desktopPath;
             } else {
-                // Image failed to load, use CSS gradient fallback
-                spritesArea.style.backgroundImage = '';
-                spritesArea.classList.add(backgroundClass);
-                this.log(`Background changed to: ${backgroundType} (CSS fallback - image not found)`);
-                console.warn(`Background image not found: ${imagePath}`);
+                this.handleImageFallback(spritesArea, backgroundClass, backgroundType, imagePath, supportsWebP, imageExtension);
             }
         };
         img.src = imagePath;
         
         this.currentBackground = backgroundType;
+    }
+
+    handleImageFallback(spritesArea, backgroundClass, backgroundType, imagePath, supportsWebP, imageExtension) {
+        // If WebP failed, try JPG fallback
+        if (supportsWebP && imageExtension === '.webp') {
+            const jpgPath = imagePath.replace('.webp', '.jpg');
+            const fallbackImg = new Image();
+            fallbackImg.onload = () => {
+                spritesArea.style.backgroundImage = `url('${jpgPath}')`;
+                spritesArea.classList.add(backgroundClass);
+                this.log(`Background changed to: ${backgroundType} (JPG fallback)`);
+            };
+            fallbackImg.onerror = () => {
+                // Both formats failed, use CSS gradient fallback
+                spritesArea.style.backgroundImage = '';
+                spritesArea.classList.add(backgroundClass);
+                this.log(`Background changed to: ${backgroundType} (CSS fallback - no image found)`);
+                console.warn(`Background image not found: ${imagePath}`);
+            };
+            fallbackImg.src = jpgPath;
+        } else {
+            // Image failed to load, use CSS gradient fallback
+            spritesArea.style.backgroundImage = '';
+            spritesArea.classList.add(backgroundClass);
+            this.log(`Background changed to: ${backgroundType} (CSS fallback - image not found)`);
+            console.warn(`Background image not found: ${imagePath}`);
+        }
     }
 
     checkWebPSupport() {
