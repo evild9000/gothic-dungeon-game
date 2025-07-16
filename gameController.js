@@ -52,6 +52,7 @@ class GameController {
                 mana: 100,
                 maxMana: 100,
                 leadership: 1,
+                rations: 0, // Starting rations for dungeon resting
                 // New stat system - all start at base 5
                 strength: 5,      // Affects melee weapon attack
                 dexterity: 5,     // Affects ranged weapon attack + crit chance (2.5% per point) + crit damage
@@ -191,6 +192,11 @@ class GameController {
                     this.gameState.hero.intelligence = 5;
                     this.gameState.hero.willpower = 5;
                     this.gameState.hero.size = 5;
+                }
+                
+                // Add rations if missing (backward compatibility)
+                if (this.gameState.hero.rations === undefined) {
+                    this.gameState.hero.rations = 0;
                 }
                 
                 // Apply stat bonuses to all characters
@@ -1357,11 +1363,32 @@ class GameController {
         // Set combat state to false
         this.gameState.inCombat = false;
         
+        // Ensure rations property exists
+        if (!this.gameState.hero.rations) {
+            this.gameState.hero.rations = 0;
+        }
+        
         const victoryContent = `
-            <div class="victory-interface">
-                <h4>🎉 Victory!</h4>
-                <p>All enemies in this area have been defeated!</p>
-                <p>What would you like to do next?</p>
+            <div class="victory-interface" style="text-align: center;">
+                <h4 style="color: #d4af37; margin-bottom: 15px;">🎉 Victory! 🎉</h4>
+                <p style="margin-bottom: 10px;">All enemies in this area have been defeated!</p>
+                <p style="margin-bottom: 15px;">What would you like to do next?</p>
+                
+                <div style="background: #2a2a3a; padding: 10px; border-radius: 5px; margin: 15px 0;">
+                    <div style="font-size: 14px; color: #4ecdc4; margin-bottom: 8px;">
+                        <strong>Current Status:</strong>
+                    </div>
+                    <div style="font-size: 12px; color: #ccc;">
+                        Dungeon Level: ${this.gameState.dungeonLevel} | 
+                        Rations: ${this.gameState.hero.rations} | 
+                        Gold: ${this.gameState.hero.gold}
+                    </div>
+                </div>
+                
+                ${this.gameState.hero.rations > 0 ? 
+                    '<div style="background: #1a3a1a; padding: 8px; border-radius: 5px; margin: 10px 0; border-left: 3px solid #51cf66;"><small style="color: #51cf66;">💡 You have rations available - you can Rest to stay on this level and explore more!</small></div>' : 
+                    '<div style="background: #3a1a1a; padding: 8px; border-radius: 5px; margin: 10px 0; border-left: 3px solid #ff6b6b;"><small style="color: #ff6b6b;">⚠ No rations available - buy some from the shop to enable resting in dungeons!</small></div>'
+                }
             </div>
         `;
 
@@ -1376,7 +1403,130 @@ class GameController {
             }
         ];
 
+        // Add Rest button if player has rations
+        if (this.gameState.hero.rations > 0) {
+            victoryButtons.splice(1, 0, {
+                text: "🍖 Rest (1 Ration)",
+                onClick: () => this.restInDungeon()
+            });
+        }
+
         this.ui.createModal("Victory!", victoryContent, victoryButtons);
+    }
+
+    restInDungeon() {
+        // Consume one ration
+        this.gameState.hero.rations--;
+        
+        // Close any open modals
+        const existingModals = document.querySelectorAll('.modal-overlay');
+        existingModals.forEach(modal => modal.remove());
+        
+        // Restore some health and mana for the party
+        const restHpRestore = Math.floor(this.gameState.hero.maxHealth * 0.25); // 25% HP restoration
+        const restManaRestore = Math.floor((this.gameState.hero.maxMana || 100) * 0.25); // 25% Mana restoration
+        
+        // Restore hero
+        const heroHpBefore = this.gameState.hero.health;
+        const heroManaBefore = this.gameState.hero.mana || 0;
+        
+        this.gameState.hero.health = Math.min(
+            this.gameState.hero.health + restHpRestore, 
+            this.gameState.hero.maxHealth
+        );
+        
+        if (this.gameState.hero.maxMana) {
+            this.gameState.hero.mana = Math.min(
+                this.gameState.hero.mana + restManaRestore, 
+                this.gameState.hero.maxMana
+            );
+        }
+        
+        let restoredMembers = [];
+        if (heroHpBefore < this.gameState.hero.maxHealth || (this.gameState.hero.maxMana && heroManaBefore < this.gameState.hero.maxMana)) {
+            restoredMembers.push(`${this.gameState.hero.name || 'Hero'} (+${Math.min(restHpRestore, this.gameState.hero.maxHealth - heroHpBefore)} HP${this.gameState.hero.maxMana ? `, +${Math.min(restManaRestore, this.gameState.hero.maxMana - heroManaBefore)} MP` : ''})`);
+        }
+        
+        // Restore underlings
+        this.gameState.hero.underlings.forEach(underling => {
+            if (underling.isAlive) {
+                const underlingHpBefore = underling.health;
+                const underlingManaBefore = underling.mana || 0;
+                const underlingHpRestore = Math.floor(underling.maxHealth * 0.25);
+                const underlingManaRestore = Math.floor((underling.maxMana || 50) * 0.25);
+                
+                underling.health = Math.min(underling.health + underlingHpRestore, underling.maxHealth);
+                if (underling.maxMana) {
+                    underling.mana = Math.min(underling.mana + underlingManaRestore, underling.maxMana);
+                }
+                
+                if (underlingHpBefore < underling.maxHealth || (underling.maxMana && underlingManaBefore < underling.maxMana)) {
+                    restoredMembers.push(`${underling.name} (+${Math.min(underlingHpRestore, underling.maxHealth - underlingHpBefore)} HP${underling.maxMana ? `, +${Math.min(underlingManaRestore, underling.maxMana - underlingManaBefore)} MP` : ''})`);
+                }
+            }
+        });
+        
+        this.ui.log(`🍖 Your party consumes rations and rests...`);
+        if (restoredMembers.length > 0) {
+            this.ui.log(`✨ Party restored: ${restoredMembers.join(', ')}`);
+        }
+        this.ui.log(`Rations remaining: ${this.gameState.hero.rations}`);
+        this.ui.showNotification("Party rested and recovered!", "success");
+        
+        // Show explore option
+        this.showExploreOption();
+    }
+
+    showExploreOption() {
+        const exploreContent = `
+            <div style="text-align: center;">
+                <h4 style="color: #d4af37; margin-bottom: 15px;">🛡️ Rested and Ready 🛡️</h4>
+                <p style="margin-bottom: 10px;">Your party has recovered from their trials.</p>
+                <p style="margin-bottom: 15px;">Ready to continue exploring this dungeon level?</p>
+                
+                <div style="background: #2a2a3a; padding: 10px; border-radius: 5px; margin: 15px 0;">
+                    <div style="font-size: 14px; color: #4ecdc4; margin-bottom: 8px;">
+                        <strong>Current Status:</strong>
+                    </div>
+                    <div style="font-size: 12px; color: #ccc;">
+                        Dungeon Level: ${this.gameState.dungeonLevel} | 
+                        Rations: ${this.gameState.hero.rations} | 
+                        Hero HP: ${this.gameState.hero.health}/${this.gameState.hero.maxHealth}
+                    </div>
+                </div>
+                
+                <div style="background: #1a3a1a; padding: 8px; border-radius: 5px; margin: 10px 0; border-left: 3px solid #51cf66;">
+                    <small style="color: #51cf66;">💡 Exploring will generate new enemies on the same dungeon level</small>
+                </div>
+            </div>
+        `;
+
+        this.ui.createModal("Ready to Explore", exploreContent, [
+            {
+                text: "🔍 Explore This Level",
+                onClick: () => this.exploreCurrentLevel()
+            },
+            {
+                text: "🏰 Exit Dungeon",
+                onClick: () => this.exitDungeon()
+            }
+        ]);
+    }
+
+    exploreCurrentLevel() {
+        // Close any open modals
+        const existingModals = document.querySelectorAll('.modal-overlay');
+        existingModals.forEach(modal => modal.remove());
+        
+        // Generate new enemies on the same level
+        this.gameState.inCombat = true;
+        this.generateEnemies();
+        
+        this.ui.log(`🔍 Exploring deeper into dungeon level ${this.gameState.dungeonLevel}...`);
+        this.ui.log("New enemies block your path!");
+        this.ui.render();
+        
+        setTimeout(() => this.showCombatInterface(), 500);
     }
 
     goDeeperInDungeon() {
@@ -1513,43 +1663,95 @@ class GameController {
 
         this.ui.log("Opening crafting interface...");
         
+        // Define all craftable items in one place for easier management
+        const craftableItems = [
+            { 
+                id: 'iron_sword', 
+                name: 'Iron Sword', 
+                cost: 50, 
+                description: '+5 Attack (Melee Weapon)',
+                type: 'weapon'
+            },
+            { 
+                id: 'elven_bow', 
+                name: 'Elven Bow', 
+                cost: 60, 
+                description: '+6 Attack (Ranged Weapon)',
+                type: 'weapon'
+            },
+            { 
+                id: 'arcane_wand', 
+                name: 'Arcane Wand', 
+                cost: 80, 
+                description: '+7 Attack (Arcane Weapon)',
+                type: 'weapon'
+            },
+            { 
+                id: 'divine_staff', 
+                name: 'Divine Staff', 
+                cost: 90, 
+                description: '+8 Attack (Divine Weapon)',
+                type: 'weapon'
+            },
+            { 
+                id: 'leather_armor', 
+                name: 'Leather Armor', 
+                cost: 75, 
+                description: '+3 Defense (Body Armor)',
+                type: 'armor'
+            },
+            { 
+                id: 'health_potion', 
+                name: 'Health Potion', 
+                cost: 25, 
+                description: 'Restores 50 HP (Consumable)',
+                type: 'consumable'
+            }
+        ];
+        
         const craftingContent = `
-            <p>Available crafting recipes:</p>
-            <ul>
-                <li>Iron Sword (Cost: 50 gold) - +5 Attack</li>
-                <li>Leather Armor (Cost: 75 gold) - +3 Defense</li>
-                <li>Health Potion (Cost: 25 gold) - Restores 50 HP</li>
-            </ul>
-            <p>Your gold: ${this.gameState.hero.gold}</p>
+            <div style="text-align: center; margin-bottom: 15px;">
+                <h3 style="color: #d4af37; margin-bottom: 10px;">🔨 Crafting Workshop 🔨</h3>
+                <p style="color: #51cf66; font-weight: bold;">Your Gold: ${this.gameState.hero.gold}</p>
+            </div>
+            
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #444; border-radius: 8px; padding: 10px; background: #1a1a2a;">
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 10px; padding: 8px; background: #2a2a3a; border-radius: 5px; font-weight: bold; color: #d4af37;">
+                    <div>Item Name & Description</div>
+                    <div style="text-align: center;">Cost</div>
+                    <div style="text-align: center;">Action</div>
+                </div>
+                
+                ${craftableItems.map(item => `
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; align-items: center; padding: 12px; margin: 5px 0; background: ${this.gameState.hero.gold >= item.cost ? '#0a2a0a' : '#2a0a0a'}; border-radius: 5px; border-left: 3px solid ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'};">
+                        <div>
+                            <div style="font-weight: bold; color: ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'};">${item.name}</div>
+                            <div style="font-size: 12px; color: #ccc; margin-top: 3px;">${item.description}</div>
+                        </div>
+                        <div style="text-align: center; font-weight: bold; color: #ffd93d;">${item.cost}g</div>
+                        <div style="text-align: center;">
+                            <button onclick="window.game.controller.craftItem('${item.id}', ${item.cost})" 
+                                    style="padding: 6px 12px; background: ${this.gameState.hero.gold >= item.cost ? 'linear-gradient(45deg, #2a4d3a, #4a7c59)' : 'linear-gradient(45deg, #4a2a2a, #6a3a3a)'}; 
+                                           border: 1px solid ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'}; color: white; border-radius: 4px; cursor: ${this.gameState.hero.gold >= item.cost ? 'pointer' : 'not-allowed'}; 
+                                           font-size: 12px; font-weight: bold;"
+                                    ${this.gameState.hero.gold < item.cost ? 'disabled' : ''}>
+                                🔨 Craft
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #2a2a3a; border-radius: 5px; text-align: center;">
+                <div style="font-size: 12px; color: #888; font-style: italic;">
+                    💡 Tip: Different weapon types benefit from different stats - STR (melee), DEX (ranged), INT (arcane), WIL (divine)
+                </div>
+            </div>
         `;
 
-        this.ui.createModal("Crafting", craftingContent, [
+        this.ui.createModal("Crafting Workshop", craftingContent, [
             {
-                text: "Craft Iron Sword",
-                onClick: () => this.craftItem('iron_sword', 50)
-            },
-            {
-                text: "Craft Elven Bow",
-                onClick: () => this.craftItem('elven_bow', 60)
-            },
-            {
-                text: "Craft Arcane Wand",
-                onClick: () => this.craftItem('arcane_wand', 80)
-            },
-            {
-                text: "Craft Divine Staff",
-                onClick: () => this.craftItem('divine_staff', 90)
-            },
-            {
-                text: "Craft Leather Armor",
-                onClick: () => this.craftItem('leather_armor', 75)
-            },
-            {
-                text: "Craft Health Potion",
-                onClick: () => this.craftItem('health_potion', 25)
-            },
-            {
-                text: "Close",
+                text: "Close Workshop",
                 onClick: () => this.returnToVillage()
             }
         ]);
@@ -1792,10 +1994,12 @@ class GameController {
             <ul>
                 <li>Mana Potion (30 gold) - Restores 30 MP</li>
                 <li>Experience Scroll (100 gold) - Grants 50 XP</li>
+                <li>Rations (25 gold) - Provides 7 uses for resting in dungeons</li>
             </ul>
             <p><strong>Note:</strong> Healing services have moved to the Temple!</p>
             <p>Your health: ${this.gameState.hero.health}/${this.gameState.hero.maxHealth}</p>
             <p>Your gold: ${this.gameState.hero.gold}</p>
+            <p>Your rations: ${this.gameState.hero.rations || 0}</p>
         `;
 
         this.ui.createModal("Shop", shopContent, [
@@ -1806,6 +2010,10 @@ class GameController {
             {
                 text: "Buy Experience Scroll",
                 onClick: () => this.buyItem('exp_scroll', 100)
+            },
+            {
+                text: "Buy Rations",
+                onClick: () => this.buyItem('rations', 25)
             },
             {
                 text: "Leave",
@@ -1837,6 +2045,14 @@ class GameController {
                 this.gameState.hero.fame += 50;
                 this.ui.log("Used Experience Scroll! Gained 50 XP!");
                 this.checkLevelUp();
+                break;
+            case 'rations':
+                // Add or increase rations count
+                if (!this.gameState.hero.rations) {
+                    this.gameState.hero.rations = 0;
+                }
+                this.gameState.hero.rations += 7;
+                this.ui.log("Bought Rations! You now have " + this.gameState.hero.rations + " rations.");
                 break;
         }
 
@@ -2363,6 +2579,7 @@ class GameController {
                         <p><strong>Level:</strong> ${hero.level}</p>
                         <p><strong>Fame (XP):</strong> ${hero.fame} / ${hero.level * 100}</p>
                         <p><strong>Gold:</strong> ${hero.gold}</p>
+                        <p><strong>Rations:</strong> ${hero.rations || 0}</p>
                         <p><strong>Leadership:</strong> ${hero.leadership}</p>
                         <p style="font-size: 12px; color: #aaa; margin-left: 20px;">Next upgrade cost: ${Math.pow(hero.leadership + 1, 2) * 10} gold</p>
                         <hr style="margin: 10px 0; border-color: #444;">
