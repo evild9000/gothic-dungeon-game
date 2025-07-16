@@ -223,7 +223,6 @@ class GameController {
         this.ui.log(`Entering dungeon level ${this.gameState.dungeonLevel}...`);
         this.ui.log("Enemies appear before you!");
         this.ui.render();
-        this.ui.animateSprite('.hero-sprite', 'shake');
         
         // Show combat interface
         this.showCombatInterface();
@@ -250,39 +249,251 @@ class GameController {
 
     showCombatInterface() {
         const enemies = this.gameState.currentEnemies;
-        let enemyList = enemies.map((enemy, index) => 
-            `<li>${enemy.name} (Level ${enemy.level}) - HP: <span style="color: ${enemy.health <= enemy.maxHealth * 0.3 ? '#ff6b6b' : enemy.health <= enemy.maxHealth * 0.6 ? '#ffd93d' : '#51cf66'}">${enemy.health}</span>/${enemy.maxHealth}</li>`
-        ).join('');
+        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
         
-        // Show underling info if any with health status
-        let underlingInfo = '';
-        if (this.gameState.hero.underlings.length > 0) {
-            const underlingList = this.gameState.hero.underlings.map(underling => 
-                `<li>${underling.name} (Level ${underling.level}) - ${underling.isAlive ? 
-                    `HP: <span style="color: ${underling.health <= underling.maxHealth * 0.3 ? '#ff6b6b' : underling.health <= underling.maxHealth * 0.6 ? '#ffd93d' : '#51cf66'}">${underling.health}</span>/${underling.maxHealth}` : 
-                    '<span style="color: #ff6b6b;">💀 Fallen</span>'
-                }</li>`
-            ).join('');
-            underlingInfo = `
-                <p><strong>Your Underlings:</strong></p>
-                <ul class="underling-list">${underlingList}</ul>
-            `;
-        }
+        // Helper function to get health color
+        const getHealthColor = (current, max) => {
+            const ratio = current / max;
+            if (ratio <= 0.3) return '#ff6b6b';
+            if (ratio <= 0.6) return '#ffd93d';
+            return '#51cf66';
+        };
+        
+        // Helper function to get character icon
+        const getCharacterIcon = (type) => {
+            const icons = {
+                'hero': '👑',
+                'archer': '🏹', 
+                'warrior': '⚔️',
+                'mage': '🔮',
+                'Goblin': '👹',
+                'Orc': '🧌',
+                'Skeleton': '💀',
+                'Wolf': '🐺',
+                'Spider': '🕷️'
+            };
+            return icons[type] || '⚡';
+        };
         
         const combatContent = `
-            <div class="combat-interface">
-                <h4>⚔️ Combat Encounter!</h4>
-                <p><strong>Enemies:</strong></p>
-                <ul class="enemy-list">${enemyList}</ul>
-                <p><strong>Your Health:</strong> <span style="color: ${this.gameState.hero.health <= this.gameState.hero.maxHealth * 0.3 ? '#ff6b6b' : this.gameState.hero.health <= this.gameState.hero.maxHealth * 0.6 ? '#ffd93d' : '#51cf66'}">${this.gameState.hero.health || 100}</span>/${this.gameState.hero.maxHealth || 100}</p>
-                ${underlingInfo}
-                <p>Choose your action:</p>
-                <p style="font-size: 12px; color: #888; font-style: italic;">💡 Tip: Press 'U' to quickly access items, or use the Use Item button</p>
+            <div class="enhanced-combat-interface">
+                <h3 style="text-align: center; color: #d4af37; margin-bottom: 20px;">⚔️ Combat Encounter ⚔️</h3>
+                
+                <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                    <!-- Enemies Section -->
+                    <div style="flex: 1; background: #2a1a1a; padding: 15px; border-radius: 8px; border: 2px solid #8b0000;">
+                        <h4 style="color: #ff6b6b; margin-bottom: 10px; text-align: center;">🔥 Enemies</h4>
+                        ${enemies.map((enemy, index) => `
+                            <div style="display: flex; align-items: center; margin: 8px 0; padding: 8px; background: #1a0000; border-radius: 5px; border-left: 3px solid #ff6b6b;">
+                                <div style="font-size: 24px; margin-right: 10px;">${getCharacterIcon(enemy.name)}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: bold; color: #ff6b6b;">${enemy.name}</div>
+                                    <div style="font-size: 12px; color: #ccc;">Level ${enemy.level} | Attack: ${enemy.attack}</div>
+                                    <div style="margin-top: 3px;">
+                                        <span style="color: ${getHealthColor(enemy.health, enemy.maxHealth)}; font-weight: bold;">${enemy.health}</span>
+                                        <span style="color: #888;">/${enemy.maxHealth} HP</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <!-- Player Party Section -->
+                    <div style="flex: 1; background: #1a2a1a; padding: 15px; border-radius: 8px; border: 2px solid #228b22;">
+                        <h4 style="color: #51cf66; margin-bottom: 10px; text-align: center;">🛡️ Your Party</h4>
+                        
+                        <!-- Hero -->
+                        <div style="display: flex; align-items: center; margin: 8px 0; padding: 8px; background: #0a1a0a; border-radius: 5px; border-left: 3px solid #d4af37;">
+                            <div style="font-size: 24px; margin-right: 10px;">${getCharacterIcon('hero')}</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold; color: #d4af37;">${this.gameState.hero.name || 'Hero'}</div>
+                                <div style="font-size: 12px; color: #ccc;">Level ${this.gameState.hero.level} | Leader</div>
+                                <div style="margin-top: 3px;">
+                                    <span style="color: ${getHealthColor(this.gameState.hero.health, this.gameState.hero.maxHealth)}; font-weight: bold;">${this.gameState.hero.health}</span>
+                                    <span style="color: #888;">/${this.gameState.hero.maxHealth} HP</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Underlings -->
+                        ${aliveUnderlings.map(underling => `
+                            <div style="display: flex; align-items: center; margin: 8px 0; padding: 8px; background: #0a1a0a; border-radius: 5px; border-left: 3px solid #51cf66;">
+                                <div style="font-size: 24px; margin-right: 10px;">${getCharacterIcon(underling.type)}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: bold; color: #51cf66;">${underling.name}</div>
+                                    <div style="font-size: 12px; color: #ccc;">Level ${underling.level} | ${underling.type}</div>
+                                    <div style="margin-top: 3px;">
+                                        <span style="color: ${getHealthColor(underling.health, underling.maxHealth)}; font-weight: bold;">${underling.health}</span>
+                                        <span style="color: #888;">/${underling.maxHealth} HP</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                        
+                        ${aliveUnderlings.length === 0 ? '<div style="text-align: center; color: #888; font-style: italic; padding: 20px;">No underlings in party</div>' : ''}
+                        
+                        <!-- Show fallen underlings -->
+                        ${this.gameState.hero.underlings.filter(u => !u.isAlive).map(underling => `
+                            <div style="display: flex; align-items: center; margin: 8px 0; padding: 8px; background: #2a0a0a; border-radius: 5px; border-left: 3px solid #666;">
+                                <div style="font-size: 24px; margin-right: 10px; opacity: 0.5;">💀</div>
+                                <div style="flex: 1; opacity: 0.5;">
+                                    <div style="font-weight: bold; color: #888; text-decoration: line-through;">${underling.name}</div>
+                                    <div style="font-size: 12px; color: #666;">Fallen - needs resurrection</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <!-- Combat Actions -->
+                <div style="background: #2a2a3a; padding: 15px; border-radius: 8px; border: 2px solid #4a4a6a;">
+                    <h4 style="color: #4ecdc4; margin-bottom: 15px; text-align: center;">⚡ Choose Your Action</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button class="enhanced-combat-btn attack-btn" onclick="window.game.controller.playerAttack()" 
+                                style="padding: 12px; background: linear-gradient(45deg, #8b0000, #dc143c); border: 2px solid #ff6b6b; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            ⚔️ Attack
+                        </button>
+                        <button class="enhanced-combat-btn defend-btn" onclick="window.game.controller.playerDefend()" 
+                                style="padding: 12px; background: linear-gradient(45deg, #2a4d3a, #4a7c59); border: 2px solid #51cf66; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            🛡️ Defend
+                        </button>
+                        <button class="enhanced-combat-btn item-btn" onclick="window.game.controller.showCombatItemSelection()" 
+                                style="padding: 12px; background: linear-gradient(45deg, #4a4a2d, #7a7a3a); border: 2px solid #ffd93d; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            🧪 Use Item
+                        </button>
+                        <button class="enhanced-combat-btn flee-btn" onclick="window.game.controller.playerFlee()" 
+                                style="padding: 12px; background: linear-gradient(45deg, #3a3a4a, #5a5a7a); border: 2px solid #9966cc; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            💨 Flee
+                        </button>
+                    </div>
+                    
+                    <div style="margin-top: 15px; padding: 10px; background: #1a1a2a; border-radius: 5px; text-align: center;">
+                        <div style="font-size: 12px; color: #888; font-style: italic;">
+                            💡 Tip: Defend reduces incoming damage by 50% | Use items to heal your party
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
 
-        // Show combat as docked panel instead of modal
-        this.showDockedCombatPanel([combatContent], 'combat');
+        // Create a side-by-side modal instead of docked panel
+        this.showEnhancedCombatModal(combatContent);
+    }
+
+    showEnhancedCombatModal(combatContent) {
+        // Remove any existing combat interface
+        const existingModal = document.getElementById('enhanced-combat-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Create the enhanced combat modal that sits alongside the chat
+        const modalHtml = `
+            <div id="enhanced-combat-modal" style="
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                right: 20px;
+                bottom: 20px;
+                background: rgba(0, 0, 0, 0.9);
+                border: 3px solid #d4af37;
+                border-radius: 12px;
+                z-index: 1000;
+                display: flex;
+                flex-direction: column;
+                padding: 20px;
+                backdrop-filter: blur(5px);
+            ">
+                <div style="
+                    flex: 1;
+                    display: flex;
+                    gap: 20px;
+                    overflow: hidden;
+                ">
+                    <!-- Combat Interface Section -->
+                    <div style="
+                        flex: 1;
+                        background: rgba(20, 20, 40, 0.9);
+                        border-radius: 8px;
+                        padding: 15px;
+                        overflow-y: auto;
+                        border: 2px solid #4a4a6a;
+                    ">
+                        ${combatContent}
+                    </div>
+                    
+                    <!-- Chat Window Section -->
+                    <div style="
+                        flex: 1;
+                        background: rgba(40, 20, 20, 0.9);
+                        border-radius: 8px;
+                        padding: 15px;
+                        display: flex;
+                        flex-direction: column;
+                        border: 2px solid #8b4513;
+                    ">
+                        <h4 style="color: #d4af37; margin-bottom: 15px; text-align: center; border-bottom: 1px solid #444; padding-bottom: 10px;">
+                            📜 Combat Log
+                        </h4>
+                        <div id="combat-chat-display" style="
+                            flex: 1;
+                            overflow-y: auto;
+                            background: rgba(0, 0, 0, 0.3);
+                            border-radius: 5px;
+                            padding: 10px;
+                            border: 1px solid #666;
+                            font-family: monospace;
+                            font-size: 13px;
+                            line-height: 1.4;
+                        ">
+                            <!-- Chat content will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add modal to page
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Update the chat display with current chat log
+        this.updateCombatChatDisplay();
+        
+        // Add hover effects to buttons
+        setTimeout(() => {
+            const buttons = document.querySelectorAll('.enhanced-combat-btn');
+            buttons.forEach(button => {
+                button.addEventListener('mouseenter', () => {
+                    button.style.transform = 'scale(1.05)';
+                    button.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
+                });
+                button.addEventListener('mouseleave', () => {
+                    button.style.transform = 'scale(1)';
+                    button.style.boxShadow = 'none';
+                });
+            });
+        }, 100);
+    }
+
+    updateCombatChatDisplay() {
+        const chatDisplay = document.getElementById('combat-chat-display');
+        if (chatDisplay && this.gameState.chatLog) {
+            // Show last 20 messages to keep it manageable
+            const recentMessages = this.gameState.chatLog.slice(-20);
+            chatDisplay.innerHTML = recentMessages.map(msg => 
+                `<div style="margin-bottom: 8px; color: #e0e0e0;">${msg}</div>`
+            ).join('');
+            
+            // Auto-scroll to bottom
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+        }
+    }
+
+    closeEnhancedCombatModal() {
+        const modal = document.getElementById('enhanced-combat-modal');
+        if (modal) {
+            modal.remove();
+        }
     }
 
     playerAttack() {
@@ -305,7 +516,9 @@ class GameController {
         
         target.health -= damage;
         this.ui.log(`You attack ${target.name} for ${damage} damage! (${target.name}: ${Math.max(0, target.health)}/${target.maxHealth} HP)`);
-        this.ui.animateSprite('.enemy-sprite', 'shake');
+        
+        // Update combat interface instead of sprite animation
+        setTimeout(() => this.showCombatInterface(), 200);
 
         // Living underlings also attack!
         const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
@@ -325,17 +538,8 @@ class GameController {
                 underlingTarget.health -= underlingDamage;
                 this.ui.log(`${underling.name} attacks ${underlingTarget.name} for ${underlingDamage} damage!${attackBonus > 0 ? ` (+${attackBonus} equipment bonus)` : ''} (${underlingTarget.name}: ${Math.max(0, underlingTarget.health)}/${underlingTarget.maxHealth} HP)`);
                 
-                // Find the actual index in the full underlings array for animation
-                const actualIndex = this.gameState.hero.underlings.findIndex(u => u === underling);
-                
-                // Animate the specific underling sprite
-                setTimeout(() => {
-                    const underlingSprites = document.querySelectorAll('.underling-sprite');
-                    if (underlingSprites[actualIndex]) {
-                        underlingSprites[actualIndex].classList.add('shake');
-                        setTimeout(() => underlingSprites[actualIndex].classList.remove('shake'), 500);
-                    }
-                }, index * 200); // Stagger the animations
+                // Update combat interface after a short delay instead of sprite animation
+                setTimeout(() => this.showCombatInterface(), (index + 1) * 300);
                 
                 // Check if enemy is defeated by underling
                 if (underlingTarget.health <= 0 && this.gameState.currentEnemies.length > 0) {
@@ -393,7 +597,10 @@ class GameController {
         this.enemiesAttack();
         
         // Update combat interface
-        setTimeout(() => this.showCombatInterface(), 1000);
+        setTimeout(() => {
+            this.showCombatInterface();
+            this.updateCombatChatDisplay();
+        }, 1000);
     }
 
     playerDefend() {
@@ -409,7 +616,10 @@ class GameController {
         this.gameState.defendingThisTurn = false;
         
         // Update combat interface
-        setTimeout(() => this.showCombatInterface(), 1000);
+        setTimeout(() => {
+            this.showCombatInterface();
+            this.updateCombatChatDisplay();
+        }, 1000);
     }
 
     playerFlee() {
@@ -717,7 +927,6 @@ class GameController {
             
             if (target === this.gameState.hero) {
                 this.ui.log(`${enemy.name} attacks you for ${actualDamage} damage!${this.gameState.defendingThisTurn ? ' (Reduced by defending)' : ''} (Hero: ${Math.max(0, this.gameState.hero.health)}/${this.gameState.hero.maxHealth} HP)`);
-                this.ui.animateSprite('.hero-sprite', 'shake');
                 
                 // Check if player is defeated
                 if (this.gameState.hero.health <= 0) {
@@ -728,12 +937,6 @@ class GameController {
                 // Underling was attacked
                 const underlingIndex = this.gameState.hero.underlings.findIndex(u => u === target);
                 this.ui.log(`${enemy.name} attacks ${target.name} for ${actualDamage} damage!${this.gameState.defendingThisTurn ? ' (Reduced by defending)' : ''} (${target.name}: ${Math.max(0, target.health)}/${target.maxHealth} HP)`);
-                
-                // Animate the specific underling if it exists
-                const underlingSprites = document.querySelectorAll('.underling-sprite');
-                if (underlingSprites[underlingIndex]) {
-                    this.ui.animateSprite(underlingSprites[underlingIndex], 'shake');
-                }
                 
                 // Check if underling is defeated
                 if (target.health <= 0) {
@@ -765,8 +968,8 @@ class GameController {
         this.ui.log("Your party has been defeated!");
         this.ui.showNotification("Party defeated! Awakening in the temple...", "error");
         
-        // Close the docked combat panel since combat is over
-        this.closeDockedCombatPanel();
+        // Close the enhanced combat modal since combat is over
+        this.closeEnhancedCombatModal();
         
         // Close any open modals
         const existingModals = document.querySelectorAll('.modal-overlay');
@@ -808,8 +1011,8 @@ class GameController {
     }
 
     showVictoryOptions() {
-        // Close the docked combat panel since combat is over
-        this.closeDockedCombatPanel();
+        // Close the enhanced combat modal since combat is over
+        this.closeEnhancedCombatModal();
         
         // Set combat state to false
         this.gameState.inCombat = false;
