@@ -795,6 +795,83 @@ class GameController {
         
         aliveUnderlings.forEach((underling, index) => {
             if (this.gameState.currentEnemies.length > 0) {
+                // Special abilities for specific underling types
+                
+                // Healer: Heal most wounded ally if under 50% health and has mana
+                if (underling.type === 'support' && underling.mana >= 10) {
+                    const allPartyMembers = [this.gameState.hero, ...this.gameState.hero.underlings.filter(u => u.isAlive)];
+                    const woundedMembers = allPartyMembers.filter(member => {
+                        const healthPercent = member.health / member.maxHealth;
+                        return healthPercent < 0.5;
+                    });
+                    
+                    if (woundedMembers.length > 0) {
+                        // Find most wounded member (lowest health percentage)
+                        const mostWounded = woundedMembers.reduce((worst, current) => {
+                            const currentPercent = current.health / current.maxHealth;
+                            const worstPercent = worst.health / worst.maxHealth;
+                            return currentPercent < worstPercent ? current : worst;
+                        });
+                        
+                        // Heal for 25% of max health
+                        const healAmount = Math.floor(mostWounded.maxHealth * 0.25);
+                        const actualHealing = Math.min(healAmount, mostWounded.maxHealth - mostWounded.health);
+                        mostWounded.health = Math.min(mostWounded.health + healAmount, mostWounded.maxHealth);
+                        underling.mana -= 10;
+                        
+                        const targetName = mostWounded === this.gameState.hero ? 'Hero' : mostWounded.name;
+                        this.ui.log(`${underling.name} casts Healing Light on ${targetName} for ${actualHealing} HP! (Cost: 10 MP) (${targetName}: ${mostWounded.health}/${mostWounded.maxHealth} HP)`);
+                        
+                        // Update combat interface
+                        setTimeout(() => this.showCombatInterface(), (index + 1) * 300);
+                        return; // Skip normal attack
+                    }
+                }
+                
+                // Mage: Area effect spell if 3+ enemies and has mana
+                if (underling.type === 'magic' && underling.mana >= 15 && this.gameState.currentEnemies.length >= 3) {
+                    // Calculate spell damage
+                    let baseSpellDamage = 6 + (underling.level * 1.5);
+                    const statBonus = this.calculateAttackBonus(underling, 'arcane');
+                    const totalSpellDamage = Math.floor(baseSpellDamage + statBonus);
+                    
+                    underling.mana -= 15;
+                    
+                    this.ui.log(`${underling.name} casts Arcane Blast! (Cost: 15 MP)`);
+                    
+                    // Damage all enemies
+                    this.gameState.currentEnemies.forEach(enemy => {
+                        // Apply damage variance (80-100% of spell damage)
+                        const variance = 0.8 + Math.random() * 0.2;
+                        const finalDamage = Math.floor(totalSpellDamage * variance);
+                        enemy.health -= finalDamage;
+                        
+                        this.ui.log(`  ${enemy.name} takes ${finalDamage} arcane damage! (${Math.max(0, enemy.health)}/${enemy.maxHealth} HP)`);
+                        
+                        // Check if enemy is defeated
+                        if (enemy.health <= 0) {
+                            defeatedEnemiesThisTurn.add(enemy);
+                            this.ui.log(`  ${enemy.name} is defeated by the arcane blast!`);
+                            
+                            // Give rewards for defeated enemies
+                            const baseGold = Math.floor(Math.random() * 10) + 5;
+                            const baseXp = Math.floor(Math.random() * 15) + 10;
+                            const goldReward = baseGold + (this.gameState.dungeonLevel * Math.floor(Math.random() * 3 + 2));
+                            const xpReward = baseXp + (this.gameState.dungeonLevel * Math.floor(Math.random() * 5 + 3));
+                            
+                            this.gameState.hero.gold += goldReward;
+                            this.gameState.hero.fame += xpReward;
+                            
+                            this.ui.log(`You gained ${goldReward} gold and ${xpReward} experience! (Dungeon Lv.${this.gameState.dungeonLevel})`);
+                        }
+                    });
+                    
+                    // Update combat interface
+                    setTimeout(() => this.showCombatInterface(), (index + 1) * 300);
+                    return; // Skip normal attack
+                }
+                
+                // Normal attack for all other cases
                 // Each underling targets the first available enemy (not yet defeated this turn)
                 let underlingTarget = null;
                 for (let i = 0; i < this.gameState.currentEnemies.length; i++) {
@@ -2554,10 +2631,14 @@ class GameController {
     useConsumable(item) {
         switch(item.effect) {
             case 'heal':
-                this.ui.log(`Used ${item.name}! Restored ${item.value} health.`);
+                const healAmount = Math.min(item.value, this.gameState.hero.maxHealth - this.gameState.hero.health);
+                this.gameState.hero.health = Math.min(this.gameState.hero.health + item.value, this.gameState.hero.maxHealth);
+                this.ui.log(`Used ${item.name}! Restored ${healAmount} health.`);
                 break;
             case 'mana':
-                this.ui.log(`Used ${item.name}! Restored ${item.value} mana.`);
+                const manaAmount = Math.min(item.value, this.gameState.hero.maxMana - this.gameState.hero.mana);
+                this.gameState.hero.mana = Math.min(this.gameState.hero.mana + item.value, this.gameState.hero.maxMana);
+                this.ui.log(`Used ${item.name}! Restored ${manaAmount} mana.`);
                 break;
             default:
                 this.ui.log(`Used ${item.name}!`);
@@ -2613,10 +2694,13 @@ class GameController {
                             hero.underlings.map((underling, index) => `
                                 <div style="background: #1a1a1a; padding: 10px; margin: 5px 0; border-radius: 5px;">
                                     <h5>${underling.name} (${underling.type})</h5>
-                                    <p>Level: ${underling.level}</p>
-                                    <p>Health: ${underling.health}</p>
-                                    <p>Attack: ${underling.attack}</p>
-                                    <p>Defense: ${underling.defense}</p>
+                                    <p><strong>Level:</strong> ${underling.level}</p>
+                                    <p><strong>Health:</strong> ${underling.health}/${underling.maxHealth}</p>
+                                    <p><strong>Mana:</strong> ${underling.mana}/${underling.maxMana}</p>
+                                    <p><strong>Attack:</strong> ${underling.attack} | <strong>Defense:</strong> ${underling.defense}</p>
+                                    <div style="font-size: 11px; color: #bbb; margin-top: 5px;">
+                                        <strong>Stats:</strong> STR: ${underling.strength || 5}, DEX: ${underling.dexterity || 5}, CON: ${underling.constitution || 5}, INT: ${underling.intelligence || 5}, WIL: ${underling.willpower || 5}, SIZ: ${underling.size || 5}
+                                    </div>
                                     <button onclick="window.game.controller.manageUnderling(${index})" 
                                             style="margin-top: 5px; padding: 3px 10px; background: #2a2a2a; border: 1px solid #555; color: white; border-radius: 3px; cursor: pointer;">
                                         Manage
@@ -2631,10 +2715,6 @@ class GameController {
         `;
 
         this.ui.createModal("Character Management", characterContent, [
-            {
-                text: "Level Up Hero",
-                onClick: () => this.attemptHeroLevelUp()
-            },
             {
                 text: "Upgrade Leadership",
                 onClick: () => this.upgradeLeadership()
