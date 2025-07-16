@@ -52,6 +52,13 @@ class GameController {
                 mana: 100,
                 maxMana: 100,
                 leadership: 1,
+                // New stat system - all start at base 5
+                strength: 5,      // Affects melee weapon attack
+                dexterity: 5,     // Affects ranged weapon attack + crit chance (2.5% per point) + crit damage
+                constitution: 5,  // Affects hit points (5 HP per point over 5)
+                intelligence: 5,  // Affects mana + arcane spell attack
+                willpower: 5,     // Affects mana + divine spell attack + magic resistance
+                size: 5,          // Affects hit chance, hit points, and damage
                 equipment: [],
                 skills: [],
                 underlings: [],
@@ -69,6 +76,9 @@ class GameController {
         this.currentSelectedItemIndex = null;
         this.currentCombatItems = null;
         this.currentCombatTargets = null;
+        
+        // Apply stat bonuses to new character
+        this.applyStatBonuses();
         
         // Reset UI state completely
         if (this.ui) {
@@ -161,8 +171,30 @@ class GameController {
                         if (!underling.maxMana) {
                             underling.maxMana = 50;
                         }
+                        // Add new stats if missing (backward compatibility)
+                        if (underling.strength === undefined) {
+                            underling.strength = 5;
+                            underling.dexterity = 5;
+                            underling.constitution = 5;
+                            underling.intelligence = 5;
+                            underling.willpower = 5;
+                            underling.size = 5;
+                        }
                     });
                 }
+                
+                // Add new stats to hero if missing (backward compatibility)
+                if (this.gameState.hero.strength === undefined) {
+                    this.gameState.hero.strength = 5;
+                    this.gameState.hero.dexterity = 5;
+                    this.gameState.hero.constitution = 5;
+                    this.gameState.hero.intelligence = 5;
+                    this.gameState.hero.willpower = 5;
+                    this.gameState.hero.size = 5;
+                }
+                
+                // Apply stat bonuses to all characters
+                this.applyStatBonuses();
                 
                 // Reset combat state (should not be saved anyway)
                 this.gameState.inCombat = false;
@@ -241,10 +273,177 @@ class GameController {
                 level: this.gameState.dungeonLevel + Math.floor(Math.random() * 2),
                 health: 50 + (this.gameState.dungeonLevel * 10),
                 maxHealth: 50 + (this.gameState.dungeonLevel * 10),
-                attack: 10 + (this.gameState.dungeonLevel * 2)
+                attack: 10 + (this.gameState.dungeonLevel * 2),
+                // Base stats for enemies (modified by type)
+                strength: 5,
+                dexterity: 5,
+                constitution: 5,
+                intelligence: 5,
+                willpower: 5,
+                size: 5
             };
+            
+            // Apply enemy type stat modifiers
+            this.applyEnemyStatModifiers(enemy);
+            
             this.gameState.currentEnemies.push(enemy);
         }
+    }
+
+    applyEnemyStatModifiers(enemy) {
+        // Apply stat modifiers based on enemy type
+        switch(enemy.name) {
+            case 'Goblin':
+                enemy.dexterity += 2; // Quick and sneaky
+                enemy.intelligence += 1; // Cunning
+                enemy.size -= 1; // Small
+                enemy.strength -= 1; // Weak
+                break;
+            case 'Orc':
+                enemy.strength += 3; // Very strong
+                enemy.constitution += 2; // Hardy
+                enemy.size += 1; // Large
+                enemy.intelligence -= 2; // Not bright
+                enemy.dexterity -= 1; // Clumsy
+                break;
+            case 'Skeleton':
+                enemy.constitution += 3; // Undead resilience
+                enemy.willpower += 2; // Unbreaking will
+                enemy.dexterity += 1; // Bone joints move well
+                enemy.intelligence -= 2; // Mindless
+                enemy.strength -= 1; // Brittle bones
+                break;
+            case 'Wolf':
+                enemy.dexterity += 3; // Very agile
+                enemy.strength += 2; // Powerful bite
+                enemy.constitution += 1; // Enduring
+                enemy.intelligence += 1; // Pack hunter
+                enemy.size -= 1; // Medium size
+                break;
+            case 'Spider':
+                enemy.dexterity += 4; // Extremely agile
+                enemy.constitution += 1; // Hardy
+                enemy.intelligence += 2; // Web tactics
+                enemy.size -= 2; // Small
+                enemy.strength -= 2; // Delicate
+                enemy.willpower -= 1; // Instinct driven
+                break;
+        }
+        
+        // Ensure no stat goes below 1
+        ['strength', 'dexterity', 'constitution', 'intelligence', 'willpower', 'size'].forEach(stat => {
+            enemy[stat] = Math.max(1, enemy[stat]);
+        });
+    }
+
+    // New stat-based combat calculation methods
+    calculateCriticalHit(attacker) {
+        // Critical hit chance based on dexterity: DEX * 2.5% chance, max 30%
+        const critChance = Math.min(30, attacker.dexterity * 2.5);
+        const isCritical = Math.random() * 100 < critChance;
+        
+        if (isCritical) {
+            // Critical damage multiplier based on dexterity: 1.5 + (DEX - 5) * 0.1, max 3.0x
+            const critMultiplier = Math.min(3.0, 1.5 + Math.max(0, (attacker.dexterity - 5) * 0.1));
+            return { isCritical: true, multiplier: critMultiplier };
+        }
+        
+        return { isCritical: false, multiplier: 1.0 };
+    }
+
+    calculateAttackBonus(attacker, weaponType = 'melee') {
+        // Attack bonuses based on weapon type and stats
+        let bonus = 0;
+        
+        switch(weaponType) {
+            case 'melee':
+                bonus = Math.floor((attacker.strength - 5) * 0.5); // STR bonus for melee
+                break;
+            case 'ranged':
+                bonus = Math.floor((attacker.dexterity - 5) * 0.5); // DEX bonus for ranged
+                break;
+            case 'arcane':
+                bonus = Math.floor((attacker.intelligence - 5) * 0.5); // INT bonus for arcane
+                break;
+            case 'divine':
+                bonus = Math.floor((attacker.willpower - 5) * 0.5); // WIL bonus for divine
+                break;
+        }
+        
+        return Math.max(0, bonus);
+    }
+
+    calculateHealthBonus(character) {
+        // Constitution provides bonus HP: (CON - 5) * 5 HP
+        return Math.max(0, (character.constitution - 5) * 5);
+    }
+
+    calculateManaBonus(character) {
+        // Intelligence and Willpower provide bonus mana: (INT + WIL - 10) * 2.5 mana
+        return Math.max(0, (character.intelligence + character.willpower - 10) * 2.5);
+    }
+
+    getWeaponType(attacker) {
+        // Determine weapon type based on equipped weapons or character type
+        if (attacker.equipment) {
+            const equippedWeapons = attacker.equipment.filter(item => item.equipped && item.stats && item.stats.attack);
+            if (equippedWeapons.length > 0) {
+                // Return the type of the first equipped weapon
+                return equippedWeapons[0].weaponType || 'melee';
+            }
+        }
+        
+        // Default weapon types by character type
+        if (attacker.type === 'ranged') return 'ranged';
+        if (attacker.type === 'magic') return 'arcane';
+        if (attacker.type === 'support') return 'divine';
+        
+        return 'melee'; // Default for heroes, warriors, and enemies
+    }
+
+    applyStatBonuses() {
+        // Apply stat bonuses to hero
+        this.applyCharacterStatBonuses(this.gameState.hero);
+        
+        // Apply stat bonuses to underlings
+        if (this.gameState.hero.underlings) {
+            this.gameState.hero.underlings.forEach(underling => {
+                this.applyCharacterStatBonuses(underling);
+            });
+        }
+    }
+
+    applyCharacterStatBonuses(character) {
+        // Store original health/mana before applying bonuses
+        const currentHealthPercent = character.health / character.maxHealth;
+        const currentManaPercent = character.mana / character.maxMana;
+        
+        // Calculate base values without stat bonuses
+        let baseHealth = character.maxHealth;
+        let baseMana = character.maxMana;
+        
+        // Remove previous stat bonuses if they exist
+        if (character.statBonusesApplied) {
+            baseHealth -= character.previousHealthBonus || 0;
+            baseMana -= character.previousManaBonus || 0;
+        }
+        
+        // Calculate new stat bonuses
+        const healthBonus = this.calculateHealthBonus(character);
+        const manaBonus = this.calculateManaBonus(character);
+        
+        // Apply new bonuses
+        character.maxHealth = Math.max(1, baseHealth + healthBonus);
+        character.maxMana = Math.max(1, baseMana + manaBonus);
+        
+        // Maintain current health/mana percentages
+        character.health = Math.min(character.health, Math.floor(character.maxHealth * currentHealthPercent));
+        character.mana = Math.min(character.mana, Math.floor(character.maxMana * currentManaPercent));
+        
+        // Track that bonuses have been applied
+        character.statBonusesApplied = true;
+        character.previousHealthBonus = healthBonus;
+        character.previousManaBonus = manaBonus;
     }
 
     showCombatInterface() {
@@ -510,12 +709,33 @@ class GameController {
 
         // Player attacks first enemy
         const target = this.gameState.currentEnemies[0];
-        const heroAttack = 15 + (this.gameState.hero.level * 3);
-        // More consistent damage: 70-100% of attack value
-        const damage = Math.floor(heroAttack * (0.7 + Math.random() * 0.3));
+        const hero = this.gameState.hero;
         
-        target.health -= damage;
-        this.ui.log(`You attack ${target.name} for ${damage} damage! (${target.name}: ${Math.max(0, target.health)}/${target.maxHealth} HP)`);
+        // Calculate base attack with level progression
+        const baseAttack = 15 + (hero.level * 3);
+        
+        // Get weapon type and calculate stat-based attack bonus
+        const weaponType = this.getWeaponType(hero);
+        const statBonus = this.calculateAttackBonus(hero, weaponType);
+        
+        // Calculate critical hit
+        const critResult = this.calculateCriticalHit(hero);
+        
+        // Total attack value with stat bonuses
+        const totalAttack = baseAttack + statBonus;
+        
+        // Apply damage variance (70-100% of attack value) and critical multiplier
+        const baseDamage = Math.floor(totalAttack * (0.7 + Math.random() * 0.3));
+        const finalDamage = Math.floor(baseDamage * critResult.multiplier);
+        
+        target.health -= finalDamage;
+        
+        // Enhanced attack log with weapon type and critical hit info
+        const weaponText = weaponType !== 'melee' ? ` (${weaponType})` : '';
+        const critText = critResult.isCritical ? ` CRITICAL HIT! (${critResult.multiplier.toFixed(1)}x)` : '';
+        const statText = statBonus > 0 ? ` (+${statBonus} stat bonus)` : '';
+        
+        this.ui.log(`You attack ${target.name}${weaponText} for ${finalDamage} damage!${critText}${statText} (${target.name}: ${Math.max(0, target.health)}/${target.maxHealth} HP)`);
         
         // Update combat interface instead of sprite animation
         setTimeout(() => this.showCombatInterface(), 200);
@@ -526,17 +746,36 @@ class GameController {
             if (this.gameState.currentEnemies.length > 0) {
                 const underlingTarget = this.gameState.currentEnemies[0]; // Attack same target as hero
                 
-                // Calculate attack with equipment bonuses
+                // Calculate base attack with level progression
                 let baseAttack = 8 + (underling.level * 2);
+                
+                // Equipment attack bonuses
                 const equippedWeapons = underling.equipment ? underling.equipment.filter(item => item.equipped && item.stats && item.stats.attack) : [];
-                const attackBonus = equippedWeapons.reduce((total, weapon) => total + weapon.stats.attack, 0);
-                const underlingAttack = baseAttack + attackBonus;
+                const equipmentBonus = equippedWeapons.reduce((total, weapon) => total + weapon.stats.attack, 0);
                 
-                // More consistent damage: 70-100% of attack value
-                const underlingDamage = Math.floor(underlingAttack * (0.7 + Math.random() * 0.3));
+                // Get weapon type and calculate stat-based attack bonus
+                const weaponType = this.getWeaponType(underling);
+                const statBonus = this.calculateAttackBonus(underling, weaponType);
                 
-                underlingTarget.health -= underlingDamage;
-                this.ui.log(`${underling.name} attacks ${underlingTarget.name} for ${underlingDamage} damage!${attackBonus > 0 ? ` (+${attackBonus} equipment bonus)` : ''} (${underlingTarget.name}: ${Math.max(0, underlingTarget.health)}/${underlingTarget.maxHealth} HP)`);
+                // Calculate critical hit
+                const critResult = this.calculateCriticalHit(underling);
+                
+                // Total attack value with all bonuses
+                const totalAttack = baseAttack + equipmentBonus + statBonus;
+                
+                // Apply damage variance (70-100% of attack value) and critical multiplier
+                const baseDamage = Math.floor(totalAttack * (0.7 + Math.random() * 0.3));
+                const finalDamage = Math.floor(baseDamage * critResult.multiplier);
+                
+                underlingTarget.health -= finalDamage;
+                
+                // Enhanced attack log with weapon type and critical hit info
+                const weaponText = weaponType !== 'melee' ? ` (${weaponType})` : '';
+                const critText = critResult.isCritical ? ` CRITICAL HIT! (${critResult.multiplier.toFixed(1)}x)` : '';
+                const equipmentText = equipmentBonus > 0 ? ` (+${equipmentBonus} equipment)` : '';
+                const statText = statBonus > 0 ? ` (+${statBonus} stat)` : '';
+                
+                this.ui.log(`${underling.name} attacks ${underlingTarget.name}${weaponText} for ${finalDamage} damage!${critText}${equipmentText}${statText} (${underlingTarget.name}: ${Math.max(0, underlingTarget.health)}/${underlingTarget.maxHealth} HP)`);
                 
                 // Update combat interface after a short delay instead of sprite animation
                 setTimeout(() => this.showCombatInterface(), (index + 1) * 300);
@@ -932,14 +1171,29 @@ class GameController {
             // Each enemy picks a random target from alive party members
             const target = allTargets[Math.floor(Math.random() * allTargets.length)];
             
-            // More consistent enemy damage: 60-100% of attack value
-            const damage = Math.floor(enemy.attack * (0.6 + Math.random() * 0.4));
-            const actualDamage = this.gameState.defendingThisTurn ? Math.floor(damage / 2) : damage;
+            // Calculate stat-based attack bonus (enemies use melee by default)
+            const statBonus = this.calculateAttackBonus(enemy, 'melee');
+            
+            // Calculate critical hit
+            const critResult = this.calculateCriticalHit(enemy);
+            
+            // Total attack value with stat bonuses
+            const totalAttack = enemy.attack + statBonus;
+            
+            // Apply damage variance (60-100% of attack value) and critical multiplier
+            const baseDamage = Math.floor(totalAttack * (0.6 + Math.random() * 0.4));
+            const critDamage = Math.floor(baseDamage * critResult.multiplier);
+            const actualDamage = this.gameState.defendingThisTurn ? Math.floor(critDamage / 2) : critDamage;
             
             target.health -= actualDamage;
             
+            // Enhanced attack log with critical hit info
+            const critText = critResult.isCritical ? ` CRITICAL HIT! (${critResult.multiplier.toFixed(1)}x)` : '';
+            const statText = statBonus > 0 ? ` (+${statBonus} stat)` : '';
+            const defendText = this.gameState.defendingThisTurn ? ' (Reduced by defending)' : '';
+            
             if (target === this.gameState.hero) {
-                this.ui.log(`${enemy.name} attacks you for ${actualDamage} damage!${this.gameState.defendingThisTurn ? ' (Reduced by defending)' : ''} (Hero: ${Math.max(0, this.gameState.hero.health)}/${this.gameState.hero.maxHealth} HP)`);
+                this.ui.log(`${enemy.name} attacks you for ${actualDamage} damage!${critText}${statText}${defendText} (Hero: ${Math.max(0, this.gameState.hero.health)}/${this.gameState.hero.maxHealth} HP)`);
                 
                 // Check if player is defeated
                 if (this.gameState.hero.health <= 0) {
@@ -1202,6 +1456,18 @@ class GameController {
                 onClick: () => this.craftItem('iron_sword', 50)
             },
             {
+                text: "Craft Elven Bow",
+                onClick: () => this.craftItem('elven_bow', 60)
+            },
+            {
+                text: "Craft Arcane Wand",
+                onClick: () => this.craftItem('arcane_wand', 80)
+            },
+            {
+                text: "Craft Divine Staff",
+                onClick: () => this.craftItem('divine_staff', 90)
+            },
+            {
                 text: "Craft Leather Armor",
                 onClick: () => this.craftItem('leather_armor', 75)
             },
@@ -1226,9 +1492,46 @@ class GameController {
         this.gameState.hero.gold -= cost;
         
         const items = {
-            iron_sword: { name: "Iron Sword", type: "weapon", stats: { attack: 5 }, equipped: false },
-            leather_armor: { name: "Leather Armor", type: "armor", stats: { defense: 3 }, equipped: false },
-            health_potion: { name: "Health Potion", type: "consumable", effect: "heal", value: 50 }
+            iron_sword: { 
+                name: "Iron Sword", 
+                type: "weapon", 
+                weaponType: "melee",
+                stats: { attack: 5 }, 
+                equipped: false 
+            },
+            elven_bow: { 
+                name: "Elven Bow", 
+                type: "weapon", 
+                weaponType: "ranged",
+                stats: { attack: 6 }, 
+                equipped: false 
+            },
+            arcane_wand: { 
+                name: "Arcane Wand", 
+                type: "weapon", 
+                weaponType: "arcane",
+                stats: { attack: 7 }, 
+                equipped: false 
+            },
+            divine_staff: { 
+                name: "Divine Staff", 
+                type: "weapon", 
+                weaponType: "divine",
+                stats: { attack: 8 }, 
+                equipped: false 
+            },
+            leather_armor: { 
+                name: "Leather Armor", 
+                type: "armor", 
+                stats: { defense: 3 }, 
+                equipped: false 
+            },
+            health_potion: { 
+                name: "Health Potion", 
+                type: "consumable", 
+                effect: "heal", 
+                value: 50 
+            }
         };
 
         const item = items[itemType];
@@ -1287,6 +1590,10 @@ class GameController {
                 onClick: () => this.recruitUnderling('mage', 200)
             },
             {
+                text: "Recruit Healer",
+                onClick: () => this.recruitUnderling('healer', 175)
+            },
+            {
                 text: "Close",
                 onClick: () => this.returnToVillage()
             }
@@ -1309,9 +1616,70 @@ class GameController {
         this.gameState.hero.gold -= cost;
         
         const underlings = {
-            archer: { name: "Archer", type: "ranged", level: 1, health: 75, mana: 40, attack: 15, defense: 5 },
-            warrior: { name: "Warrior", type: "tank", level: 1, health: 120, mana: 30, attack: 12, defense: 10 },
-            mage: { name: "Mage", type: "magic", level: 1, health: 60, mana: 80, attack: 20, defense: 3 }
+            archer: { 
+                name: "Archer", 
+                type: "ranged", 
+                level: 1, 
+                health: 75, 
+                mana: 40, 
+                attack: 15, 
+                defense: 5,
+                // Archer stats - focused on dexterity and intelligence 
+                strength: 4,
+                dexterity: 8,
+                constitution: 5,
+                intelligence: 6,
+                willpower: 5,
+                size: 5
+            },
+            warrior: { 
+                name: "Warrior", 
+                type: "tank", 
+                level: 1, 
+                health: 120, 
+                mana: 30, 
+                attack: 12, 
+                defense: 10,
+                // Warrior stats - focused on strength and constitution
+                strength: 8,
+                dexterity: 4,
+                constitution: 8,
+                intelligence: 4,
+                willpower: 6,
+                size: 6
+            },
+            mage: { 
+                name: "Mage", 
+                type: "magic", 
+                level: 1, 
+                health: 60, 
+                mana: 80, 
+                attack: 20, 
+                defense: 3,
+                // Mage stats - focused on intelligence and willpower
+                strength: 3,
+                dexterity: 5,
+                constitution: 4,
+                intelligence: 8,
+                willpower: 8,
+                size: 4
+            },
+            healer: { 
+                name: "Healer", 
+                type: "support", 
+                level: 1, 
+                health: 80, 
+                mana: 60, 
+                attack: 8, 
+                defense: 6,
+                // Healer stats - focused on willpower and intelligence
+                strength: 3,
+                dexterity: 5,
+                constitution: 6,
+                intelligence: 7,
+                willpower: 9,
+                size: 4
+            }
         };
 
         const underling = { 
@@ -1323,6 +1691,9 @@ class GameController {
             isAlive: true
         };
         this.gameState.hero.underlings.push(underling);
+        
+        // Apply stat bonuses to the new underling
+        this.applyCharacterStatBonuses(underling);
         
         this.ui.log(`Recruited ${underling.name}!`);
         this.ui.showNotification(`Recruited ${underling.name}!`, "success");
