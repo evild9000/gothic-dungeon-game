@@ -544,13 +544,16 @@ class GameController {
                 // Check if enemy is defeated by underling
                 if (underlingTarget.health <= 0 && this.gameState.currentEnemies.length > 0) {
                     this.ui.log(`${underlingTarget.name} is defeated by ${underling.name}!`);
-                    const goldReward = Math.floor(Math.random() * 15) + 5;
-                    const xpReward = Math.floor(Math.random() * 20) + 10;
+                    // Scale rewards with dungeon level
+                    const baseGold = Math.floor(Math.random() * 10) + 5; // 5-14 base
+                    const baseXp = Math.floor(Math.random() * 15) + 10; // 10-24 base
+                    const goldReward = baseGold + (this.gameState.dungeonLevel * Math.floor(Math.random() * 3 + 2)); // +2-4 per level
+                    const xpReward = baseXp + (this.gameState.dungeonLevel * Math.floor(Math.random() * 5 + 3)); // +3-7 per level
                     
                     this.gameState.hero.gold += goldReward;
                     this.gameState.hero.fame += xpReward;
                     
-                    this.ui.log(`You gained ${goldReward} gold and ${xpReward} experience!`);
+                    this.ui.log(`You gained ${goldReward} gold and ${xpReward} experience! (Dungeon Lv.${this.gameState.dungeonLevel})`);
                     this.ui.showNotification(`${underling.name} defeated ${underlingTarget.name}! +${goldReward} gold, +${xpReward} XP`, "success");
                     
                     // Remove defeated enemy
@@ -571,13 +574,16 @@ class GameController {
         // Check if main target is defeated (by hero)
         if (target.health <= 0) {
             this.ui.log(`${target.name} is defeated!`);
-            const goldReward = Math.floor(Math.random() * 20) + 10;
-            const xpReward = Math.floor(Math.random() * 30) + 15;
+            // Scale rewards with dungeon level - Hero gets bonus rewards
+            const baseGold = Math.floor(Math.random() * 15) + 10; // 10-24 base
+            const baseXp = Math.floor(Math.random() * 20) + 15; // 15-34 base
+            const goldReward = Math.floor((baseGold + (this.gameState.dungeonLevel * Math.floor(Math.random() * 4 + 3))) * 1.5); // +3-6 per level, 1.5x hero bonus
+            const xpReward = Math.floor((baseXp + (this.gameState.dungeonLevel * Math.floor(Math.random() * 6 + 4))) * 1.5); // +4-9 per level, 1.5x hero bonus
             
             this.gameState.hero.gold += goldReward;
             this.gameState.hero.fame += xpReward;
             
-            this.ui.log(`You gained ${goldReward} gold and ${xpReward} experience!`);
+            this.ui.log(`You gained ${goldReward} gold and ${xpReward} experience! (Hero bonus + Dungeon Lv.${this.gameState.dungeonLevel})`);
             this.ui.showNotification(`Defeated ${target.name}! +${goldReward} gold, +${xpReward} XP`, "success");
             
             // Remove defeated enemy
