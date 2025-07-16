@@ -785,9 +785,24 @@ class GameController {
 
         // Living underlings also attack!
         const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+        const defeatedEnemiesThisTurn = new Set(); // Track enemies defeated by underlings this turn
+        
         aliveUnderlings.forEach((underling, index) => {
             if (this.gameState.currentEnemies.length > 0) {
-                const underlingTarget = this.gameState.currentEnemies[0]; // Attack same target as hero
+                // Each underling targets the first available enemy (not yet defeated this turn)
+                let underlingTarget = null;
+                for (let i = 0; i < this.gameState.currentEnemies.length; i++) {
+                    const potentialTarget = this.gameState.currentEnemies[i];
+                    if (!defeatedEnemiesThisTurn.has(potentialTarget)) {
+                        underlingTarget = potentialTarget;
+                        break;
+                    }
+                }
+                
+                // Skip if no valid target found
+                if (!underlingTarget) {
+                    return;
+                }
                 
                 // Calculate base attack with level progression
                 let baseAttack = 8 + (underling.level * 2);
@@ -824,7 +839,10 @@ class GameController {
                 setTimeout(() => this.showCombatInterface(), (index + 1) * 300);
                 
                 // Check if enemy is defeated by underling
-                if (underlingTarget.health <= 0 && this.gameState.currentEnemies.length > 0) {
+                if (underlingTarget.health <= 0) {
+                    // Mark this enemy as defeated to prevent double-processing
+                    defeatedEnemiesThisTurn.add(underlingTarget);
+                    
                     this.ui.log(`${underlingTarget.name} is defeated by ${underling.name}!`);
                     // Scale rewards with dungeon level
                     const baseGold = Math.floor(Math.random() * 10) + 5; // 5-14 base
@@ -837,12 +855,15 @@ class GameController {
                     
                     this.ui.log(`You gained ${goldReward} gold and ${xpReward} experience! (Dungeon Lv.${this.gameState.dungeonLevel})`);
                     this.ui.showNotification(`${underling.name} defeated ${underlingTarget.name}! +${goldReward} gold, +${xpReward} XP`, "success");
-                    
-                    // Remove defeated enemy
-                    this.gameState.currentEnemies.shift();
                 }
             }
         });
+        
+        // Remove all defeated enemies after all underlings have attacked
+        this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => !defeatedEnemiesThisTurn.has(enemy));
+
+        // Safety check: Also remove any enemies with health <= 0 (in case of edge cases)
+        this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.health > 0);
 
         // Check if all enemies defeated after underling attacks
         if (this.gameState.currentEnemies.length === 0) {
@@ -1135,6 +1156,15 @@ class GameController {
         // Log the action
         this.ui.log(`${item.owner || 'Hero'}'s ${item.name} used on ${target.name}!`);
         this.ui.showNotification(`${item.name} used on ${target.name}!`, "success");
+
+        // Check if all enemies defeated after item use
+        if (this.gameState.currentEnemies.length === 0) {
+            this.ui.log("All enemies defeated! You can continue deeper or exit the dungeon.");
+            this.checkLevelUp();
+            this.ui.render();
+            this.showVictoryOptions();
+            return;
+        }
 
         // Enemies attack after item use
         this.enemiesAttack();
