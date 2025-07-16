@@ -1375,8 +1375,8 @@ class GameController {
 
         this.ui.createModal("Underling Equipment", equipmentContent, [
             {
-                text: "Back to Temple",
-                onClick: () => this.openTemple()
+                text: "Back to Inventory",
+                onClick: () => this.openInventory()
             }
         ]);
     }
