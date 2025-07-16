@@ -1083,7 +1083,7 @@ class GameController {
         // Return to village background
         this.ui.setBackground('village');
         
-        // Restore 25% HP and mana for hero and underlings
+        // Restore 15% HP and mana for hero and underlings
         this.restorePartyAfterDungeon();
         
         this.ui.log("You exit the dungeon.");
@@ -1097,8 +1097,8 @@ class GameController {
         const heroHpBefore = this.gameState.hero.health;
         const heroManaBefore = this.gameState.hero.mana || 0;
         
-        const heroHpRestore = Math.floor(this.gameState.hero.maxHealth * 0.25);
-        const heroManaRestore = Math.floor((this.gameState.hero.maxMana || 100) * 0.25);
+        const heroHpRestore = Math.floor(this.gameState.hero.maxHealth * 0.15);
+        const heroManaRestore = Math.floor((this.gameState.hero.maxMana || 100) * 0.15);
         
         this.gameState.hero.health = Math.min(
             this.gameState.hero.health + heroHpRestore, 
@@ -1130,8 +1130,8 @@ class GameController {
                 const underlingHpBefore = underling.health;
                 const underlingManaBefore = underling.mana || 0;
                 
-                const underlingHpRestore = Math.floor(underling.maxHealth * 0.25);
-                const underlingManaRestore = Math.floor((underling.maxMana || 50) * 0.25);
+                const underlingHpRestore = Math.floor(underling.maxHealth * 0.15);
+                const underlingManaRestore = Math.floor((underling.maxMana || 50) * 0.15);
                 
                 underling.health = Math.min(
                     underling.health + underlingHpRestore, 
@@ -1163,7 +1163,7 @@ class GameController {
         if (restoredMembers.length > 0) {
             this.ui.log("🌿 Leaving the dungeon, your party recovers from their trials...");
             this.ui.log(`✨ Restored: ${restoredMembers.join(', ')}`);
-            this.ui.showNotification("Party recovered 25% HP/MP!", "success");
+            this.ui.showNotification("Party recovered 15% HP/MP!", "success");
         }
     }
 
