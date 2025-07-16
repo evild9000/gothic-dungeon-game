@@ -286,6 +286,9 @@ class GameController {
             // Apply enemy type stat modifiers
             this.applyEnemyStatModifiers(enemy);
             
+            // Apply stat bonuses to enemy health and stats after modifiers
+            this.applyEnemyStatBonuses(enemy);
+            
             this.gameState.currentEnemies.push(enemy);
         }
     }
@@ -336,9 +339,32 @@ class GameController {
         });
     }
 
+    applyEnemyStatBonuses(enemy) {
+        // Apply constitution bonus to enemy health
+        const healthBonus = this.calculateHealthBonus(enemy);
+        enemy.maxHealth = Math.max(1, enemy.maxHealth + healthBonus);
+        enemy.health = enemy.maxHealth; // Enemies start at full health
+        
+        // Ensure all values are valid numbers and not NaN
+        enemy.health = Math.max(1, isNaN(enemy.health) ? enemy.maxHealth : enemy.health);
+        enemy.maxHealth = Math.max(1, isNaN(enemy.maxHealth) ? 50 : enemy.maxHealth);
+        enemy.attack = Math.max(1, isNaN(enemy.attack) ? 10 : enemy.attack);
+        
+        // Debug logging for problematic enemies
+        if (isNaN(enemy.health) || isNaN(enemy.maxHealth)) {
+            console.warn('NaN detected in enemy stats:', enemy);
+            enemy.health = 50;
+            enemy.maxHealth = 50;
+        }
+    }
+
     // New stat-based combat calculation methods
     calculateCriticalHit(attacker) {
         // Critical hit chance based on dexterity: DEX * 2.5% chance, max 30%
+        if (!attacker || typeof attacker.dexterity !== 'number' || isNaN(attacker.dexterity)) {
+            return { isCritical: false, multiplier: 1.0 };
+        }
+        
         const critChance = Math.min(30, attacker.dexterity * 2.5);
         const isCritical = Math.random() * 100 < critChance;
         
@@ -353,20 +379,30 @@ class GameController {
 
     calculateAttackBonus(attacker, weaponType = 'melee') {
         // Attack bonuses based on weapon type and stats
+        if (!attacker) return 0;
+        
         let bonus = 0;
         
         switch(weaponType) {
             case 'melee':
-                bonus = Math.floor((attacker.strength - 5) * 0.5); // STR bonus for melee
+                if (typeof attacker.strength === 'number' && !isNaN(attacker.strength)) {
+                    bonus = Math.floor((attacker.strength - 5) * 0.5); // STR bonus for melee
+                }
                 break;
             case 'ranged':
-                bonus = Math.floor((attacker.dexterity - 5) * 0.5); // DEX bonus for ranged
+                if (typeof attacker.dexterity === 'number' && !isNaN(attacker.dexterity)) {
+                    bonus = Math.floor((attacker.dexterity - 5) * 0.5); // DEX bonus for ranged
+                }
                 break;
             case 'arcane':
-                bonus = Math.floor((attacker.intelligence - 5) * 0.5); // INT bonus for arcane
+                if (typeof attacker.intelligence === 'number' && !isNaN(attacker.intelligence)) {
+                    bonus = Math.floor((attacker.intelligence - 5) * 0.5); // INT bonus for arcane
+                }
                 break;
             case 'divine':
-                bonus = Math.floor((attacker.willpower - 5) * 0.5); // WIL bonus for divine
+                if (typeof attacker.willpower === 'number' && !isNaN(attacker.willpower)) {
+                    bonus = Math.floor((attacker.willpower - 5) * 0.5); // WIL bonus for divine
+                }
                 break;
         }
         
@@ -375,11 +411,18 @@ class GameController {
 
     calculateHealthBonus(character) {
         // Constitution provides bonus HP: (CON - 5) * 5 HP
+        if (!character || typeof character.constitution !== 'number' || isNaN(character.constitution)) {
+            return 0;
+        }
         return Math.max(0, (character.constitution - 5) * 5);
     }
 
     calculateManaBonus(character) {
         // Intelligence and Willpower provide bonus mana: (INT + WIL - 10) * 2.5 mana
+        if (!character || typeof character.intelligence !== 'number' || typeof character.willpower !== 'number' || 
+            isNaN(character.intelligence) || isNaN(character.willpower)) {
+            return 0;
+        }
         return Math.max(0, (character.intelligence + character.willpower - 10) * 2.5);
     }
 
@@ -1566,6 +1609,7 @@ class GameController {
             <ul>
                 <li>Archer (Cost: 100 gold) - Ranged damage dealer</li>
                 <li>Warrior (Cost: 150 gold) - Melee tank</li>
+                <li>Healer (Cost: 175 gold) - Support and healing</li>
                 <li>Mage (Cost: 200 gold) - Magic damage and support</li>
             </ul>
             <p>Your gold: ${this.gameState.hero.gold}</p>
@@ -1586,12 +1630,12 @@ class GameController {
                 onClick: () => this.recruitUnderling('warrior', 150)
             },
             {
-                text: "Recruit Mage",
-                onClick: () => this.recruitUnderling('mage', 200)
-            },
-            {
                 text: "Recruit Healer",
                 onClick: () => this.recruitUnderling('healer', 175)
+            },
+            {
+                text: "Recruit Mage",
+                onClick: () => this.recruitUnderling('mage', 200)
             },
             {
                 text: "Close",
@@ -2292,10 +2336,21 @@ class GameController {
                         <p><strong>Leadership:</strong> ${hero.leadership}</p>
                         <p style="font-size: 12px; color: #aaa; margin-left: 20px;">Next upgrade cost: ${Math.pow(hero.leadership + 1, 2) * 10} gold</p>
                         <hr style="margin: 10px 0; border-color: #444;">
+                        <p><strong>Core Attributes (Base):</strong></p>
+                        <p>Strength: ${hero.strength} (Melee attack bonus: +${this.calculateAttackBonus(hero, 'melee')})</p>
+                        <p>Dexterity: ${hero.dexterity} (Ranged attack bonus: +${this.calculateAttackBonus(hero, 'ranged')}, Crit chance: ${(typeof hero.dexterity === 'number' && !isNaN(hero.dexterity)) ? Math.min(30, hero.dexterity * 2.5).toFixed(1) : '0.0'}%)</p>
+                        <p>Constitution: ${hero.constitution} (HP bonus: +${this.calculateHealthBonus(hero)})</p>
+                        <p>Intelligence: ${hero.intelligence} (Arcane attack bonus: +${this.calculateAttackBonus(hero, 'arcane')})</p>
+                        <p>Willpower: ${hero.willpower} (Divine attack bonus: +${this.calculateAttackBonus(hero, 'divine')})</p>
+                        <p>Size: ${hero.size} (Affects hit chance and damage)</p>
+                        <hr style="margin: 10px 0; border-color: #444;">
+                        <p><strong>Derived Stats:</strong></p>
+                        <p>Health: ${hero.health}/${hero.maxHealth} (Base + CON bonus)</p>
+                        <p>Mana: ${hero.mana}/${hero.maxMana} (Base + INT/WIL bonus: +${this.calculateManaBonus(hero)})</p>
+                        <hr style="margin: 10px 0; border-color: #444;">
                         <p><strong>Base Stats + Equipment:</strong></p>
                         <p>Attack: ${10 + (hero.level * 2)} + ${equippedStats.attack} = ${10 + (hero.level * 2) + equippedStats.attack}</p>
                         <p>Defense: ${5 + hero.level} + ${equippedStats.defense} = ${5 + hero.level + equippedStats.defense}</p>
-                        <p>Health: ${100 + (hero.level * 10)}</p>
                         <p>Max Underlings: ${hero.leadership}</p>
                         <hr style="margin: 10px 0; border-color: #444;">
                         <p><strong>Equipment Slots:</strong></p>
