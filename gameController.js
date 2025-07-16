@@ -178,14 +178,17 @@ class GameController {
     showCombatInterface() {
         const enemies = this.gameState.currentEnemies;
         let enemyList = enemies.map((enemy, index) => 
-            `<li>${enemy.name} (Level ${enemy.level}) - HP: ${enemy.health}/${enemy.maxHealth}</li>`
+            `<li>${enemy.name} (Level ${enemy.level}) - HP: <span style="color: ${enemy.health <= enemy.maxHealth * 0.3 ? '#ff6b6b' : enemy.health <= enemy.maxHealth * 0.6 ? '#ffd93d' : '#51cf66'}">${enemy.health}</span>/${enemy.maxHealth}</li>`
         ).join('');
         
-        // Show underling info if any
+        // Show underling info if any with health status
         let underlingInfo = '';
         if (this.gameState.hero.underlings.length > 0) {
             const underlingList = this.gameState.hero.underlings.map(underling => 
-                `<li>${underling.name} (Level ${underling.level})</li>`
+                `<li>${underling.name} (Level ${underling.level}) - ${underling.isAlive ? 
+                    `HP: <span style="color: ${underling.health <= underling.maxHealth * 0.3 ? '#ff6b6b' : underling.health <= underling.maxHealth * 0.6 ? '#ffd93d' : '#51cf66'}">${underling.health}</span>/${underling.maxHealth}` : 
+                    '<span style="color: #ff6b6b;">💀 Fallen</span>'
+                }</li>`
             ).join('');
             underlingInfo = `
                 <p><strong>Your Underlings:</strong></p>
@@ -198,7 +201,7 @@ class GameController {
                 <h4>⚔️ Combat Encounter!</h4>
                 <p><strong>Enemies:</strong></p>
                 <ul class="enemy-list">${enemyList}</ul>
-                <p><strong>Your Health:</strong> ${this.gameState.hero.health || 100}/${this.gameState.hero.maxHealth || 100}</p>
+                <p><strong>Your Health:</strong> <span style="color: ${this.gameState.hero.health <= this.gameState.hero.maxHealth * 0.3 ? '#ff6b6b' : this.gameState.hero.health <= this.gameState.hero.maxHealth * 0.6 ? '#ffd93d' : '#51cf66'}">${this.gameState.hero.health || 100}</span>/${this.gameState.hero.maxHealth || 100}</p>
                 ${underlingInfo}
                 <p>Choose your action:</p>
                 <p style="font-size: 12px; color: #888; font-style: italic;">💡 Tip: Press 'U' to quickly access items, or use the Use Item button</p>
@@ -224,10 +227,11 @@ class GameController {
         // Player attacks first enemy
         const target = this.gameState.currentEnemies[0];
         const heroAttack = 15 + (this.gameState.hero.level * 3);
-        const damage = Math.floor(Math.random() * heroAttack) + 5;
+        // More consistent damage: 70-100% of attack value
+        const damage = Math.floor(heroAttack * (0.7 + Math.random() * 0.3));
         
         target.health -= damage;
-        this.ui.log(`You attack ${target.name} for ${damage} damage!`);
+        this.ui.log(`You attack ${target.name} for ${damage} damage! (${target.name}: ${Math.max(0, target.health)}/${target.maxHealth} HP)`);
         this.ui.animateSprite('.enemy-sprite', 'shake');
 
         // Living underlings also attack!
@@ -242,10 +246,11 @@ class GameController {
                 const attackBonus = equippedWeapons.reduce((total, weapon) => total + weapon.stats.attack, 0);
                 const underlingAttack = baseAttack + attackBonus;
                 
-                const underlingDamage = Math.floor(Math.random() * underlingAttack) + 3;
+                // More consistent damage: 70-100% of attack value
+                const underlingDamage = Math.floor(underlingAttack * (0.7 + Math.random() * 0.3));
                 
                 underlingTarget.health -= underlingDamage;
-                this.ui.log(`${underling.name} attacks ${underlingTarget.name} for ${underlingDamage} damage!${attackBonus > 0 ? ` (+${attackBonus} equipment bonus)` : ''}`);
+                this.ui.log(`${underling.name} attacks ${underlingTarget.name} for ${underlingDamage} damage!${attackBonus > 0 ? ` (+${attackBonus} equipment bonus)` : ''} (${underlingTarget.name}: ${Math.max(0, underlingTarget.health)}/${underlingTarget.maxHealth} HP)`);
                 
                 // Find the actual index in the full underlings array for animation
                 const actualIndex = this.gameState.hero.underlings.findIndex(u => u === underling);
@@ -631,13 +636,14 @@ class GameController {
             // Each enemy picks a random target from alive party members
             const target = allTargets[Math.floor(Math.random() * allTargets.length)];
             
-            const damage = Math.floor(Math.random() * enemy.attack) + 2;
+            // More consistent enemy damage: 60-100% of attack value
+            const damage = Math.floor(enemy.attack * (0.6 + Math.random() * 0.4));
             const actualDamage = this.gameState.defendingThisTurn ? Math.floor(damage / 2) : damage;
             
             target.health -= actualDamage;
             
             if (target === this.gameState.hero) {
-                this.ui.log(`${enemy.name} attacks you for ${actualDamage} damage!`);
+                this.ui.log(`${enemy.name} attacks you for ${actualDamage} damage!${this.gameState.defendingThisTurn ? ' (Reduced by defending)' : ''} (Hero: ${Math.max(0, this.gameState.hero.health)}/${this.gameState.hero.maxHealth} HP)`);
                 this.ui.animateSprite('.hero-sprite', 'shake');
                 
                 // Check if player is defeated
@@ -648,7 +654,7 @@ class GameController {
             } else {
                 // Underling was attacked
                 const underlingIndex = this.gameState.hero.underlings.findIndex(u => u === target);
-                this.ui.log(`${enemy.name} attacks ${target.name} for ${actualDamage} damage!`);
+                this.ui.log(`${enemy.name} attacks ${target.name} for ${actualDamage} damage!${this.gameState.defendingThisTurn ? ' (Reduced by defending)' : ''} (${target.name}: ${Math.max(0, target.health)}/${target.maxHealth} HP)`);
                 
                 // Animate the specific underling if it exists
                 const underlingSprites = document.querySelectorAll('.underling-sprite');
