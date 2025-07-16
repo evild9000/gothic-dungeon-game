@@ -627,11 +627,18 @@ class GameController {
         if (fleeChance > 0.3) { // 70% chance to flee successfully
             this.ui.log("You successfully fled from combat!");
             this.ui.showNotification("Fled from combat!", "info");
+            
+            // Close the enhanced combat modal before exiting
+            this.closeEnhancedCombatModal();
+            
             this.exitDungeon();
         } else {
             this.ui.log("You failed to flee! The enemies attack!");
             this.enemiesAttack();
-            setTimeout(() => this.showCombatInterface(), 1000);
+            setTimeout(() => {
+                this.showCombatInterface();
+                this.updateCombatChatDisplay();
+            }, 1000);
         }
     }
 
@@ -1059,6 +1066,13 @@ class GameController {
         this.gameState.inCombat = false;
         this.gameState.currentEnemies = null;
         this.gameState.currentScreen = 'village';
+        
+        // Close any combat-related modals
+        this.closeEnhancedCombatModal();
+        
+        // Close any other open modals
+        const existingModals = document.querySelectorAll('.modal-overlay');
+        existingModals.forEach(modal => modal.remove());
         
         // Return to village background
         this.ui.setBackground('village');
