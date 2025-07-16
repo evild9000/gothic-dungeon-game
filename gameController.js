@@ -1185,14 +1185,6 @@ class GameController {
             });
         }
 
-        // Add equipment management button if there are living underlings
-        if (aliveUnderlings.length > 0) {
-            templeButtons.push({
-                text: "Manage Underling Equipment",
-                onClick: () => this.manageUnderlingEquipment()
-            });
-        }
-
         templeButtons.push({
             text: "Leave Temple",
             onClick: () => this.returnToVillage()
@@ -1547,12 +1539,23 @@ class GameController {
             </div>
         `;
 
-        this.ui.createModal("Inventory & Equipment", inventoryContent, [
+        const inventoryButtons = [
             {
                 text: "Close",
                 onClick: () => {}
             }
-        ]);
+        ];
+
+        // Add equipment management button if there are living underlings
+        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+        if (aliveUnderlings.length > 0) {
+            inventoryButtons.unshift({
+                text: "Manage Underling Equipment",
+                onClick: () => this.manageUnderlingEquipment()
+            });
+        }
+
+        this.ui.createModal("Inventory & Equipment", inventoryContent, inventoryButtons);
     }
 
     equipItem(itemIndex) {
