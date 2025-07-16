@@ -384,8 +384,12 @@ class GameController {
     }
 
     showDockedCombatPanel(items, panelType) {
-        // Remove any existing panel
-        this.closeDockedCombatPanel();
+        // Remove any existing panel immediately if we're reopening
+        const existingPanel = document.getElementById('combat-docked-panel');
+        if (existingPanel) {
+            existingPanel.remove();
+            document.body.classList.remove('combat-panel-active');
+        }
 
         // Add body class to shrink game area
         document.body.classList.add('combat-panel-active');
@@ -468,9 +472,22 @@ class GameController {
     closeDockedCombatPanel() {
         const panel = document.getElementById('combat-docked-panel');
         if (panel) {
-            panel.classList.remove('active');
-            setTimeout(() => {
+            // If panel is already animating out, just remove it immediately
+            if (panel.classList.contains('closing')) {
                 panel.remove();
+                document.body.classList.remove('combat-panel-active');
+                return;
+            }
+            
+            // Mark as closing to prevent duplicate animations
+            panel.classList.add('closing');
+            panel.classList.remove('active');
+            
+            setTimeout(() => {
+                // Double-check the panel still exists before removing
+                if (panel && panel.parentNode) {
+                    panel.remove();
+                }
                 document.body.classList.remove('combat-panel-active');
             }, 300);
         } else {
