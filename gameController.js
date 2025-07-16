@@ -140,6 +140,7 @@ class GameController {
         }
 
         this.gameState.inDungeon = true;
+        this.gameState.inCombat = true;
         this.gameState.currentScreen = 'dungeon';
         this.generateEnemies();
         
@@ -397,7 +398,7 @@ class GameController {
             panelContent = `
                 <div class="docked-item-list">
                     ${items.map((item, index) => `
-                        <div class="docked-item-option" onclick="gameController.selectCombatItem(${index})">
+                        <div class="docked-item-option" onclick="window.game.controller.selectCombatItem(${index})">
                             <div class="docked-item-info">
                                 <h4>${item.name}</h4>
                                 <div class="docked-item-owner">${item.owner ? `${item.owner}'s` : 'Hero\'s'}</div>
@@ -412,7 +413,7 @@ class GameController {
             panelContent = `
                 <div class="docked-target-list">
                     ${items.map((target, index) => `
-                        <div class="docked-target-option" onclick="gameController.useCombatItemOnTarget(${this.currentSelectedItemIndex}, ${index})">
+                        <div class="docked-target-option" onclick="window.game.controller.useCombatItemOnTarget(${this.currentSelectedItemIndex}, ${index})">
                             <div class="docked-target-info">
                                 <div>
                                     <h4>${target.name}</h4>
@@ -430,10 +431,10 @@ class GameController {
                 <div class="docked-combat-interface">
                     ${items[0]}
                     <div class="docked-combat-actions">
-                        <button class="docked-combat-btn attack-btn" onclick="gameController.playerAttack()">⚔️ Attack</button>
-                        <button class="docked-combat-btn defend-btn" onclick="gameController.playerDefend()">🛡️ Defend</button>
-                        <button class="docked-combat-btn item-btn" onclick="gameController.showCombatItemSelection()">🧪 Use Item</button>
-                        <button class="docked-combat-btn flee-btn" onclick="gameController.playerFlee()">💨 Flee</button>
+                        <button class="docked-combat-btn attack-btn" onclick="window.game.controller.playerAttack()">⚔️ Attack</button>
+                        <button class="docked-combat-btn defend-btn" onclick="window.game.controller.playerDefend()">🛡️ Defend</button>
+                        <button class="docked-combat-btn item-btn" onclick="window.game.controller.showCombatItemSelection()">🧪 Use Item</button>
+                        <button class="docked-combat-btn flee-btn" onclick="window.game.controller.playerFlee()">💨 Flee</button>
                     </div>
                 </div>
             `;
@@ -443,12 +444,12 @@ class GameController {
             <div id="combat-docked-panel" class="combat-docked-panel">
                 <div class="docked-panel-header">
                     <h3>${headerText}</h3>
-                    ${panelType !== 'combat' ? '<button class="docked-panel-close" onclick="gameController.closeDockedCombatPanel()">&times;</button>' : ''}
+                    ${panelType !== 'combat' ? '<button class="docked-panel-close" onclick="window.game.controller.closeDockedCombatPanel()">&times;</button>' : ''}
                 </div>
                 <div class="docked-panel-content">
                     ${panelContent}
                 </div>
-                ${panelType !== 'combat' ? '<div class="docked-panel-footer"><button onclick="gameController.closeDockedCombatPanel()">Cancel</button></div>' : ''}
+                ${panelType !== 'combat' ? '<div class="docked-panel-footer"><button onclick="window.game.controller.closeDockedCombatPanel()">Cancel</button></div>' : ''}
             </div>
         `;
 
@@ -714,6 +715,9 @@ class GameController {
         // Close the docked combat panel since combat is over
         this.closeDockedCombatPanel();
         
+        // Set combat state to false
+        this.gameState.inCombat = false;
+        
         const victoryContent = `
             <div class="victory-interface">
                 <h4>🎉 Victory!</h4>
@@ -738,6 +742,7 @@ class GameController {
 
     goDeeperInDungeon() {
         this.gameState.dungeonLevel++;
+        this.gameState.inCombat = true;
         this.ui.log(`Descending to dungeon level ${this.gameState.dungeonLevel}...`);
         this.generateEnemies();
         
@@ -752,6 +757,7 @@ class GameController {
 
     exitDungeon() {
         this.gameState.inDungeon = false;
+        this.gameState.inCombat = false;
         this.gameState.currentEnemies = null;
         this.gameState.currentScreen = 'village';
         
