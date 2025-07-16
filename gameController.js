@@ -40,7 +40,7 @@ class GameController {
         const modals = document.querySelectorAll('.modal-overlay');
         modals.forEach(modal => modal.remove());
         
-        // Reset game state
+        // Reset game state completely
         this.gameState = {
             hero: {
                 name: "Hero",
@@ -60,30 +60,64 @@ class GameController {
             chatLog: [],
             currentEnemies: null,
             inDungeon: false,
-            currentScreen: 'main'
+            inCombat: false,
+            currentScreen: 'village',
+            defendingThisTurn: false
         };
         
-        // Reset UI state
-        this.ui.currentBackground = 'village';
-        this.ui.setBackground('village');
-        this.ui.clearChatLog();
-        
-        // Reset any combat state
+        // Reset combat-related state
         this.currentSelectedItemIndex = null;
+        this.currentCombatItems = null;
+        this.currentCombatTargets = null;
         
-        this.ui.log("Started a new game!");
-        this.ui.render();
-        this.ui.showNotification("New game started!", "success");
+        // Reset UI state completely
+        if (this.ui) {
+            this.ui.currentBackground = 'village';
+            this.ui.setBackground('village');
+            this.ui.clearChatLog();
+            this.ui.log("Started a new game!");
+            this.ui.render();
+            this.ui.showNotification("New game started!", "success");
+        }
+        
+        // Clear the old save to ensure fresh start
+        try {
+            localStorage.removeItem('dungeonGameSave');
+            console.log('Cleared previous save file');
+        } catch (error) {
+            console.log('Could not clear save file:', error);
+        }
     }
 
     saveGame() {
         try {
-            localStorage.setItem('dungeonGameSave', JSON.stringify(this.gameState));
-            this.ui.log("Game saved successfully!");
+            // Create a clean copy of game state for saving
+            const saveData = {
+                ...this.gameState,
+                // Ensure we don't save temporary combat state
+                currentEnemies: null,
+                inCombat: false,
+                defendingThisTurn: false,
+                timestamp: new Date().toISOString()
+            };
+            
+            localStorage.setItem('dungeonGameSave', JSON.stringify(saveData));
+            this.ui.log(`Game saved successfully! (${saveData.timestamp})`);
             this.ui.showNotification("Game saved!", "success");
+            
+            // Debug: Show what was saved
+            console.log('Game saved with data:', {
+                heroLevel: saveData.hero.level,
+                heroGold: saveData.hero.gold,
+                heroHealth: saveData.hero.health,
+                underlings: saveData.hero.underlings.length,
+                dungeonLevel: saveData.dungeonLevel
+            });
+            
         } catch (error) {
             this.ui.log("Failed to save game: " + error.message);
             this.ui.showNotification("Save failed!", "error");
+            console.error('Save error:', error);
         }
     }
 
@@ -91,7 +125,15 @@ class GameController {
         try {
             const data = localStorage.getItem('dungeonGameSave');
             if (data) {
-                this.gameState = JSON.parse(data);
+                // Close any open UI elements first
+                this.closeDockedCombatPanel();
+                
+                // Close any open modals
+                const modals = document.querySelectorAll('.modal-overlay');
+                modals.forEach(modal => modal.remove());
+                
+                const loadedState = JSON.parse(data);
+                this.gameState = loadedState;
                 
                 // Ensure backward compatibility - fix hero without mana
                 if (!this.gameState.hero.mana) {
@@ -102,25 +144,55 @@ class GameController {
                 }
                 
                 // Ensure backward compatibility - fix underlings without new properties
-                this.gameState.hero.underlings.forEach(underling => {
-                    if (!underling.maxHealth) {
-                        underling.maxHealth = underling.health;
-                    }
-                    if (underling.isAlive === undefined) {
-                        underling.isAlive = true;
-                    }
-                    if (!underling.equipment) {
-                        underling.equipment = [];
-                    }
-                    if (!underling.mana) {
-                        underling.mana = underling.maxMana || 50;
-                    }
-                    if (!underling.maxMana) {
-                        underling.maxMana = 50;
-                    }
+                if (this.gameState.hero.underlings) {
+                    this.gameState.hero.underlings.forEach(underling => {
+                        if (!underling.maxHealth) {
+                            underling.maxHealth = underling.health;
+                        }
+                        if (underling.isAlive === undefined) {
+                            underling.isAlive = true;
+                        }
+                        if (!underling.equipment) {
+                            underling.equipment = [];
+                        }
+                        if (!underling.mana) {
+                            underling.mana = underling.maxMana || 50;
+                        }
+                        if (!underling.maxMana) {
+                            underling.maxMana = 50;
+                        }
+                    });
+                }
+                
+                // Reset combat state (should not be saved anyway)
+                this.gameState.inCombat = false;
+                this.gameState.currentEnemies = null;
+                this.gameState.defendingThisTurn = false;
+                
+                // Reset combat-related variables
+                this.currentSelectedItemIndex = null;
+                this.currentCombatItems = null;
+                this.currentCombatTargets = null;
+                
+                // Update UI to match loaded state
+                const currentScreen = this.gameState.currentScreen || 'village';
+                if (currentScreen === 'village' || currentScreen === 'main') {
+                    this.ui.setBackground('village');
+                } else {
+                    this.ui.setBackground(currentScreen);
+                }
+                
+                // Debug: Show what was loaded
+                console.log('Game loaded with data:', {
+                    heroLevel: this.gameState.hero.level,
+                    heroGold: this.gameState.hero.gold,
+                    heroHealth: this.gameState.hero.health,
+                    underlings: this.gameState.hero.underlings.length,
+                    dungeonLevel: this.gameState.dungeonLevel,
+                    timestamp: loadedState.timestamp
                 });
                 
-                this.ui.log("Game loaded successfully!");
+                this.ui.log(`Game loaded successfully! ${loadedState.timestamp ? `(Saved: ${new Date(loadedState.timestamp).toLocaleString()})` : ''}`);
                 this.ui.render();
                 this.ui.showNotification("Game loaded!", "success");
             } else {
@@ -130,6 +202,7 @@ class GameController {
         } catch (error) {
             this.ui.log("Failed to load game: " + error.message);
             this.ui.showNotification("Load failed!", "error");
+            console.error('Load error:', error);
         }
     }
 
