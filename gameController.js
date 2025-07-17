@@ -2133,34 +2133,75 @@ class GameController {
         
         this.ui.log("Welcome to the shop!");
         
+        // Define all shop items in one place for easier management
+        const shopItems = [
+            { 
+                id: 'mana_potion', 
+                name: 'Mana Potion', 
+                cost: 30, 
+                description: 'Restores 30 MP (Consumable)',
+                type: 'consumable'
+            },
+            { 
+                id: 'exp_scroll', 
+                name: 'Experience Scroll', 
+                cost: 100, 
+                description: 'Grants 50 XP (Consumable)',
+                type: 'consumable'
+            },
+            { 
+                id: 'rations', 
+                name: 'Rations', 
+                cost: 25, 
+                description: 'Provides 7 uses for resting in dungeons',
+                type: 'supply'
+            }
+        ];
+        
         const shopContent = `
-            <p>Items available for purchase:</p>
-            <ul>
-                <li>Mana Potion (30 gold) - Restores 30 MP</li>
-                <li>Experience Scroll (100 gold) - Grants 50 XP</li>
-                <li>Rations (25 gold) - Provides 7 uses for resting in dungeons</li>
-            </ul>
-            <p><strong>Note:</strong> Healing services have moved to the Temple!</p>
-            <p>Your health: ${this.gameState.hero.health}/${this.gameState.hero.maxHealth}</p>
-            <p>Your gold: ${this.gameState.hero.gold}</p>
-            <p>Your rations: ${this.gameState.hero.rations || 0}</p>
+            <div style="text-align: center; margin-bottom: 15px;">
+                <h3 style="color: #d4af37; margin-bottom: 10px;">🏪 General Store 🏪</h3>
+                <p style="color: #51cf66; font-weight: bold;">Your Gold: ${this.gameState.hero.gold}</p>
+                <p style="color: #4ecdc4;">Your Rations: ${this.gameState.hero.rations || 0}</p>
+            </div>
+            
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #444; border-radius: 8px; padding: 10px; background: #1a1a2a;">
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 10px; padding: 8px; background: #2a2a3a; border-radius: 5px; font-weight: bold; color: #d4af37;">
+                    <div>Item Name & Description</div>
+                    <div style="text-align: center;">Cost</div>
+                    <div style="text-align: center;">Action</div>
+                </div>
+                
+                ${shopItems.map(item => `
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; align-items: center; padding: 12px; margin: 5px 0; background: ${this.gameState.hero.gold >= item.cost ? '#0a2a0a' : '#2a0a0a'}; border-radius: 5px; border-left: 3px solid ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'};">
+                        <div>
+                            <div style="font-weight: bold; color: ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'};">${item.name}</div>
+                            <div style="font-size: 12px; color: #ccc; margin-top: 3px;">${item.description}</div>
+                        </div>
+                        <div style="text-align: center; font-weight: bold; color: #ffd93d;">💰${item.cost}g</div>
+                        <div style="text-align: center;">
+                            <button onclick="window.game.controller.buyItem('${item.id}', ${item.cost})" 
+                                    style="padding: 6px 12px; background: ${this.gameState.hero.gold >= item.cost ? 'linear-gradient(45deg, #2a4d3a, #4a7c59)' : 'linear-gradient(45deg, #4a2a2a, #6a3a3a)'}; 
+                                           border: 1px solid ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'}; color: white; border-radius: 4px; cursor: ${this.gameState.hero.gold >= item.cost ? 'pointer' : 'not-allowed'}; 
+                                           font-size: 12px; font-weight: bold;"
+                                    ${this.gameState.hero.gold < item.cost ? 'disabled' : ''}>
+                                💰 Buy
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #2a2a3a; border-radius: 5px; text-align: center;">
+                <div style="font-size: 12px; color: #888; font-style: italic;">
+                    💡 Tip: Visit the Temple for healing services and the Crafting Workshop for equipment
+                </div>
+            </div>
         `;
 
-        this.ui.createModal("Shop", shopContent, [
+        this.ui.createModal("General Store", shopContent, [
             {
-                text: "Buy Mana Potion",
-                onClick: () => this.buyItem('mana_potion', 30)
-            },
-            {
-                text: "Buy Experience Scroll",
-                onClick: () => this.buyItem('exp_scroll', 100)
-            },
-            {
-                text: "Buy Rations",
-                onClick: () => this.buyItem('rations', 25)
-            },
-            {
-                text: "Leave",
+                text: "Leave Store",
                 onClick: () => this.returnToVillage()
             }
         ]);
@@ -2202,6 +2243,9 @@ class GameController {
 
         this.ui.showNotification("Purchase successful!", "success");
         this.ui.render();
+        
+        // Refresh the shop modal to show updated gold amounts
+        setTimeout(() => this.openShop(), 100);
     }
 
     openTemple() {
