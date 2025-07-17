@@ -1,6 +1,14 @@
 // Game Controller - Handles all game logic and state management
 class GameController {
     constructor() {
+        // Mobile detection
+        this.isMobile = this.detectMobile();
+        
+        // Update mobile detection on window resize
+        window.addEventListener('resize', () => {
+            this.isMobile = this.detectMobile();
+        });
+        
         this.gameState = {
             hero: {
                 name: "Hero",
@@ -29,6 +37,57 @@ class GameController {
 
     setUI(uiManager) {
         this.ui = uiManager;
+    }
+
+    // Mobile detection and responsive helpers
+    detectMobile() {
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        const isMobileUserAgent = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const isSmallScreen = window.innerWidth <= 768;
+        
+        return isMobileUserAgent || (isTouchDevice && isSmallScreen);
+    }
+
+    // Get responsive dimensions and styles
+    getResponsiveStyle(desktopValue, mobileValue) {
+        return this.isMobile ? mobileValue : desktopValue;
+    }
+
+    getResponsivePadding() {
+        return this.isMobile ? '8px' : '15px';
+    }
+
+    getResponsiveMargin() {
+        return this.isMobile ? '4px' : '8px';
+    }
+
+    getResponsiveFontSize(base = 14) {
+        return this.isMobile ? Math.max(10, base - 2) : base;
+    }
+
+    getResponsiveButtonPadding() {
+        return this.isMobile ? '6px 8px' : '12px 15px';
+    }
+
+    getResponsiveModalPadding() {
+        return this.isMobile ? '10px' : '20px';
+    }
+
+    getResponsiveModalMargin() {
+        return this.isMobile ? '5px' : '20px';
+    }
+
+    getResponsiveGap() {
+        return this.isMobile ? '8px' : '20px';
+    }
+
+    getResponsiveIconSize() {
+        return this.isMobile ? '16px' : '24px';
+    }
+
+    getResponsiveBorderRadius() {
+        return this.isMobile ? '4px' : '8px';
     }
 
     checkAndPromptHeroName() {
@@ -60,14 +119,14 @@ class GameController {
         
         const nameContent = `
             <div style="text-align: center;">
-                <h4>🏰 Welcome, Adventurer! 🏰</h4>
-                <p>Before you begin your quest, please tell us your name:</p>
+                <h4 style="font-size: ${this.getResponsiveFontSize(18)}px;">🏰 Welcome, Adventurer! 🏰</h4>
+                <p style="font-size: ${this.getResponsiveFontSize(14)}px;">Before you begin your quest, please tell us your name:</p>
                 <input type="text" id="heroNameInput" placeholder="Enter your hero's name..." 
-                       style="width: 250px; padding: 8px; margin: 15px 0; border: 2px solid #d4af37; border-radius: 5px; background: #2a2a2a; color: white; text-align: center; font-size: 16px;" 
+                       style="width: ${this.isMobile ? '90%' : '250px'}; padding: ${this.getResponsiveButtonPadding()}; margin: ${this.getResponsiveMargin()} 0; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; text-align: center; font-size: ${this.getResponsiveFontSize(14)}px;" 
                        maxlength="20" autocomplete="off">
-                <p style="color: #888; font-size: 12px;">Maximum 20 characters</p>
-                <div style="margin-top: 15px; padding: 10px; background: #2a2a3a; border-radius: 5px;">
-                    <p style="color: #d4af37; font-size: 14px; margin: 0;">
+                <p style="color: #888; font-size: ${this.getResponsiveFontSize(10)}px;">Maximum 20 characters</p>
+                <div style="margin-top: ${this.getResponsiveMargin()}; padding: ${this.getResponsivePadding()}; background: #2a2a3a; border-radius: ${this.getResponsiveBorderRadius()};">
+                    <p style="color: #d4af37; font-size: ${this.getResponsiveFontSize(12)}px; margin: 0;">
                         💡 This will be your unique hero identity throughout your adventure!
                     </p>
                 </div>
@@ -173,14 +232,14 @@ class GameController {
         // Show hero naming prompt
         const nameContent = `
             <div style="text-align: center;">
-                <h4>Create Your Hero</h4>
-                <p>Enter your hero's name to begin your adventure:</p>
+                <h4 style="font-size: ${this.getResponsiveFontSize(18)}px;">Create Your Hero</h4>
+                <p style="font-size: ${this.getResponsiveFontSize(14)}px;">Enter your hero's name to begin your adventure:</p>
                 <input type="text" id="heroNameInput" placeholder="Enter hero name..." 
-                       style="width: 250px; padding: 8px; margin: 15px 0; border: 2px solid #d4af37; border-radius: 5px; background: #2a2a2a; color: white; text-align: center; font-size: 16px;" 
+                       style="width: ${this.isMobile ? '90%' : '250px'}; padding: ${this.getResponsiveButtonPadding()}; margin: ${this.getResponsiveMargin()} 0; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; text-align: center; font-size: ${this.getResponsiveFontSize(14)}px;" 
                        maxlength="20" autocomplete="off">
-                <p style="color: #888; font-size: 12px;">Maximum 20 characters</p>
-                <hr style="margin: 15px 0; border-color: #444;">
-                <p>Choose reset method:</p>
+                <p style="color: #888; font-size: ${this.getResponsiveFontSize(10)}px;">Maximum 20 characters</p>
+                <hr style="margin: ${this.getResponsiveMargin()} 0; border-color: #444;">
+                <p style="font-size: ${this.getResponsiveFontSize(14)}px;">Choose reset method:</p>
             </div>
         `;
 
@@ -443,32 +502,32 @@ class GameController {
     
     showSaveSelectionModal(saveGames) {
         const saveContent = `
-            <div style="text-align: center; margin-bottom: 15px;">
-                <h3 style="color: #d4af37;">📚 Load Game</h3>
-                <p>Choose a save file to load:</p>
+            <div style="text-align: center; margin-bottom: ${this.getResponsiveMargin()};">
+                <h3 style="color: #d4af37; font-size: ${this.getResponsiveFontSize(18)}px;">📚 Load Game</h3>
+                <p style="font-size: ${this.getResponsiveFontSize(14)}px;">Choose a save file to load:</p>
             </div>
-            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #444; border-radius: 8px; padding: 10px; background: #1a1a2a;">
+            <div style="max-height: ${this.isMobile ? '60vh' : '400px'}; overflow-y: auto; border: 1px solid #444; border-radius: ${this.getResponsiveBorderRadius()}; padding: ${this.getResponsivePadding()}; background: #1a1a2a;">
                 ${saveGames.map((save, index) => `
-                    <div style="display: flex; align-items: center; margin: 8px 0; padding: 12px; background: #2a2a3a; border-radius: 8px; border-left: 4px solid #d4af37; cursor: pointer; transition: background 0.2s;" 
+                    <div style="display: flex; align-items: center; margin: ${this.getResponsiveMargin()} 0; padding: ${this.getResponsiveMargin()}; background: #2a2a3a; border-radius: ${this.getResponsiveBorderRadius()}; border-left: 4px solid #d4af37; cursor: pointer; transition: background 0.2s;" 
                          onclick="window.game.controller.loadSpecificSave('${save.key}')"
                          onmouseover="this.style.background='#3a3a4a'" 
                          onmouseout="this.style.background='#2a2a3a'">
                         <div style="flex: 1;">
-                            <div style="font-weight: bold; color: #d4af37; font-size: 16px;">${save.heroName}</div>
-                            <div style="color: #51cf66; font-size: 14px; margin: 2px 0;">Level ${save.level} • ${save.gold} Gold • Dungeon Lv.${save.dungeonLevel}</div>
-                            <div style="color: #888; font-size: 12px;">${save.saveDate}</div>
+                            <div style="font-weight: bold; color: #d4af37; font-size: ${this.getResponsiveFontSize(14)}px;">${save.heroName}</div>
+                            <div style="color: #51cf66; font-size: ${this.getResponsiveFontSize(12)}px; margin: 2px 0;">Level ${save.level} • ${save.gold} Gold • Dungeon Lv.${save.dungeonLevel}</div>
+                            <div style="color: #888; font-size: ${this.getResponsiveFontSize(10)}px;">${save.saveDate}</div>
                         </div>
-                        <div style="margin-left: 10px;">
+                        <div style="margin-left: ${this.getResponsiveMargin()};">
                             <button onclick="event.stopPropagation(); window.game.controller.deleteSave('${save.key}', '${save.heroName}')" 
-                                    style="padding: 4px 8px; background: #8b0000; border: 1px solid #ff6b6b; color: white; border-radius: 3px; cursor: pointer; font-size: 11px;">
+                                    style="padding: ${this.getResponsiveMargin()}; background: #8b0000; border: 1px solid #ff6b6b; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-size: ${this.getResponsiveFontSize(9)}px;">
                                 🗑️ Delete
                             </button>
                         </div>
                     </div>
                 `).join('')}
             </div>
-            <div style="margin-top: 15px; padding: 10px; background: #2a2a3a; border-radius: 5px; text-align: center;">
-                <div style="font-size: 12px; color: #888; font-style: italic;">
+            <div style="margin-top: ${this.getResponsiveMargin()}; padding: ${this.getResponsivePadding()}; background: #2a2a3a; border-radius: ${this.getResponsiveBorderRadius()}; text-align: center;">
+                <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #888; font-style: italic;">
                     💡 Click on a save to load it • Delete saves you no longer need
                 </div>
             </div>
@@ -479,7 +538,7 @@ class GameController {
                 text: "Cancel",
                 onClick: () => {}
             }
-        ], { maxWidth: '600px' });
+        ], { maxWidth: this.isMobile ? '95vw' : '600px' });
     }
     
     loadSpecificSave(saveKey) {
@@ -975,21 +1034,21 @@ class GameController {
         
         const combatContent = `
             <div class="enhanced-combat-interface">
-                <h3 style="text-align: center; color: #d4af37; margin-bottom: 20px;">⚔️ Combat Encounter ⚔️</h3>
+                <h3 style="text-align: center; color: #d4af37; margin-bottom: ${this.getResponsiveMargin()}; font-size: ${this.getResponsiveFontSize(20)}px;">⚔️ Combat Encounter ⚔️</h3>
                 
-                <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                <div style="display: ${this.isMobile ? 'block' : 'flex'}; gap: ${this.getResponsiveGap()}; margin-bottom: ${this.getResponsiveMargin()};">
                     <!-- Enemies Section -->
-                    <div style="flex: 1; background: #2a1a1a; padding: 15px; border-radius: 8px; border: 2px solid #8b0000;">
-                        <h4 style="color: #ff6b6b; margin-bottom: 10px; text-align: center;">🔥 Enemies</h4>
+                    <div style="flex: 1; background: #2a1a1a; padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; border: 2px solid #8b0000; ${this.isMobile ? 'margin-bottom: 10px;' : ''}">
+                        <h4 style="color: #ff6b6b; margin-bottom: ${this.getResponsiveMargin()}; text-align: center; font-size: ${this.getResponsiveFontSize(16)}px;">🔥 Enemies</h4>
                         ${enemies.map((enemy, index) => `
-                            <div style="display: flex; align-items: center; margin: 8px 0; padding: 8px; background: #1a0000; border-radius: 5px; border-left: 3px solid #ff6b6b;">
-                                <div style="font-size: 24px; margin-right: 10px;">${getCharacterIcon(enemy.name)}</div>
+                            <div style="display: flex; align-items: center; margin: ${this.getResponsiveMargin()} 0; padding: ${this.getResponsiveMargin()}; background: #1a0000; border-radius: ${this.getResponsiveBorderRadius()}; border-left: 3px solid #ff6b6b;">
+                                <div style="font-size: ${this.getResponsiveIconSize()}; margin-right: ${this.getResponsiveMargin()};">${getCharacterIcon(enemy.name)}</div>
                                 <div style="flex: 1;">
-                                    <div style="font-weight: bold; color: #ff6b6b;">${enemy.name}</div>
-                                    <div style="font-size: 12px; color: #ccc;">Level ${enemy.level} | Attack: ${enemy.attack}</div>
+                                    <div style="font-weight: bold; color: #ff6b6b; font-size: ${this.getResponsiveFontSize(14)}px;">${enemy.name}</div>
+                                    <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #ccc;">Level ${enemy.level} | Attack: ${enemy.attack}</div>
                                     <div style="margin-top: 3px;">
-                                        <span style="color: ${getHealthColor(enemy.health, enemy.maxHealth)}; font-weight: bold;">${enemy.health}</span>
-                                        <span style="color: #888;">/${enemy.maxHealth} HP</span>
+                                        <span style="color: ${getHealthColor(enemy.health, enemy.maxHealth)}; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px;">${enemy.health}</span>
+                                        <span style="color: #888; font-size: ${this.getResponsiveFontSize(12)}px;">/${enemy.maxHealth} HP</span>
                                     </div>
                                 </div>
                             </div>
@@ -997,46 +1056,46 @@ class GameController {
                     </div>
                     
                     <!-- Player Party Section -->
-                    <div style="flex: 1; background: #1a2a1a; padding: 15px; border-radius: 8px; border: 2px solid #228b22;">
-                        <h4 style="color: #51cf66; margin-bottom: 10px; text-align: center;">🛡️ Your Party</h4>
+                    <div style="flex: 1; background: #1a2a1a; padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; border: 2px solid #228b22;">
+                        <h4 style="color: #51cf66; margin-bottom: ${this.getResponsiveMargin()}; text-align: center; font-size: ${this.getResponsiveFontSize(16)}px;">🛡️ Your Party</h4>
                         
                         <!-- Hero -->
-                        <div style="display: flex; align-items: center; margin: 8px 0; padding: 8px; background: #0a1a0a; border-radius: 5px; border-left: 3px solid #d4af37;">
-                            <div style="font-size: 24px; margin-right: 10px;">${getCharacterIcon('hero')}</div>
+                        <div style="display: flex; align-items: center; margin: ${this.getResponsiveMargin()} 0; padding: ${this.getResponsiveMargin()}; background: #0a1a0a; border-radius: ${this.getResponsiveBorderRadius()}; border-left: 3px solid #d4af37;">
+                            <div style="font-size: ${this.getResponsiveIconSize()}; margin-right: ${this.getResponsiveMargin()};">${getCharacterIcon('hero')}</div>
                             <div style="flex: 1;">
-                                <div style="font-weight: bold; color: #d4af37;">${this.gameState.hero.name || 'Hero'}</div>
-                                <div style="font-size: 12px; color: #ccc;">Level ${this.gameState.hero.level} | Leader</div>
+                                <div style="font-weight: bold; color: #d4af37; font-size: ${this.getResponsiveFontSize(14)}px;">${this.gameState.hero.name || 'Hero'}</div>
+                                <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #ccc;">Level ${this.gameState.hero.level} | Leader</div>
                                 <div style="margin-top: 3px;">
-                                    <span style="color: ${getHealthColor(this.gameState.hero.health, this.gameState.hero.maxHealth)}; font-weight: bold;">${this.gameState.hero.health}</span>
-                                    <span style="color: #888;">/${this.gameState.hero.maxHealth} HP</span>
+                                    <span style="color: ${getHealthColor(this.gameState.hero.health, this.gameState.hero.maxHealth)}; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px;">${this.gameState.hero.health}</span>
+                                    <span style="color: #888; font-size: ${this.getResponsiveFontSize(12)}px;">/${this.gameState.hero.maxHealth} HP</span>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Underlings -->
                         ${aliveUnderlings.map(underling => `
-                            <div style="display: flex; align-items: center; margin: 8px 0; padding: 8px; background: #0a1a0a; border-radius: 5px; border-left: 3px solid #51cf66;">
-                                <div style="font-size: 24px; margin-right: 10px;">${getCharacterIcon(underling.type)}</div>
+                            <div style="display: flex; align-items: center; margin: ${this.getResponsiveMargin()} 0; padding: ${this.getResponsiveMargin()}; background: #0a1a0a; border-radius: ${this.getResponsiveBorderRadius()}; border-left: 3px solid #51cf66;">
+                                <div style="font-size: ${this.getResponsiveIconSize()}; margin-right: ${this.getResponsiveMargin()};">${getCharacterIcon(underling.type)}</div>
                                 <div style="flex: 1;">
-                                    <div style="font-weight: bold; color: #51cf66;">${underling.name}</div>
-                                    <div style="font-size: 12px; color: #ccc;">Level ${underling.level} | ${underling.type}</div>
+                                    <div style="font-weight: bold; color: #51cf66; font-size: ${this.getResponsiveFontSize(14)}px;">${underling.name}</div>
+                                    <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #ccc;">Level ${underling.level} | ${underling.type}</div>
                                     <div style="margin-top: 3px;">
-                                        <span style="color: ${getHealthColor(underling.health, underling.maxHealth)}; font-weight: bold;">${underling.health}</span>
-                                        <span style="color: #888;">/${underling.maxHealth} HP</span>
+                                        <span style="color: ${getHealthColor(underling.health, underling.maxHealth)}; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px;">${underling.health}</span>
+                                        <span style="color: #888; font-size: ${this.getResponsiveFontSize(12)}px;">/${underling.maxHealth} HP</span>
                                     </div>
                                 </div>
                             </div>
                         `).join('')}
                         
-                        ${aliveUnderlings.length === 0 ? '<div style="text-align: center; color: #888; font-style: italic; padding: 20px;">No underlings in party</div>' : ''}
+                        ${aliveUnderlings.length === 0 ? `<div style="text-align: center; color: #888; font-style: italic; padding: ${this.getResponsivePadding()}; font-size: ${this.getResponsiveFontSize(12)}px;">No underlings in party</div>` : ''}
                         
                         <!-- Show fallen underlings -->
                         ${this.gameState.hero.underlings.filter(u => !u.isAlive).map(underling => `
-                            <div style="display: flex; align-items: center; margin: 8px 0; padding: 8px; background: #2a0a0a; border-radius: 5px; border-left: 3px solid #666;">
-                                <div style="font-size: 24px; margin-right: 10px; opacity: 0.5;">💀</div>
+                            <div style="display: flex; align-items: center; margin: ${this.getResponsiveMargin()} 0; padding: ${this.getResponsiveMargin()}; background: #2a0a0a; border-radius: ${this.getResponsiveBorderRadius()}; border-left: 3px solid #666;">
+                                <div style="font-size: ${this.getResponsiveIconSize()}; margin-right: ${this.getResponsiveMargin()}; opacity: 0.5;">💀</div>
                                 <div style="flex: 1; opacity: 0.5;">
-                                    <div style="font-weight: bold; color: #888; text-decoration: line-through;">${underling.name}</div>
-                                    <div style="font-size: 12px; color: #666;">Fallen - needs resurrection</div>
+                                    <div style="font-weight: bold; color: #888; text-decoration: line-through; font-size: ${this.getResponsiveFontSize(14)}px;">${underling.name}</div>
+                                    <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #666;">Fallen - needs resurrection</div>
                                 </div>
                             </div>
                         `).join('')}
@@ -1044,29 +1103,29 @@ class GameController {
                 </div>
                 
                 <!-- Combat Actions -->
-                <div style="background: #2a2a3a; padding: 15px; border-radius: 8px; border: 2px solid #4a4a6a;">
-                    <h4 style="color: #4ecdc4; margin-bottom: 15px; text-align: center;">⚡ Choose Your Action</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div style="background: #2a2a3a; padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; border: 2px solid #4a4a6a;">
+                    <h4 style="color: #4ecdc4; margin-bottom: ${this.getResponsiveMargin()}; text-align: center; font-size: ${this.getResponsiveFontSize(16)}px;">⚡ Choose Your Action</h4>
+                    <div style="display: grid; grid-template-columns: ${this.isMobile ? '1fr 1fr' : '1fr 1fr'}; gap: ${this.getResponsiveMargin()};">
                         <button class="enhanced-combat-btn attack-btn" onclick="window.game.controller.playerAttack()" 
-                                style="padding: 12px; background: linear-gradient(45deg, #8b0000, #dc143c); border: 2px solid #ff6b6b; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #8b0000, #dc143c); border: 2px solid #ff6b6b; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px;">
                             ⚔️ Attack
                         </button>
                         <button class="enhanced-combat-btn defend-btn" onclick="window.game.controller.playerDefend()" 
-                                style="padding: 12px; background: linear-gradient(45deg, #2a4d3a, #4a7c59); border: 2px solid #51cf66; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #2a4d3a, #4a7c59); border: 2px solid #51cf66; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px;">
                             🛡️ Defend
                         </button>
                         <button class="enhanced-combat-btn item-btn" onclick="window.game.controller.showCombatItemSelection()" 
-                                style="padding: 12px; background: linear-gradient(45deg, #4a4a2d, #7a7a3a); border: 2px solid #ffd93d; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #4a4a2d, #7a7a3a); border: 2px solid #ffd93d; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px;">
                             🧪 Use Item
                         </button>
                         <button class="enhanced-combat-btn flee-btn" onclick="window.game.controller.playerFlee()" 
-                                style="padding: 12px; background: linear-gradient(45deg, #3a3a4a, #5a5a7a); border: 2px solid #9966cc; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #3a3a4a, #5a5a7a); border: 2px solid #9966cc; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px;">
                             💨 Flee
                         </button>
                     </div>
                     
-                    <div style="margin-top: 15px; padding: 10px; background: #1a1a2a; border-radius: 5px; text-align: center;">
-                        <div style="font-size: 12px; color: #888; font-style: italic;">
+                    <div style="margin-top: ${this.getResponsiveMargin()}; padding: ${this.getResponsiveMargin()}; background: #1a1a2a; border-radius: ${this.getResponsiveBorderRadius()}; text-align: center;">
+                        <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #888; font-style: italic;">
                             💡 Tip: Defend reduces incoming damage by 50% | Use items to heal your party
                         </div>
                     </div>
@@ -1089,33 +1148,35 @@ class GameController {
         const modalHtml = `
             <div id="enhanced-combat-modal" style="
                 position: fixed;
-                top: 20px;
-                left: 20px;
-                right: 20px;
-                bottom: 20px;
+                top: ${this.getResponsiveModalMargin()};
+                left: ${this.getResponsiveModalMargin()};
+                right: ${this.getResponsiveModalMargin()};
+                bottom: ${this.getResponsiveModalMargin()};
                 background: rgba(0, 0, 0, 0.9);
                 border: 3px solid #d4af37;
-                border-radius: 12px;
+                border-radius: ${this.getResponsiveBorderRadius()};
                 z-index: 1000;
                 display: flex;
                 flex-direction: column;
-                padding: 20px;
+                padding: ${this.getResponsiveModalPadding()};
                 backdrop-filter: blur(5px);
             ">
                 <div style="
                     flex: 1;
-                    display: flex;
-                    gap: 20px;
+                    display: ${this.isMobile ? 'block' : 'flex'};
+                    gap: ${this.isMobile ? '5px' : '20px'};
                     overflow: hidden;
                 ">
                     <!-- Combat Interface Section -->
                     <div style="
                         flex: 1;
+                        ${this.isMobile ? 'margin-bottom: 10px;' : ''}
                         background: rgba(20, 20, 40, 0.9);
-                        border-radius: 8px;
-                        padding: 15px;
+                        border-radius: ${this.getResponsiveBorderRadius()};
+                        padding: ${this.getResponsivePadding()};
                         overflow-y: auto;
                         border: 2px solid #4a4a6a;
+                        ${this.isMobile ? 'max-height: 60vh;' : ''}
                     ">
                         ${combatContent}
                     </div>
@@ -1124,24 +1185,25 @@ class GameController {
                     <div style="
                         flex: 1;
                         background: rgba(40, 20, 20, 0.9);
-                        border-radius: 8px;
-                        padding: 15px;
+                        border-radius: ${this.getResponsiveBorderRadius()};
+                        padding: ${this.getResponsivePadding()};
                         display: flex;
                         flex-direction: column;
                         border: 2px solid #8b4513;
+                        ${this.isMobile ? 'max-height: 35vh;' : ''}
                     ">
-                        <h4 style="color: #d4af37; margin-bottom: 15px; text-align: center; border-bottom: 1px solid #444; padding-bottom: 10px;">
+                        <h4 style="color: #d4af37; margin-bottom: ${this.getResponsiveMargin()}; text-align: center; border-bottom: 1px solid #444; padding-bottom: ${this.getResponsiveMargin()}; font-size: ${this.getResponsiveFontSize(16)}px;">
                             📜 Combat Log
                         </h4>
                         <div id="combat-chat-display" style="
                             flex: 1;
                             overflow-y: auto;
                             background: rgba(0, 0, 0, 0.4);
-                            border-radius: 5px;
-                            padding: 12px;
+                            border-radius: ${this.getResponsiveBorderRadius()};
+                            padding: ${this.getResponsiveMargin()};
                             border: 1px solid #666;
                             font-family: Arial, sans-serif;
-                            font-size: 14px;
+                            font-size: ${this.getResponsiveFontSize(12)}px;
                             line-height: 1.5;
                             font-weight: normal;
                         ">
@@ -2078,50 +2140,51 @@ class GameController {
                 align-items: center;
                 justify-content: center;
                 backdrop-filter: blur(3px);
+                padding: ${this.getResponsiveModalMargin()};
             ">
                 <div style="
                     background: linear-gradient(135deg, #1a2a1a, #2a3a2a);
                     border: 3px solid #d4af37;
-                    border-radius: 15px;
-                    padding: 30px;
-                    max-width: 600px;
+                    border-radius: ${this.getResponsiveBorderRadius()};
+                    padding: ${this.getResponsiveModalPadding()};
+                    max-width: ${this.isMobile ? '95vw' : '600px'};
                     width: 90%;
-                    max-height: 80vh;
+                    max-height: ${this.isMobile ? '95vh' : '80vh'};
                     overflow-y: auto;
                     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
                 ">
-                    <div style="text-align: center; margin-bottom: 25px;">
-                        <h2 style="color: #d4af37; margin: 0 0 10px 0; font-size: 28px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                    <div style="text-align: center; margin-bottom: ${this.getResponsiveMargin()};">
+                        <h2 style="color: #d4af37; margin: 0 0 ${this.getResponsiveMargin()} 0; font-size: ${this.getResponsiveFontSize(24)}px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
                             🎉 VICTORY! 🎉
                         </h2>
-                        <div style="color: #51cf66; font-size: 18px; font-weight: bold;">
+                        <div style="color: #51cf66; font-size: ${this.getResponsiveFontSize(16)}px; font-weight: bold;">
                             All enemies have been defeated!
                         </div>
                     </div>
 
                     <!-- Party Status -->
-                    <div style="background: #0a1a0a; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #51cf66;">
-                        <h3 style="color: #51cf66; margin: 0 0 15px 0; text-align: center;">🛡️ Party Status</h3>
+                    <div style="background: #0a1a0a; padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; margin-bottom: ${this.getResponsiveMargin()}; border: 2px solid #51cf66;">
+                        <h3 style="color: #51cf66; margin: 0 0 ${this.getResponsiveMargin()} 0; text-align: center; font-size: ${this.getResponsiveFontSize(16)}px;">🛡️ Party Status</h3>
                         
                         <!-- Hero Status -->
-                        <div style="display: flex; align-items: center; padding: 10px; background: #1a1a2a; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #d4af37;">
-                            <div style="font-size: 24px; margin-right: 12px;">👑</div>
+                        <div style="display: flex; align-items: center; padding: ${this.getResponsiveMargin()}; background: #1a1a2a; border-radius: ${this.getResponsiveBorderRadius()}; margin-bottom: ${this.getResponsiveMargin()}; border-left: 4px solid #d4af37;">
+                            <div style="font-size: ${this.getResponsiveIconSize()}; margin-right: ${this.getResponsiveMargin()};">👑</div>
                             <div style="flex: 1;">
-                                <div style="color: #d4af37; font-weight: bold; font-size: 16px;">${this.gameState.hero.name || 'Hero'} (Level ${this.gameState.hero.level})</div>
-                                <div style="margin-top: 5px;">
-                                    <span style="color: ${getHealthColor(this.gameState.hero.health, this.gameState.hero.maxHealth)}; font-weight: bold;">${this.gameState.hero.health}</span>
-                                    <span style="color: #888;">/${this.gameState.hero.maxHealth} HP</span>
+                                <div style="color: #d4af37; font-weight: bold; font-size: ${this.getResponsiveFontSize(14)}px;">${this.gameState.hero.name || 'Hero'} (Level ${this.gameState.hero.level})</div>
+                                <div style="margin-top: 3px;">
+                                    <span style="color: ${getHealthColor(this.gameState.hero.health, this.gameState.hero.maxHealth)}; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px;">${this.gameState.hero.health}</span>
+                                    <span style="color: #888; font-size: ${this.getResponsiveFontSize(12)}px;">/${this.gameState.hero.maxHealth} HP</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Underlings Status -->
                         ${aliveUnderlings.map(underling => `
-                            <div style="display: flex; align-items: center; padding: 10px; background: #1a1a2a; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #51cf66;">
-                                <div style="font-size: 20px; margin-right: 12px;">${underling.type === 'archer' ? '🏹' : underling.type === 'warrior' ? '⚔️' : underling.type === 'mage' ? '🔮' : '⚡'}</div>
+                            <div style="display: flex; align-items: center; padding: ${this.getResponsiveMargin()}; background: #1a1a2a; border-radius: ${this.getResponsiveBorderRadius()}; margin-bottom: ${this.getResponsiveMargin()}; border-left: 4px solid #51cf66;">
+                                <div style="font-size: ${this.getResponsiveIconSize()}; margin-right: ${this.getResponsiveMargin()};">${underling.type === 'archer' ? '🏹' : underling.type === 'warrior' ? '⚔️' : underling.type === 'mage' ? '🔮' : '⚡'}</div>
                                 <div style="flex: 1;">
-                                    <div style="color: #51cf66; font-weight: bold;">${underling.name} (Level ${underling.level})</div>
-                                    <div style="margin-top: 3px; font-size: 14px;">
+                                    <div style="color: #51cf66; font-weight: bold; font-size: ${this.getResponsiveFontSize(14)}px;">${underling.name} (Level ${underling.level})</div>
+                                    <div style="margin-top: 3px; font-size: ${this.getResponsiveFontSize(12)}px;">
                                         <span style="color: ${getHealthColor(underling.health, underling.maxHealth)}; font-weight: bold;">${underling.health}</span>
                                         <span style="color: #888;">/${underling.maxHealth} HP</span>
                                     </div>
@@ -2129,14 +2192,14 @@ class GameController {
                             </div>
                         `).join('')}
 
-                        ${aliveUnderlings.length === 0 ? '<div style="text-align: center; color: #888; font-style: italic; padding: 15px;">Fighting solo - consider recruiting underlings!</div>' : ''}
+                        ${aliveUnderlings.length === 0 ? `<div style="text-align: center; color: #888; font-style: italic; padding: ${this.getResponsivePadding()}; font-size: ${this.getResponsiveFontSize(12)}px;">Fighting solo - consider recruiting underlings!</div>` : ''}
                     </div>
 
                     <!-- Combat Summary -->
-                    <div style="background: #0a2a0a; padding: 15px; border-radius: 10px; margin-bottom: 25px; border: 2px solid #4ecdc4;">
+                    <div style="background: #0a2a0a; padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; margin-bottom: ${this.getResponsiveMargin()}; border: 2px solid #4ecdc4;">
                         <div style="text-align: center;">
-                            <div style="color: #4ecdc4; font-weight: bold; margin-bottom: 8px;">Combat Summary</div>
-                            <div style="color: #ccc; font-size: 14px;">
+                            <div style="color: #4ecdc4; font-weight: bold; margin-bottom: ${this.getResponsiveMargin()}; font-size: ${this.getResponsiveFontSize(14)}px;">Combat Summary</div>
+                            <div style="color: #ccc; font-size: ${this.getResponsiveFontSize(12)}px;">
                                 Dungeon Level: <span style="color: #ffd93d; font-weight: bold;">${this.gameState.dungeonLevel}</span> | 
                                 Gold: <span style="color: #ffd93d; font-weight: bold;">${this.gameState.hero.gold}</span> | 
                                 Rations: <span style="color: #ffd93d; font-weight: bold;">${this.gameState.hero.rations || 0}</span>
@@ -2146,22 +2209,22 @@ class GameController {
 
                     <!-- Action Buttons -->
                     <div style="text-align: center;">
-                        <div style="color: #51cf66; margin-bottom: 15px; font-weight: bold;">
+                        <div style="color: #51cf66; margin-bottom: ${this.getResponsiveMargin()}; font-weight: bold; font-size: ${this.getResponsiveFontSize(14)}px;">
                             What would you like to do next?
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div style="display: grid; grid-template-columns: ${this.isMobile ? '1fr' : '1fr 1fr'}; gap: ${this.getResponsiveMargin()};">
                             <button onclick="window.game.controller.showVictoryOptions()" 
-                                    style="padding: 15px; background: linear-gradient(45deg, #2a4d3a, #4a7c59); border: 2px solid #51cf66; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: all 0.3s;">
+                                    style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #2a4d3a, #4a7c59); border: 2px solid #51cf66; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(14)}px; transition: all 0.3s;">
                                 ✅ Continue to Victory Options
                             </button>
                             <button onclick="window.game.controller.continueViewingCombatLog()" 
-                                    style="padding: 15px; background: linear-gradient(45deg, #4a4a2d, #7a7a3a); border: 2px solid #ffd93d; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: all 0.3s;">
+                                    style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #4a4a2d, #7a7a3a); border: 2px solid #ffd93d; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(14)}px; transition: all 0.3s;">
                                 📜 Review Combat Log
                             </button>
                         </div>
                         
-                        <div style="margin-top: 15px; padding: 12px; background: #1a1a2a; border-radius: 8px; border: 1px solid #444;">
-                            <div style="font-size: 12px; color: #888; font-style: italic;">
+                        <div style="margin-top: ${this.getResponsiveMargin()}; padding: ${this.getResponsiveMargin()}; background: #1a1a2a; border-radius: ${this.getResponsiveBorderRadius()}; border: 1px solid #444;">
+                            <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #888; font-style: italic;">
                                 💡 The combat log remains visible behind this dialog. Review it carefully before proceeding!
                             </div>
                         </div>
@@ -2216,26 +2279,26 @@ class GameController {
         const returnButtonHtml = `
             <div id="return-to-victory-btn" style="
                 position: fixed;
-                top: 50%;
-                right: 30px;
-                transform: translateY(-50%);
+                top: ${this.isMobile ? '10px' : '50%'};
+                right: ${this.isMobile ? '10px' : '30px'};
+                ${this.isMobile ? '' : 'transform: translateY(-50%);'}
                 z-index: 1500;
                 background: linear-gradient(45deg, #2a4d3a, #4a7c59);
                 border: 3px solid #51cf66;
-                border-radius: 12px;
-                padding: 15px 20px;
+                border-radius: ${this.getResponsiveBorderRadius()};
+                padding: ${this.getResponsiveButtonPadding()};
                 box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
                 cursor: pointer;
                 transition: all 0.3s ease;
                 backdrop-filter: blur(5px);
-                max-width: 200px;
+                max-width: ${this.isMobile ? '150px' : '200px'};
             " onclick="window.game.controller.returnToVictoryOptions()">
                 <div style="text-align: center;">
-                    <div style="font-size: 24px; margin-bottom: 8px;">🏆</div>
-                    <div style="color: white; font-weight: bold; font-size: 14px; margin-bottom: 5px;">
+                    <div style="font-size: ${this.getResponsiveIconSize()}; margin-bottom: 4px;">🏆</div>
+                    <div style="color: white; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; margin-bottom: 3px;">
                         Ready to Proceed?
                     </div>
-                    <div style="color: #51cf66; font-size: 12px; font-style: italic;">
+                    <div style="color: #51cf66; font-size: ${this.getResponsiveFontSize(10)}px; font-style: italic;">
                         Click to return to victory options
                     </div>
                 </div>
