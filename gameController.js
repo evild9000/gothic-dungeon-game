@@ -2131,8 +2131,8 @@ class GameController {
     }
 
     showVictoryConfirmation() {
-        // Go directly to victory options using the old modal system
-        this.showVictoryOptions();
+        // Show the victory confirmation overlay with combat log review option
+        this.createVictoryConfirmationOverlay();
     }
 
     createVictoryConfirmationOverlay() {
@@ -2372,8 +2372,8 @@ class GameController {
             returnButton.remove();
         }
         
-        // Close the enhanced combat modal since combat is over
-        this.closeEnhancedCombatModal();
+        // DON'T close the enhanced combat modal yet - keep it for log review
+        // this.closeEnhancedCombatModal(); // Commented out to preserve combat log
         
         // Set combat state to false
         this.gameState.inCombat = false;
@@ -2436,6 +2436,9 @@ class GameController {
     restInDungeon() {
         // Consume one ration
         this.gameState.hero.rations--;
+        
+        // Close the enhanced combat modal
+        this.closeEnhancedCombatModal();
         
         // Close any open modals
         const existingModals = document.querySelectorAll('.modal-overlay');
@@ -2533,6 +2536,9 @@ class GameController {
     }
 
     exploreCurrentLevel() {
+        // Close any existing combat modals before starting new combat
+        this.closeEnhancedCombatModal();
+        
         // Close any open modals
         const existingModals = document.querySelectorAll('.modal-overlay');
         existingModals.forEach(modal => modal.remove());
@@ -2549,6 +2555,13 @@ class GameController {
     }
 
     goDeeperInDungeon() {
+        // Close any existing combat modals before starting new combat
+        this.closeEnhancedCombatModal();
+        
+        // Close any other open modals
+        const existingModals = document.querySelectorAll('.modal-overlay');
+        existingModals.forEach(modal => modal.remove());
+        
         this.gameState.dungeonLevel++;
         this.gameState.inCombat = true;
         this.ui.log(`Descending to dungeon level ${this.gameState.dungeonLevel}...`);

@@ -16,32 +16,32 @@ body {
     /* Default/Village background for mobile */
     body.village-bg,
     body.main-bg {
-        background-image: url('./backgrounds/village-mobile.webp');
+        background-image: url('./images/backgrounds/village-mobile.webp');
     }
     
     /* Dungeon background for mobile */
     body.dungeon-bg {
-        background-image: url('./backgrounds/dungeon-mobile.webp');
+        background-image: url('./images/backgrounds/dungeon1-mobile.webp');
     }
     
     /* Shop background for mobile */
     body.shop-bg {
-        background-image: url('./backgrounds/shop-mobile.webp');
+        background-image: url('./images/backgrounds/shop-mobile.webp');
     }
     
     /* Crafting background for mobile */
     body.crafting-bg {
-        background-image: url('./backgrounds/crafting-mobile.webp');
+        background-image: url('./images/backgrounds/crafting-mobile.webp');
     }
     
     /* Recruitment background for mobile */
     body.recruitment-bg {
-        background-image: url('./backgrounds/recruitment-mobile.webp');
+        background-image: url('./images/backgrounds/recruitment-mobile.webp');
     }
     
     /* Temple background for mobile */
     body.temple-bg {
-        background-image: url('./backgrounds/temple-mobile.webp');
+        background-image: url('./images/backgrounds/temple-mobile.webp');
     }
 }
 
@@ -50,37 +50,37 @@ body {
     /* Default/Village background for desktop */
     body.village-bg,
     body.main-bg {
-        background-image: url('./backgrounds/village-desktop.webp');
+        background-image: url('./images/backgrounds/village.webp');
         background-attachment: fixed; /* Parallax effect for desktop */
     }
     
     /* Dungeon background for desktop */
     body.dungeon-bg {
-        background-image: url('./backgrounds/dungeon-desktop.webp');
+        background-image: url('./images/backgrounds/dungeon1.webp');
         background-attachment: fixed;
     }
     
     /* Shop background for desktop */
     body.shop-bg {
-        background-image: url('./backgrounds/shop-desktop.webp');
+        background-image: url('./images/backgrounds/shop.webp');
         background-attachment: fixed;
     }
     
     /* Crafting background for desktop */
     body.crafting-bg {
-        background-image: url('./backgrounds/crafting-desktop.webp');
+        background-image: url('./images/backgrounds/crafting.webp');
         background-attachment: fixed;
     }
     
     /* Recruitment background for desktop */
     body.recruitment-bg {
-        background-image: url('./backgrounds/recruitment-desktop.webp');
+        background-image: url('./images/backgrounds/recruitment.webp');
         background-attachment: fixed;
     }
     
     /* Temple background for desktop */
     body.temple-bg {
-        background-image: url('./backgrounds/temple-desktop.webp');
+        background-image: url('./images/backgrounds/temple.webp');
         background-attachment: fixed;
     }
 }
