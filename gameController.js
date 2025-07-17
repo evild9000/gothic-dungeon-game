@@ -33,6 +33,14 @@ class GameController {
     newGame() {
         console.log('Starting new game...');
         
+        // Clear the old save FIRST to ensure fresh start
+        try {
+            localStorage.removeItem('dungeonGameSave');
+            console.log('Cleared previous save file');
+        } catch (error) {
+            console.log('Could not clear save file:', error);
+        }
+        
         // Close any open UI elements first
         this.closeDockedCombatPanel();
         
@@ -40,6 +48,34 @@ class GameController {
         const modals = document.querySelectorAll('.modal-overlay');
         modals.forEach(modal => modal.remove());
         
+        // Show confirmation and offer browser refresh option
+        const confirmContent = `
+            <div style="text-align: center;">
+                <h4>Start New Game</h4>
+                <p>This will reset all progress and start fresh.</p>
+                <p style="color: #ff6b6b; font-weight: bold;">All current data will be lost!</p>
+                <hr style="margin: 15px 0; border-color: #444;">
+                <p>Choose reset method:</p>
+            </div>
+        `;
+
+        this.ui.createModal("New Game Confirmation", confirmContent, [
+            {
+                text: "Soft Reset (Game Only)",
+                onClick: () => this.performNewGameReset()
+            },
+            {
+                text: "Hard Reset (Refresh Browser)",
+                onClick: () => this.performBrowserRefresh()
+            },
+            {
+                text: "Cancel",
+                onClick: () => {}
+            }
+        ]);
+    }
+    
+    performNewGameReset() {
         // Reset game state completely
         this.gameState = {
             hero: {
@@ -94,13 +130,25 @@ class GameController {
             this.ui.showNotification("New game started!", "success");
         }
         
-        // Clear the old save to ensure fresh start
+        console.log('New game reset complete. Hero gold:', this.gameState.hero.gold);
+    }
+    
+    performBrowserRefresh() {
+        // Clear localStorage completely and refresh
         try {
-            localStorage.removeItem('dungeonGameSave');
-            console.log('Cleared previous save file');
+            localStorage.clear();
+            console.log('Cleared all localStorage data');
         } catch (error) {
-            console.log('Could not clear save file:', error);
+            console.log('Could not clear localStorage:', error);
         }
+        
+        // Show message before refresh
+        this.ui.showNotification("Refreshing browser for complete reset...", "info");
+        
+        // Refresh the browser after a short delay
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
     }
 
     saveGame() {
@@ -116,17 +164,25 @@ class GameController {
             };
             
             localStorage.setItem('dungeonGameSave', JSON.stringify(saveData));
-            this.ui.log(`Game saved successfully! (${saveData.timestamp})`);
-            this.ui.showNotification("Game saved!", "success");
             
-            // Debug: Show what was saved
-            console.log('Game saved with data:', {
-                heroLevel: saveData.hero.level,
-                heroGold: saveData.hero.gold,
-                heroHealth: saveData.hero.health,
-                underlings: saveData.hero.underlings.length,
-                dungeonLevel: saveData.dungeonLevel
-            });
+            // Verify the save actually worked
+            const verification = localStorage.getItem('dungeonGameSave');
+            if (verification) {
+                this.ui.log(`Game saved successfully! (${saveData.timestamp})`);
+                this.ui.showNotification("Game saved!", "success");
+                
+                // Debug: Show what was saved
+                console.log('Game saved with data:', {
+                    heroLevel: saveData.hero.level,
+                    heroGold: saveData.hero.gold,
+                    heroHealth: saveData.hero.health,
+                    underlings: saveData.hero.underlings.length,
+                    dungeonLevel: saveData.dungeonLevel,
+                    saveSize: verification.length + ' characters'
+                });
+            } else {
+                throw new Error('Save verification failed - data not found in localStorage');
+            }
             
         } catch (error) {
             this.ui.log("Failed to save game: " + error.message);
@@ -138,7 +194,10 @@ class GameController {
     loadGame() {
         try {
             const data = localStorage.getItem('dungeonGameSave');
+            console.log('Load attempt - raw data found:', !!data);
             if (data) {
+                console.log('Save data size:', data.length, 'characters');
+                
                 // Close any open UI elements first
                 this.closeDockedCombatPanel();
                 
@@ -147,6 +206,8 @@ class GameController {
                 modals.forEach(modal => modal.remove());
                 
                 const loadedState = JSON.parse(data);
+                console.log('Parsed save data hero gold:', loadedState.hero?.gold);
+                
                 this.gameState = loadedState;
                 
                 // Ensure backward compatibility - fix hero without mana
@@ -2955,7 +3016,7 @@ class GameController {
         const equippedStats = this.calculateEquippedStats();
         
         let characterContent = `
-            <div style="display: flex; gap: 25px; max-width: 1000px; margin: 0 auto; align-items: flex-start; justify-content: center; min-height: 60vh;">
+            <div style="display: flex; gap: 25px; max-width: 1000px; margin: 0 auto; align-items: flex-start; justify-content: center; margin-top: 20px; padding-top: 20px;">
                 <div style="flex: 1; min-width: 450px;">
                     <h4 style="text-align: center; color: #d4af37; margin-bottom: 15px;">Hero: ${hero.name}</h4>
                     <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 10px 0;">
