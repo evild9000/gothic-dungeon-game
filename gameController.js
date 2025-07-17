@@ -686,13 +686,14 @@ class GameController {
                         <div id="combat-chat-display" style="
                             flex: 1;
                             overflow-y: auto;
-                            background: rgba(0, 0, 0, 0.3);
+                            background: rgba(0, 0, 0, 0.4);
                             border-radius: 5px;
-                            padding: 10px;
+                            padding: 12px;
                             border: 1px solid #666;
-                            font-family: monospace;
-                            font-size: 13px;
-                            line-height: 1.4;
+                            font-family: Arial, sans-serif;
+                            font-size: 14px;
+                            line-height: 1.5;
+                            font-weight: normal;
                         ">
                             <!-- Chat content will be inserted here -->
                         </div>
@@ -729,12 +730,61 @@ class GameController {
             // Show last 20 messages to keep it manageable
             const recentMessages = this.gameState.chatLog.slice(-20);
             chatDisplay.innerHTML = recentMessages.map(msg => 
-                `<div style="margin-bottom: 8px; color: #e0e0e0;">${msg}</div>`
+                `<div style="margin-bottom: 8px; font-family: Arial, sans-serif; font-weight: bold; line-height: 1.3;">${this.colorizeMessage(msg)}</div>`
             ).join('');
             
             // Auto-scroll to bottom
             chatDisplay.scrollTop = chatDisplay.scrollHeight;
         }
+    }
+
+    colorizeMessage(message) {
+        let coloredMessage = message;
+        
+        // Critical hits - bright red/orange
+        if (message.includes('CRITICAL HIT')) {
+            coloredMessage = coloredMessage.replace(/CRITICAL HIT!/g, '<span style="color: #ff4444; font-weight: bold; text-shadow: 0 0 5px #ff4444;">⚡ CRITICAL HIT! ⚡</span>');
+        }
+        
+        // Damage numbers - orange/red
+        coloredMessage = coloredMessage.replace(/(\d+) damage/g, '<span style="color: #ff9933; font-weight: bold;">$1 damage</span>');
+        
+        // Healing - green
+        coloredMessage = coloredMessage.replace(/(\d+) HP/g, '<span style="color: #33ff66;">$1 HP</span>');
+        coloredMessage = coloredMessage.replace(/(\d+) MP/g, '<span style="color: #3366ff;">$1 MP</span>');
+        coloredMessage = coloredMessage.replace(/Healing Light|heals|restored/gi, '<span style="color: #33ff66;">$&</span>');
+        
+        // Special abilities - purple/magenta
+        coloredMessage = coloredMessage.replace(/Protective Taunt|Arcane Blast|casts/gi, '<span style="color: #cc66ff; font-weight: bold;">$&</span>');
+        
+        // Gold and experience - yellow
+        coloredMessage = coloredMessage.replace(/(\d+) gold/gi, '<span style="color: #ffd700; font-weight: bold;">💰$1 gold</span>');
+        coloredMessage = coloredMessage.replace(/(\d+) experience/gi, '<span style="color: #ffcc00; font-weight: bold;">⭐$1 experience</span>');
+        
+        // Enemy defeat - bright green
+        coloredMessage = coloredMessage.replace(/is defeated/gi, '<span style="color: #00ff88; font-weight: bold; text-shadow: 0 0 3px #00ff88;">💀 is defeated</span>');
+        
+        // Player/party actions - cyan
+        coloredMessage = coloredMessage.replace(/You attack|attacks you|attacks/g, '<span style="color: #00ccff;">$&</span>');
+        
+        // Stat bonuses - light blue
+        coloredMessage = coloredMessage.replace(/\(\+\d+ \w+[^)]*\)/g, '<span style="color: #66ccff; font-size: 0.9em;">$&</span>');
+        
+        // Defense/protection - blue
+        coloredMessage = coloredMessage.replace(/Reduced by defending|Taunt defense|defense/gi, '<span style="color: #4488ff;">$&</span>');
+        
+        // Status messages - different colors based on type
+        if (message.includes('fallen') || message.includes('defeated') && !message.includes('is defeated')) {
+            coloredMessage = `<span style="color: #ff6666;">${coloredMessage}</span>`;
+        } else if (message.includes('gained') || message.includes('level')) {
+            coloredMessage = `<span style="color: #66ff99;">${coloredMessage}</span>`;
+        } else if (message.includes('uses') || message.includes('casts')) {
+            coloredMessage = `<span style="color: #ffaa66;">${coloredMessage}</span>`;
+        } else {
+            coloredMessage = `<span style="color: #e0e0e0;">${coloredMessage}</span>`;
+        }
+        
+        return coloredMessage;
     }
 
     closeEnhancedCombatModal() {
@@ -1959,6 +2009,9 @@ class GameController {
         this.ui.log(`Crafted ${item.name}!`);
         this.ui.showNotification(`Crafted ${item.name}!`, "success");
         this.ui.render();
+        
+        // Refresh the crafting modal to show updated gold amounts
+        setTimeout(() => this.openCrafting(), 100);
     }
 
     openRecruitment() {
