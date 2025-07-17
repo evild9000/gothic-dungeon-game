@@ -2044,14 +2044,8 @@ class GameController {
     }
 
     showVictoryConfirmation() {
-        // Show a confirmation prompt in the combat action area
-        this.showVictoryConfirmationPrompt();
-    }
-
-    showVictoryConfirmationPrompt() {
-        // Create a separate victory confirmation overlay that appears on top of the combat interface
-        // This is much more reliable than trying to modify the existing combat modal
-        this.createVictoryConfirmationOverlay();
+        // Go directly to victory options using the old modal system
+        this.showVictoryOptions();
     }
 
     createVictoryConfirmationOverlay() {
