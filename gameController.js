@@ -55,39 +55,64 @@ class GameController {
     }
 
     getResponsivePadding() {
-        return this.isMobile ? '8px' : '15px';
+        return this.isMobile ? '4px' : '15px';
     }
 
     getResponsiveMargin() {
-        return this.isMobile ? '4px' : '8px';
+        return this.isMobile ? '2px' : '8px';
     }
 
     getResponsiveFontSize(base = 14) {
-        return this.isMobile ? Math.max(10, base - 2) : base;
+        return this.isMobile ? Math.max(8, base - 5) : base;
     }
 
     getResponsiveButtonPadding() {
-        return this.isMobile ? '6px 8px' : '12px 15px';
+        return this.isMobile ? '3px 5px' : '12px 15px';
     }
 
     getResponsiveModalPadding() {
-        return this.isMobile ? '10px' : '20px';
+        return this.isMobile ? '6px' : '20px';
     }
 
     getResponsiveModalMargin() {
-        return this.isMobile ? '5px' : '20px';
+        return this.isMobile ? '3px' : '20px';
     }
 
     getResponsiveGap() {
-        return this.isMobile ? '8px' : '20px';
+        return this.isMobile ? '4px' : '20px';
     }
 
     getResponsiveIconSize() {
-        return this.isMobile ? '16px' : '24px';
+        return this.isMobile ? '12px' : '24px';
     }
 
     getResponsiveBorderRadius() {
-        return this.isMobile ? '4px' : '8px';
+        return this.isMobile ? '3px' : '8px';
+    }
+
+    // Additional mobile-specific helpers for ultra-compact design
+    getResponsiveModalWidth() {
+        return this.isMobile ? '98vw' : '600px';
+    }
+
+    getResponsiveModalHeight() {
+        return this.isMobile ? '95vh' : '80vh';
+    }
+
+    getResponsiveCombatHeight() {
+        return this.isMobile ? '45vh' : '60vh';
+    }
+
+    getResponsiveChatHeight() {
+        return this.isMobile ? '25vh' : '35vh';
+    }
+
+    getResponsiveInputWidth() {
+        return this.isMobile ? '95%' : '250px';
+    }
+
+    getResponsiveButtonHeight() {
+        return this.isMobile ? 'auto' : 'auto';
     }
 
     checkAndPromptHeroName() {
@@ -122,7 +147,7 @@ class GameController {
                 <h4 style="font-size: ${this.getResponsiveFontSize(18)}px;">🏰 Welcome, Adventurer! 🏰</h4>
                 <p style="font-size: ${this.getResponsiveFontSize(14)}px;">Before you begin your quest, please tell us your name:</p>
                 <input type="text" id="heroNameInput" placeholder="Enter your hero's name..." 
-                       style="width: ${this.isMobile ? '90%' : '250px'}; padding: ${this.getResponsiveButtonPadding()}; margin: ${this.getResponsiveMargin()} 0; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; text-align: center; font-size: ${this.getResponsiveFontSize(14)}px;" 
+                       style="width: ${this.getResponsiveInputWidth()}; padding: ${this.getResponsiveButtonPadding()}; margin: ${this.getResponsiveMargin()} 0; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; text-align: center; font-size: ${this.getResponsiveFontSize(14)}px;" 
                        maxlength="20" autocomplete="off">
                 <p style="color: #888; font-size: ${this.getResponsiveFontSize(10)}px;">Maximum 20 characters</p>
                 <div style="margin-top: ${this.getResponsiveMargin()}; padding: ${this.getResponsivePadding()}; background: #2a2a3a; border-radius: ${this.getResponsiveBorderRadius()};">
@@ -235,7 +260,7 @@ class GameController {
                 <h4 style="font-size: ${this.getResponsiveFontSize(18)}px;">Create Your Hero</h4>
                 <p style="font-size: ${this.getResponsiveFontSize(14)}px;">Enter your hero's name to begin your adventure:</p>
                 <input type="text" id="heroNameInput" placeholder="Enter hero name..." 
-                       style="width: ${this.isMobile ? '90%' : '250px'}; padding: ${this.getResponsiveButtonPadding()}; margin: ${this.getResponsiveMargin()} 0; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; text-align: center; font-size: ${this.getResponsiveFontSize(14)}px;" 
+                       style="width: ${this.getResponsiveInputWidth()}; padding: ${this.getResponsiveButtonPadding()}; margin: ${this.getResponsiveMargin()} 0; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; text-align: center; font-size: ${this.getResponsiveFontSize(14)}px;" 
                        maxlength="20" autocomplete="off">
                 <p style="color: #888; font-size: ${this.getResponsiveFontSize(10)}px;">Maximum 20 characters</p>
                 <hr style="margin: ${this.getResponsiveMargin()} 0; border-color: #444;">
@@ -538,7 +563,7 @@ class GameController {
                 text: "Cancel",
                 onClick: () => {}
             }
-        ], { maxWidth: this.isMobile ? '95vw' : '600px' });
+        ], { maxWidth: this.getResponsiveModalWidth() });
     }
     
     loadSpecificSave(saveKey) {
@@ -1170,13 +1195,13 @@ class GameController {
                     <!-- Combat Interface Section -->
                     <div style="
                         flex: 1;
-                        ${this.isMobile ? 'margin-bottom: 10px;' : ''}
+                        ${this.isMobile ? 'margin-bottom: 5px;' : ''}
                         background: rgba(20, 20, 40, 0.9);
                         border-radius: ${this.getResponsiveBorderRadius()};
                         padding: ${this.getResponsivePadding()};
                         overflow-y: auto;
                         border: 2px solid #4a4a6a;
-                        ${this.isMobile ? 'max-height: 60vh;' : ''}
+                        ${this.isMobile ? `max-height: ${this.getResponsiveCombatHeight()};` : ''}
                     ">
                         ${combatContent}
                     </div>
@@ -1190,7 +1215,7 @@ class GameController {
                         display: flex;
                         flex-direction: column;
                         border: 2px solid #8b4513;
-                        ${this.isMobile ? 'max-height: 35vh;' : ''}
+                        ${this.isMobile ? `max-height: ${this.getResponsiveChatHeight()};` : ''}
                     ">
                         <h4 style="color: #d4af37; margin-bottom: ${this.getResponsiveMargin()}; text-align: center; border-bottom: 1px solid #444; padding-bottom: ${this.getResponsiveMargin()}; font-size: ${this.getResponsiveFontSize(16)}px;">
                             📜 Combat Log
@@ -2147,9 +2172,9 @@ class GameController {
                     border: 3px solid #d4af37;
                     border-radius: ${this.getResponsiveBorderRadius()};
                     padding: ${this.getResponsiveModalPadding()};
-                    max-width: ${this.isMobile ? '95vw' : '600px'};
+                    max-width: ${this.getResponsiveModalWidth()};
                     width: 90%;
-                    max-height: ${this.isMobile ? '95vh' : '80vh'};
+                    max-height: ${this.getResponsiveModalHeight()};
                     overflow-y: auto;
                     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
                 ">
@@ -2364,15 +2389,15 @@ class GameController {
         
         const victoryContent = `
             <div class="victory-interface" style="text-align: center;">
-                <h4 style="color: #d4af37; margin-bottom: 15px;">🎉 Victory! 🎉</h4>
-                <p style="margin-bottom: 10px;">All enemies in this area have been defeated!</p>
-                <p style="margin-bottom: 15px;">What would you like to do next?</p>
+                <h4 style="color: #d4af37; margin-bottom: ${this.getResponsiveMargin()};">🎉 Victory! 🎉</h4>
+                <p style="margin-bottom: ${this.getResponsiveMargin()}; font-size: ${this.getResponsiveFontSize(14)}px;">All enemies in this area have been defeated!</p>
+                <p style="margin-bottom: ${this.getResponsiveMargin()}; font-size: ${this.getResponsiveFontSize(14)}px;">What would you like to do next?</p>
                 
-                <div style="background: #2a2a3a; padding: 10px; border-radius: 5px; margin: 15px 0;">
-                    <div style="font-size: 14px; color: #4ecdc4; margin-bottom: 8px;">
+                <div style="background: #2a2a3a; padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; margin: ${this.getResponsiveMargin()} 0;">
+                    <div style="font-size: ${this.getResponsiveFontSize(14)}px; color: #4ecdc4; margin-bottom: ${this.getResponsiveMargin()};">
                         <strong>Current Status:</strong>
                     </div>
-                    <div style="font-size: 12px; color: #ccc;">
+                    <div style="font-size: ${this.getResponsiveFontSize(12)}px; color: #ccc;">
                         Dungeon Level: ${this.gameState.dungeonLevel} | 
                         Rations: ${this.gameState.hero.rations} | 
                         Gold: ${this.gameState.hero.gold}
@@ -2380,8 +2405,8 @@ class GameController {
                 </div>
                 
                 ${this.gameState.hero.rations > 0 ? 
-                    '<div style="background: #1a3a1a; padding: 8px; border-radius: 5px; margin: 10px 0; border-left: 3px solid #51cf66;"><small style="color: #51cf66;">💡 You have rations available - you can Rest to stay on this level and explore more!</small></div>' : 
-                    '<div style="background: #3a1a1a; padding: 8px; border-radius: 5px; margin: 10px 0; border-left: 3px solid #ff6b6b;"><small style="color: #ff6b6b;">⚠ No rations available - buy some from the shop to enable resting in dungeons!</small></div>'
+                    `<div style="background: #1a3a1a; padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; margin: ${this.getResponsiveMargin()} 0; border-left: 3px solid #51cf66;"><small style="color: #51cf66; font-size: ${this.getResponsiveFontSize(10)}px;">💡 You have rations available - you can Rest to stay on this level and explore more!</small></div>` : 
+                    `<div style="background: #3a1a1a; padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; margin: ${this.getResponsiveMargin()} 0; border-left: 3px solid #ff6b6b;"><small style="color: #ff6b6b; font-size: ${this.getResponsiveFontSize(10)}px;">⚠ No rations available - buy some from the shop to enable resting in dungeons!</small></div>`
                 }
             </div>
         `;
@@ -2474,23 +2499,23 @@ class GameController {
     showExploreOption() {
         const exploreContent = `
             <div style="text-align: center;">
-                <h4 style="color: #d4af37; margin-bottom: 15px;">🛡️ Rested and Ready 🛡️</h4>
-                <p style="margin-bottom: 10px;">Your party has recovered from their trials.</p>
-                <p style="margin-bottom: 15px;">Ready to continue exploring this dungeon level?</p>
+                <h4 style="color: #d4af37; margin-bottom: ${this.getResponsiveMargin()}; font-size: ${this.getResponsiveFontSize(16)}px;">🛡️ Rested and Ready 🛡️</h4>
+                <p style="margin-bottom: ${this.getResponsiveMargin()}; font-size: ${this.getResponsiveFontSize(14)}px;">Your party has recovered from their trials.</p>
+                <p style="margin-bottom: ${this.getResponsiveMargin()}; font-size: ${this.getResponsiveFontSize(14)}px;">Ready to continue exploring this dungeon level?</p>
                 
-                <div style="background: #2a2a3a; padding: 10px; border-radius: 5px; margin: 15px 0;">
-                    <div style="font-size: 14px; color: #4ecdc4; margin-bottom: 8px;">
+                <div style="background: #2a2a3a; padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; margin: ${this.getResponsiveMargin()} 0;">
+                    <div style="font-size: ${this.getResponsiveFontSize(14)}px; color: #4ecdc4; margin-bottom: ${this.getResponsiveMargin()};">
                         <strong>Current Status:</strong>
                     </div>
-                    <div style="font-size: 12px; color: #ccc;">
+                    <div style="font-size: ${this.getResponsiveFontSize(12)}px; color: #ccc;">
                         Dungeon Level: ${this.gameState.dungeonLevel} | 
                         Rations: ${this.gameState.hero.rations} | 
                         Hero HP: ${this.gameState.hero.health}/${this.gameState.hero.maxHealth}
                     </div>
                 </div>
                 
-                <div style="background: #1a3a1a; padding: 8px; border-radius: 5px; margin: 10px 0; border-left: 3px solid #51cf66;">
-                    <small style="color: #51cf66;">💡 Exploring will generate new enemies on the same dungeon level</small>
+                <div style="background: #1a3a1a; padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; margin: ${this.getResponsiveMargin()} 0; border-left: 3px solid #51cf66;">
+                    <small style="color: #51cf66; font-size: ${this.getResponsiveFontSize(10)}px;">💡 Exploring will generate new enemies on the same dungeon level</small>
                 </div>
             </div>
         `;
@@ -2704,30 +2729,30 @@ class GameController {
         ];
         
         const craftingContent = `
-            <div style="text-align: center; margin-bottom: 15px;">
-                <h3 style="color: #d4af37; margin-bottom: 10px;">🔨 Crafting Workshop 🔨</h3>
-                <p style="color: #51cf66; font-weight: bold;">Your Gold: ${this.gameState.hero.gold}</p>
+            <div style="text-align: center; margin-bottom: ${this.getResponsiveMargin()};">
+                <h3 style="color: #d4af37; margin-bottom: ${this.getResponsiveMargin()}; font-size: ${this.getResponsiveFontSize(18)}px;">🔨 Crafting Workshop 🔨</h3>
+                <p style="color: #51cf66; font-weight: bold; font-size: ${this.getResponsiveFontSize(14)}px;">Your Gold: ${this.gameState.hero.gold}</p>
             </div>
             
-            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #444; border-radius: 8px; padding: 10px; background: #1a1a2a;">
-                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 10px; padding: 8px; background: #2a2a3a; border-radius: 5px; font-weight: bold; color: #d4af37;">
+            <div style="max-height: ${this.getResponsiveModalHeight()}; overflow-y: auto; border: 1px solid #444; border-radius: ${this.getResponsiveBorderRadius()}; padding: ${this.getResponsivePadding()}; background: #1a1a2a;">
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: ${this.getResponsiveMargin()}; margin-bottom: ${this.getResponsiveMargin()}; padding: ${this.getResponsivePadding()}; background: #2a2a3a; border-radius: ${this.getResponsiveBorderRadius()}; font-weight: bold; color: #d4af37; font-size: ${this.getResponsiveFontSize(12)}px;">
                     <div>Item Name & Description</div>
                     <div style="text-align: center;">Cost</div>
                     <div style="text-align: center;">Action</div>
                 </div>
                 
                 ${craftableItems.map(item => `
-                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; align-items: center; padding: 12px; margin: 5px 0; background: ${this.gameState.hero.gold >= item.cost ? '#0a2a0a' : '#2a0a0a'}; border-radius: 5px; border-left: 3px solid ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'};">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: ${this.getResponsiveMargin()}; align-items: center; padding: ${this.getResponsivePadding()}; margin: ${this.getResponsiveMargin()} 0; background: ${this.gameState.hero.gold >= item.cost ? '#0a2a0a' : '#2a0a0a'}; border-radius: ${this.getResponsiveBorderRadius()}; border-left: 3px solid ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'};">
                         <div>
-                            <div style="font-weight: bold; color: ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'};">${item.name}</div>
-                            <div style="font-size: 12px; color: #ccc; margin-top: 3px;">${item.description}</div>
+                            <div style="font-weight: bold; color: ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'}; font-size: ${this.getResponsiveFontSize(14)}px;">${item.name}</div>
+                            <div style="font-size: ${this.getResponsiveFontSize(12)}px; color: #ccc; margin-top: 3px;">${item.description}</div>
                         </div>
-                        <div style="text-align: center; font-weight: bold; color: #ffd93d;">${item.cost}g</div>
+                        <div style="text-align: center; font-weight: bold; color: #ffd93d; font-size: ${this.getResponsiveFontSize(14)}px;">${item.cost}g</div>
                         <div style="text-align: center;">
                             <button onclick="window.game.controller.craftItem('${item.id}', ${item.cost})" 
-                                    style="padding: 6px 12px; background: ${this.gameState.hero.gold >= item.cost ? 'linear-gradient(45deg, #2a4d3a, #4a7c59)' : 'linear-gradient(45deg, #4a2a2a, #6a3a3a)'}; 
-                                           border: 1px solid ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'}; color: white; border-radius: 4px; cursor: ${this.gameState.hero.gold >= item.cost ? 'pointer' : 'not-allowed'}; 
-                                           font-size: 12px; font-weight: bold;"
+                                    style="padding: ${this.getResponsiveButtonPadding()}; background: ${this.gameState.hero.gold >= item.cost ? 'linear-gradient(45deg, #2a4d3a, #4a7c59)' : 'linear-gradient(45deg, #4a2a2a, #6a3a3a)'}; 
+                                           border: 1px solid ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'}; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: ${this.gameState.hero.gold >= item.cost ? 'pointer' : 'not-allowed'}; 
+                                           font-size: ${this.getResponsiveFontSize(12)}px; font-weight: bold;"
                                     ${this.gameState.hero.gold < item.cost ? 'disabled' : ''}>
                                 🔨 Craft
                             </button>
@@ -2736,8 +2761,8 @@ class GameController {
                 `).join('')}
             </div>
             
-            <div style="margin-top: 15px; padding: 10px; background: #2a2a3a; border-radius: 5px; text-align: center;">
-                <div style="font-size: 12px; color: #888; font-style: italic;">
+            <div style="margin-top: ${this.getResponsiveMargin()}; padding: ${this.getResponsivePadding()}; background: #2a2a3a; border-radius: ${this.getResponsiveBorderRadius()}; text-align: center;">
+                <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #888; font-style: italic;">
                     💡 Tip: Different weapon types benefit from different stats - STR (melee), DEX (ranged), INT (arcane), WIL (divine)
                 </div>
             </div>
