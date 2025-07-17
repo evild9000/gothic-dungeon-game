@@ -2038,8 +2038,18 @@ class GameController {
     }
 
     showVictoryConfirmationPrompt() {
-        // Update the combat interface to show victory confirmation instead of regular combat actions
-        const enemies = this.gameState.currentEnemies || [];
+        // Create a separate victory confirmation overlay that appears on top of the combat interface
+        // This is much more reliable than trying to modify the existing combat modal
+        this.createVictoryConfirmationOverlay();
+    }
+
+    createVictoryConfirmationOverlay() {
+        // Remove any existing victory overlay
+        const existingOverlay = document.getElementById('victory-confirmation-overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+
         const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
         
         // Helper function to get health color
@@ -2049,133 +2059,153 @@ class GameController {
             if (ratio <= 0.6) return '#ffd93d';
             return '#51cf66';
         };
-        
-        // Helper function to get character icon
-        const getCharacterIcon = (type) => {
-            const icons = {
-                'hero': '👑',
-                'archer': '🏹', 
-                'warrior': '⚔️',
-                'mage': '🔮',
-                'Goblin': '👹',
-                'Orc': '🧌',
-                'Skeleton': '💀',
-                'Wolf': '🐺',
-                'Spider': '🕷️'
-            };
-            return icons[type] || '⚡';
-        };
-        
-        const victoryContent = `
-            <div class="enhanced-combat-interface">
-                <h3 style="text-align: center; color: #51cf66; margin-bottom: 20px;">🎉 Victory Achieved! 🎉</h3>
-                
-                <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-                    <!-- Victory Status Section -->
-                    <div style="flex: 1; background: #1a2a1a; padding: 15px; border-radius: 8px; border: 2px solid #51cf66;">
-                        <h4 style="color: #51cf66; margin-bottom: 10px; text-align: center;">🏆 Combat Complete</h4>
-                        <div style="text-align: center; padding: 15px; background: #0a2a0a; border-radius: 5px; border-left: 3px solid #51cf66;">
-                            <div style="font-size: 18px; color: #51cf66; margin-bottom: 8px;">All enemies defeated!</div>
-                            <div style="font-size: 14px; color: #ccc; margin-bottom: 10px;">Review the combat log, then proceed when ready.</div>
-                            <div style="font-size: 12px; color: #888;">
-                                Dungeon Level: ${this.gameState.dungeonLevel} | 
-                                Gold: ${this.gameState.hero.gold} | 
-                                Rations: ${this.gameState.hero.rations || 0}
-                            </div>
+
+        const victoryOverlayHtml = `
+            <div id="victory-confirmation-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 2000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                backdrop-filter: blur(3px);
+            ">
+                <div style="
+                    background: linear-gradient(135deg, #1a2a1a, #2a3a2a);
+                    border: 3px solid #d4af37;
+                    border-radius: 15px;
+                    padding: 30px;
+                    max-width: 600px;
+                    width: 90%;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+                ">
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <h2 style="color: #d4af37; margin: 0 0 10px 0; font-size: 28px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                            🎉 VICTORY! 🎉
+                        </h2>
+                        <div style="color: #51cf66; font-size: 18px; font-weight: bold;">
+                            All enemies have been defeated!
                         </div>
                     </div>
-                    
-                    <!-- Player Party Section -->
-                    <div style="flex: 1; background: #1a2a1a; padding: 15px; border-radius: 8px; border: 2px solid #228b22;">
-                        <h4 style="color: #51cf66; margin-bottom: 10px; text-align: center;">🛡️ Your Party</h4>
+
+                    <!-- Party Status -->
+                    <div style="background: #0a1a0a; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #51cf66;">
+                        <h3 style="color: #51cf66; margin: 0 0 15px 0; text-align: center;">🛡️ Party Status</h3>
                         
-                        <!-- Hero -->
-                        <div style="display: flex; align-items: center; margin: 8px 0; padding: 8px; background: #0a1a0a; border-radius: 5px; border-left: 3px solid #d4af37;">
-                            <div style="font-size: 24px; margin-right: 10px;">${getCharacterIcon('hero')}</div>
+                        <!-- Hero Status -->
+                        <div style="display: flex; align-items: center; padding: 10px; background: #1a1a2a; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #d4af37;">
+                            <div style="font-size: 24px; margin-right: 12px;">👑</div>
                             <div style="flex: 1;">
-                                <div style="font-weight: bold; color: #d4af37;">${this.gameState.hero.name || 'Hero'}</div>
-                                <div style="font-size: 12px; color: #ccc;">Level ${this.gameState.hero.level} | Leader</div>
-                                <div style="margin-top: 3px;">
+                                <div style="color: #d4af37; font-weight: bold; font-size: 16px;">${this.gameState.hero.name || 'Hero'} (Level ${this.gameState.hero.level})</div>
+                                <div style="margin-top: 5px;">
                                     <span style="color: ${getHealthColor(this.gameState.hero.health, this.gameState.hero.maxHealth)}; font-weight: bold;">${this.gameState.hero.health}</span>
                                     <span style="color: #888;">/${this.gameState.hero.maxHealth} HP</span>
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Underlings -->
+
+                        <!-- Underlings Status -->
                         ${aliveUnderlings.map(underling => `
-                            <div style="display: flex; align-items: center; margin: 8px 0; padding: 8px; background: #0a1a0a; border-radius: 5px; border-left: 3px solid #51cf66;">
-                                <div style="font-size: 24px; margin-right: 10px;">${getCharacterIcon(underling.type)}</div>
+                            <div style="display: flex; align-items: center; padding: 10px; background: #1a1a2a; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #51cf66;">
+                                <div style="font-size: 20px; margin-right: 12px;">${underling.type === 'archer' ? '🏹' : underling.type === 'warrior' ? '⚔️' : underling.type === 'mage' ? '🔮' : '⚡'}</div>
                                 <div style="flex: 1;">
-                                    <div style="font-weight: bold; color: #51cf66;">${underling.name}</div>
-                                    <div style="font-size: 12px; color: #ccc;">Level ${underling.level} | ${underling.type}</div>
-                                    <div style="margin-top: 3px;">
+                                    <div style="color: #51cf66; font-weight: bold;">${underling.name} (Level ${underling.level})</div>
+                                    <div style="margin-top: 3px; font-size: 14px;">
                                         <span style="color: ${getHealthColor(underling.health, underling.maxHealth)}; font-weight: bold;">${underling.health}</span>
                                         <span style="color: #888;">/${underling.maxHealth} HP</span>
                                     </div>
                                 </div>
                             </div>
                         `).join('')}
-                        
-                        ${aliveUnderlings.length === 0 ? '<div style="text-align: center; color: #888; font-style: italic; padding: 20px;">No underlings in party</div>' : ''}
-                        
-                        <!-- Show fallen underlings -->
-                        ${this.gameState.hero.underlings.filter(u => !u.isAlive).map(underling => `
-                            <div style="display: flex; align-items: center; margin: 8px 0; padding: 8px; background: #2a0a0a; border-radius: 5px; border-left: 3px solid #666;">
-                                <div style="font-size: 24px; margin-right: 10px; opacity: 0.5;">💀</div>
-                                <div style="flex: 1; opacity: 0.5;">
-                                    <div style="font-weight: bold; color: #888; text-decoration: line-through;">${underling.name}</div>
-                                    <div style="font-size: 12px; color: #666;">Fallen - needs resurrection</div>
-                                </div>
+
+                        ${aliveUnderlings.length === 0 ? '<div style="text-align: center; color: #888; font-style: italic; padding: 15px;">Fighting solo - consider recruiting underlings!</div>' : ''}
+                    </div>
+
+                    <!-- Combat Summary -->
+                    <div style="background: #0a2a0a; padding: 15px; border-radius: 10px; margin-bottom: 25px; border: 2px solid #4ecdc4;">
+                        <div style="text-align: center;">
+                            <div style="color: #4ecdc4; font-weight: bold; margin-bottom: 8px;">Combat Summary</div>
+                            <div style="color: #ccc; font-size: 14px;">
+                                Dungeon Level: <span style="color: #ffd93d; font-weight: bold;">${this.gameState.dungeonLevel}</span> | 
+                                Gold: <span style="color: #ffd93d; font-weight: bold;">${this.gameState.hero.gold}</span> | 
+                                Rations: <span style="color: #ffd93d; font-weight: bold;">${this.gameState.hero.rations || 0}</span>
                             </div>
-                        `).join('')}
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Victory Confirmation -->
-                <div style="background: #2a3a2a; padding: 15px; border-radius: 8px; border: 2px solid #51cf66;">
-                    <h4 style="color: #51cf66; margin-bottom: 15px; text-align: center;">🏆 Proceed to Victory Options?</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <button class="enhanced-combat-btn" onclick="window.game.controller.showVictoryOptions()" 
-                                style="padding: 12px; background: linear-gradient(45deg, #2a4d3a, #4a7c59); border: 2px solid #51cf66; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            ✅ Yes - Continue
-                        </button>
-                        <button class="enhanced-combat-btn" onclick="window.game.controller.continueViewingCombatLog()" 
-                                style="padding: 12px; background: linear-gradient(45deg, #4a4a2d, #7a7a3a); border: 2px solid #ffd93d; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            📜 No - Review Log
-                        </button>
-                    </div>
-                    
-                    <div style="margin-top: 15px; padding: 10px; background: #1a2a1a; border-radius: 5px; text-align: center;">
-                        <div style="font-size: 12px; color: #888; font-style: italic;">
-                            💡 Take your time to review the combat results in the log before proceeding
+
+                    <!-- Action Buttons -->
+                    <div style="text-align: center;">
+                        <div style="color: #51cf66; margin-bottom: 15px; font-weight: bold;">
+                            What would you like to do next?
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <button onclick="window.game.controller.showVictoryOptions()" 
+                                    style="padding: 15px; background: linear-gradient(45deg, #2a4d3a, #4a7c59); border: 2px solid #51cf66; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: all 0.3s;">
+                                ✅ Continue to Victory Options
+                            </button>
+                            <button onclick="window.game.controller.continueViewingCombatLog()" 
+                                    style="padding: 15px; background: linear-gradient(45deg, #4a4a2d, #7a7a3a); border: 2px solid #ffd93d; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: all 0.3s;">
+                                📜 Review Combat Log
+                            </button>
+                        </div>
+                        
+                        <div style="margin-top: 15px; padding: 12px; background: #1a1a2a; border-radius: 8px; border: 1px solid #444;">
+                            <div style="font-size: 12px; color: #888; font-style: italic;">
+                                💡 The combat log remains visible behind this dialog. Review it carefully before proceeding!
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         `;
 
-        // Update the existing combat modal with victory content
-        // Target the combat interface section (first child of the flex container)
-        const combatInterface = document.querySelector('#enhanced-combat-modal > div > div:first-child');
-        
-        if (combatInterface) {
-            combatInterface.innerHTML = victoryContent;
-        } else {
-            console.error('Could not find combat interface element to update');
-            console.log('Available elements:', document.querySelector('#enhanced-combat-modal'));
-            // Fallback: show victory options directly if we can't update the interface
-            this.showVictoryOptions();
-        }
+        // Add the overlay to the page
+        document.body.insertAdjacentHTML('beforeend', victoryOverlayHtml);
+
+        // Add hover effects to buttons
+        setTimeout(() => {
+            const buttons = document.querySelectorAll('#victory-confirmation-overlay button');
+            buttons.forEach(button => {
+                button.addEventListener('mouseenter', () => {
+                    button.style.transform = 'scale(1.05)';
+                    button.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.3)';
+                });
+                button.addEventListener('mouseleave', () => {
+                    button.style.transform = 'scale(1)';
+                    button.style.boxShadow = 'none';
+                });
+            });
+        }, 100);
     }
 
     continueViewingCombatLog() {
-        // This method does nothing - just leaves the combat interface open for log review
-        // The combat log remains accessible and the confirmation prompt stays visible
-        this.ui.log("Continue reviewing the combat log. Click 'Yes - Continue' when ready to proceed.");
+        // Close the victory confirmation overlay to allow full access to the combat log
+        const victoryOverlay = document.getElementById('victory-confirmation-overlay');
+        if (victoryOverlay) {
+            victoryOverlay.remove();
+        }
+        
+        // Log a message and keep the combat interface open for log review
+        this.ui.log("Victory confirmation dismissed. Review the combat log, then use the Flee button to exit when ready.");
+        this.ui.showNotification("Victory overlay closed. Use Flee button to exit when ready.", "info");
+        
+        // The combat log remains accessible and the enhanced combat modal stays open
+        // Players can use the Flee button to exit combat when they're done reviewing
     }
 
     showVictoryOptions() {
+        // Close the victory confirmation overlay
+        const victoryOverlay = document.getElementById('victory-confirmation-overlay');
+        if (victoryOverlay) {
+            victoryOverlay.remove();
+        }
+        
         // Close the enhanced combat modal since combat is over
         this.closeEnhancedCombatModal();
         
