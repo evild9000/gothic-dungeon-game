@@ -33,14 +33,6 @@ class GameController {
     newGame() {
         console.log('Starting new game...');
         
-        // Clear the old save FIRST to ensure fresh start
-        try {
-            localStorage.removeItem('dungeonGameSave');
-            console.log('Cleared previous save file');
-        } catch (error) {
-            console.log('Could not clear save file:', error);
-        }
-        
         // Close any open UI elements first
         this.closeDockedCombatPanel();
         
@@ -48,38 +40,74 @@ class GameController {
         const modals = document.querySelectorAll('.modal-overlay');
         modals.forEach(modal => modal.remove());
         
-        // Show confirmation and offer browser refresh option
-        const confirmContent = `
+        // Show hero naming prompt
+        const nameContent = `
             <div style="text-align: center;">
-                <h4>Start New Game</h4>
-                <p>This will reset all progress and start fresh.</p>
-                <p style="color: #ff6b6b; font-weight: bold;">All current data will be lost!</p>
+                <h4>Create Your Hero</h4>
+                <p>Enter your hero's name to begin your adventure:</p>
+                <input type="text" id="heroNameInput" placeholder="Enter hero name..." 
+                       style="width: 250px; padding: 8px; margin: 15px 0; border: 2px solid #d4af37; border-radius: 5px; background: #2a2a2a; color: white; text-align: center; font-size: 16px;" 
+                       maxlength="20" autocomplete="off">
+                <p style="color: #888; font-size: 12px;">Maximum 20 characters</p>
                 <hr style="margin: 15px 0; border-color: #444;">
                 <p>Choose reset method:</p>
             </div>
         `;
 
-        this.ui.createModal("New Game Confirmation", confirmContent, [
+        this.ui.createModal("Create New Hero", nameContent, [
             {
-                text: "Soft Reset (Game Only)",
-                onClick: () => this.performNewGameReset()
+                text: "Start Adventure (Soft Reset)",
+                onClick: () => this.createHeroAndStart(false)
             },
             {
-                text: "Hard Reset (Refresh Browser)",
-                onClick: () => this.performBrowserRefresh()
+                text: "Start Adventure (Hard Reset)",
+                onClick: () => this.createHeroAndStart(true)
             },
             {
                 text: "Cancel",
                 onClick: () => {}
             }
         ]);
+        
+        // Focus on the input field after modal is created
+        setTimeout(() => {
+            const input = document.getElementById('heroNameInput');
+            if (input) {
+                input.focus();
+                // Enter key to start adventure
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.createHeroAndStart(false);
+                    }
+                });
+            }
+        }, 100);
     }
     
-    performNewGameReset() {
+    createHeroAndStart(isHardReset) {
+        const nameInput = document.getElementById('heroNameInput');
+        let heroName = nameInput ? nameInput.value.trim() : '';
+        
+        // Validate hero name
+        if (!heroName) {
+            heroName = 'Hero'; // Default name if none provided
+        }
+        
+        // Sanitize name (remove special characters that might break saves)
+        heroName = heroName.replace(/[<>:"/\\|?*]/g, '').substring(0, 20);
+        
+        if (isHardReset) {
+            this.performBrowserRefresh();
+        } else {
+            this.performNewGameReset(heroName);
+        }
+    }
+    
+    performNewGameReset(heroName = 'Hero') {
         // Reset game state completely
         this.gameState = {
             hero: {
-                name: "Hero",
+                name: heroName,
                 level: 1,
                 fame: 0,
                 gold: 100,
@@ -125,21 +153,37 @@ class GameController {
             this.ui.currentBackground = 'village';
             this.ui.setBackground('village');
             this.ui.clearChatLog();
-            this.ui.log("Started a new game!");
+            this.ui.log(`Welcome ${heroName}! Your adventure begins!`);
             this.ui.render();
-            this.ui.showNotification("New game started!", "success");
+            this.ui.showNotification(`Welcome ${heroName}!`, "success");
         }
         
-        console.log('New game reset complete. Hero gold:', this.gameState.hero.gold);
+        console.log('New game reset complete. Hero:', heroName, 'Gold:', this.gameState.hero.gold);
     }
     
     performBrowserRefresh() {
-        // Clear localStorage completely and refresh
+        // Clear only temporary localStorage data, preserve save games
         try {
+            // Get all save games first
+            const saves = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('dungeonGameSave_')) {
+                    saves[key] = localStorage.getItem(key);
+                }
+            }
+            
+            // Clear all localStorage
             localStorage.clear();
-            console.log('Cleared all localStorage data');
+            
+            // Restore save games
+            Object.entries(saves).forEach(([key, value]) => {
+                localStorage.setItem(key, value);
+            });
+            
+            console.log('Cleared localStorage except save games. Preserved saves:', Object.keys(saves).length);
         } catch (error) {
-            console.log('Could not clear localStorage:', error);
+            console.log('Could not manage localStorage:', error);
         }
         
         // Show message before refresh
@@ -153,26 +197,36 @@ class GameController {
 
     saveGame() {
         try {
-            // Create a clean copy of game state for saving
+            const heroName = this.gameState.hero.name || 'Hero';
+            const timestamp = new Date();
+            
+            // Create save data
             const saveData = {
                 ...this.gameState,
                 // Ensure we don't save temporary combat state
                 currentEnemies: null,
                 inCombat: false,
                 defendingThisTurn: false,
-                timestamp: new Date().toISOString()
+                timestamp: timestamp.toISOString(),
+                saveDate: timestamp.toLocaleString(),
+                saveName: `${heroName} - Lv.${this.gameState.hero.level} - ${timestamp.toLocaleDateString()} ${timestamp.toLocaleTimeString()}`
             };
             
-            localStorage.setItem('dungeonGameSave', JSON.stringify(saveData));
+            // Create unique save key based on hero name and timestamp
+            const saveKey = `dungeonGameSave_${heroName}_${Date.now()}`;
+            
+            localStorage.setItem(saveKey, JSON.stringify(saveData));
             
             // Verify the save actually worked
-            const verification = localStorage.getItem('dungeonGameSave');
+            const verification = localStorage.getItem(saveKey);
             if (verification) {
-                this.ui.log(`Game saved successfully! (${saveData.timestamp})`);
-                this.ui.showNotification("Game saved!", "success");
+                this.ui.log(`Game saved as "${saveData.saveName}"!`);
+                this.ui.showNotification(`Saved: ${heroName} Lv.${this.gameState.hero.level}`, "success");
                 
                 // Debug: Show what was saved
                 console.log('Game saved with data:', {
+                    saveKey: saveKey,
+                    heroName: heroName,
                     heroLevel: saveData.hero.level,
                     heroGold: saveData.hero.gold,
                     heroHealth: saveData.hero.health,
@@ -193,126 +247,243 @@ class GameController {
 
     loadGame() {
         try {
-            const data = localStorage.getItem('dungeonGameSave');
-            console.log('Load attempt - raw data found:', !!data);
-            if (data) {
-                console.log('Save data size:', data.length, 'characters');
-                
-                // Close any open UI elements first
-                this.closeDockedCombatPanel();
-                
-                // Close any open modals
-                const modals = document.querySelectorAll('.modal-overlay');
-                modals.forEach(modal => modal.remove());
-                
-                const loadedState = JSON.parse(data);
-                console.log('Parsed save data hero gold:', loadedState.hero?.gold);
-                
-                this.gameState = loadedState;
-                
-                // Ensure backward compatibility - fix hero without mana
-                if (!this.gameState.hero.mana) {
-                    this.gameState.hero.mana = this.gameState.hero.maxMana || 100;
-                }
-                if (!this.gameState.hero.maxMana) {
-                    this.gameState.hero.maxMana = 100;
-                }
-                
-                // Ensure backward compatibility - fix underlings without new properties
-                if (this.gameState.hero.underlings) {
-                    this.gameState.hero.underlings.forEach(underling => {
-                        if (!underling.maxHealth) {
-                            underling.maxHealth = underling.health;
-                        }
-                        if (underling.isAlive === undefined) {
-                            underling.isAlive = true;
-                        }
-                        if (!underling.equipment) {
-                            underling.equipment = [];
-                        }
-                        if (!underling.mana) {
-                            underling.mana = underling.maxMana || 50;
-                        }
-                        if (!underling.maxMana) {
-                            underling.maxMana = 50;
-                        }
-                        // Add new stats if missing (backward compatibility)
-                        if (underling.strength === undefined) {
-                            underling.strength = 5;
-                            underling.dexterity = 5;
-                            underling.constitution = 5;
-                            underling.intelligence = 5;
-                            underling.willpower = 5;
-                            underling.size = 5;
-                        }
-                    });
-                }
-                
-                // Add new stats to hero if missing (backward compatibility)
-                if (this.gameState.hero.strength === undefined) {
-                    this.gameState.hero.strength = 5;
-                    this.gameState.hero.dexterity = 5;
-                    this.gameState.hero.constitution = 5;
-                    this.gameState.hero.intelligence = 5;
-                    this.gameState.hero.willpower = 5;
-                    this.gameState.hero.size = 5;
-                }
-                
-                // Ensure all stats are numbers and not undefined/null
-                this.gameState.hero.strength = this.gameState.hero.strength || 5;
-                this.gameState.hero.dexterity = this.gameState.hero.dexterity || 5;
-                this.gameState.hero.constitution = this.gameState.hero.constitution || 5;
-                this.gameState.hero.intelligence = this.gameState.hero.intelligence || 5;
-                this.gameState.hero.willpower = this.gameState.hero.willpower || 5;
-                this.gameState.hero.size = this.gameState.hero.size || 5;
-                
-                // Add rations if missing (backward compatibility)
-                if (this.gameState.hero.rations === undefined) {
-                    this.gameState.hero.rations = 0;
-                }
-                
-                // Apply stat bonuses to all characters
-                this.applyStatBonuses();
-                
-                // Reset combat state (should not be saved anyway)
-                this.gameState.inCombat = false;
-                this.gameState.currentEnemies = null;
-                this.gameState.defendingThisTurn = false;
-                
-                // Reset combat-related variables
-                this.currentSelectedItemIndex = null;
-                this.currentCombatItems = null;
-                this.currentCombatTargets = null;
-                
-                // Update UI to match loaded state
-                const currentScreen = this.gameState.currentScreen || 'village';
-                if (currentScreen === 'village' || currentScreen === 'main') {
-                    this.ui.setBackground('village');
-                } else {
-                    this.ui.setBackground(currentScreen);
-                }
-                
-                // Debug: Show what was loaded
-                console.log('Game loaded with data:', {
-                    heroLevel: this.gameState.hero.level,
-                    heroGold: this.gameState.hero.gold,
-                    heroHealth: this.gameState.hero.health,
-                    underlings: this.gameState.hero.underlings.length,
-                    dungeonLevel: this.gameState.dungeonLevel,
-                    timestamp: loadedState.timestamp
-                });
-                
-                this.ui.log(`Game loaded successfully! ${loadedState.timestamp ? `(Saved: ${new Date(loadedState.timestamp).toLocaleString()})` : ''}`);
-                this.ui.render();
-                this.ui.showNotification("Game loaded!", "success");
-            } else {
-                this.ui.log("No save file found.");
-                this.ui.showNotification("No save file found!", "error");
+            // Get all save games from localStorage
+            const saveGames = this.getAllSaveGames();
+            
+            console.log('Load attempt - found saves:', saveGames.length);
+            
+            if (saveGames.length === 0) {
+                this.ui.log("No save files found.");
+                this.ui.showNotification("No save files found!", "error");
+                return;
             }
+            
+            // Show save selection modal
+            this.showSaveSelectionModal(saveGames);
+            
         } catch (error) {
             this.ui.log("Failed to load game: " + error.message);
             this.ui.showNotification("Load failed!", "error");
             console.error('Load error:', error);
+        }
+    }
+    
+    getAllSaveGames() {
+        const saves = [];
+        
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('dungeonGameSave_')) {
+                try {
+                    const data = localStorage.getItem(key);
+                    const saveData = JSON.parse(data);
+                    saves.push({
+                        key: key,
+                        data: saveData,
+                        heroName: saveData.hero?.name || 'Unknown Hero',
+                        level: saveData.hero?.level || 1,
+                        gold: saveData.hero?.gold || 0,
+                        dungeonLevel: saveData.dungeonLevel || 1,
+                        timestamp: saveData.timestamp,
+                        saveDate: saveData.saveDate || 'Unknown Date',
+                        saveName: saveData.saveName || `${saveData.hero?.name || 'Hero'} - Lv.${saveData.hero?.level || 1}`
+                    });
+                } catch (error) {
+                    console.warn('Corrupted save file:', key, error);
+                }
+            }
+        }
+        
+        // Sort by timestamp (newest first)
+        saves.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        return saves;
+    }
+    
+    showSaveSelectionModal(saveGames) {
+        const saveContent = `
+            <div style="text-align: center; margin-bottom: 15px;">
+                <h3 style="color: #d4af37;">📚 Load Game</h3>
+                <p>Choose a save file to load:</p>
+            </div>
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #444; border-radius: 8px; padding: 10px; background: #1a1a2a;">
+                ${saveGames.map((save, index) => `
+                    <div style="display: flex; align-items: center; margin: 8px 0; padding: 12px; background: #2a2a3a; border-radius: 8px; border-left: 4px solid #d4af37; cursor: pointer; transition: background 0.2s;" 
+                         onclick="window.game.controller.loadSpecificSave('${save.key}')"
+                         onmouseover="this.style.background='#3a3a4a'" 
+                         onmouseout="this.style.background='#2a2a3a'">
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; color: #d4af37; font-size: 16px;">${save.heroName}</div>
+                            <div style="color: #51cf66; font-size: 14px; margin: 2px 0;">Level ${save.level} • ${save.gold} Gold • Dungeon Lv.${save.dungeonLevel}</div>
+                            <div style="color: #888; font-size: 12px;">${save.saveDate}</div>
+                        </div>
+                        <div style="margin-left: 10px;">
+                            <button onclick="event.stopPropagation(); window.game.controller.deleteSave('${save.key}', '${save.heroName}')" 
+                                    style="padding: 4px 8px; background: #8b0000; border: 1px solid #ff6b6b; color: white; border-radius: 3px; cursor: pointer; font-size: 11px;">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div style="margin-top: 15px; padding: 10px; background: #2a2a3a; border-radius: 5px; text-align: center;">
+                <div style="font-size: 12px; color: #888; font-style: italic;">
+                    💡 Click on a save to load it • Delete saves you no longer need
+                </div>
+            </div>
+        `;
+
+        this.ui.createModal("Load Game", saveContent, [
+            {
+                text: "Cancel",
+                onClick: () => {}
+            }
+        ], { maxWidth: '600px' });
+    }
+    
+    loadSpecificSave(saveKey) {
+        try {
+            const data = localStorage.getItem(saveKey);
+            if (!data) {
+                this.ui.log("Save file not found!");
+                this.ui.showNotification("Save file not found!", "error");
+                return;
+            }
+            
+            const loadedState = JSON.parse(data);
+            console.log('Loading save:', saveKey, 'Hero:', loadedState.hero?.name);
+            
+            // Close any open UI elements first
+            this.closeDockedCombatPanel();
+            
+            // Close any open modals
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(modal => modal.remove());
+            
+            this.gameState = loadedState;
+            
+            // Ensure backward compatibility - fix hero without mana
+            if (!this.gameState.hero.mana) {
+                this.gameState.hero.mana = this.gameState.hero.maxMana || 100;
+            }
+            if (!this.gameState.hero.maxMana) {
+                this.gameState.hero.maxMana = 100;
+            }
+            
+            // Ensure backward compatibility - fix underlings without new properties
+            if (this.gameState.hero.underlings) {
+                this.gameState.hero.underlings.forEach(underling => {
+                    if (!underling.maxHealth) {
+                        underling.maxHealth = underling.health;
+                    }
+                    if (underling.isAlive === undefined) {
+                        underling.isAlive = true;
+                    }
+                    if (!underling.equipment) {
+                        underling.equipment = [];
+                    }
+                    if (!underling.mana) {
+                        underling.mana = underling.maxMana || 50;
+                    }
+                    if (!underling.maxMana) {
+                        underling.maxMana = 50;
+                    }
+                    // Add new stats if missing (backward compatibility)
+                    if (underling.strength === undefined) {
+                        underling.strength = 5;
+                        underling.dexterity = 5;
+                        underling.constitution = 5;
+                        underling.intelligence = 5;
+                        underling.willpower = 5;
+                        underling.size = 5;
+                    }
+                });
+            }
+            
+            // Add new stats to hero if missing (backward compatibility)
+            if (this.gameState.hero.strength === undefined) {
+                this.gameState.hero.strength = 5;
+                this.gameState.hero.dexterity = 5;
+                this.gameState.hero.constitution = 5;
+                this.gameState.hero.intelligence = 5;
+                this.gameState.hero.willpower = 5;
+                this.gameState.hero.size = 5;
+            }
+            
+            // Ensure all stats are numbers and not undefined/null
+            this.gameState.hero.strength = this.gameState.hero.strength || 5;
+            this.gameState.hero.dexterity = this.gameState.hero.dexterity || 5;
+            this.gameState.hero.constitution = this.gameState.hero.constitution || 5;
+            this.gameState.hero.intelligence = this.gameState.hero.intelligence || 5;
+            this.gameState.hero.willpower = this.gameState.hero.willpower || 5;
+            this.gameState.hero.size = this.gameState.hero.size || 5;
+            
+            // Add rations if missing (backward compatibility)
+            if (this.gameState.hero.rations === undefined) {
+                this.gameState.hero.rations = 0;
+            }
+            
+            // Apply stat bonuses to all characters
+            this.applyStatBonuses();
+            
+            // Reset combat state (should not be saved anyway)
+            this.gameState.inCombat = false;
+            this.gameState.currentEnemies = null;
+            this.gameState.defendingThisTurn = false;
+            
+            // Reset combat-related variables
+            this.currentSelectedItemIndex = null;
+            this.currentCombatItems = null;
+            this.currentCombatTargets = null;
+            
+            // Update UI to match loaded state
+            const currentScreen = this.gameState.currentScreen || 'village';
+            if (currentScreen === 'village' || currentScreen === 'main') {
+                this.ui.setBackground('village');
+            } else {
+                this.ui.setBackground(currentScreen);
+            }
+            
+            // Debug: Show what was loaded
+            console.log('Game loaded with data:', {
+                heroName: this.gameState.hero.name,
+                heroLevel: this.gameState.hero.level,
+                heroGold: this.gameState.hero.gold,
+                heroHealth: this.gameState.hero.health,
+                underlings: this.gameState.hero.underlings.length,
+                dungeonLevel: this.gameState.dungeonLevel,
+                timestamp: loadedState.timestamp
+            });
+            
+            this.ui.log(`${this.gameState.hero.name} loaded successfully! (Saved: ${loadedState.saveDate || 'Unknown Date'})`);
+            this.ui.render();
+            this.ui.showNotification(`Loaded: ${this.gameState.hero.name}`, "success");
+            
+        } catch (error) {
+            this.ui.log("Failed to load save file: " + error.message);
+            this.ui.showNotification("Load failed!", "error");
+            console.error('Load specific save error:', error);
+        }
+    }
+    
+    deleteSave(saveKey, heroName) {
+        if (confirm(`Delete save file for ${heroName}? This cannot be undone.`)) {
+            try {
+                localStorage.removeItem(saveKey);
+                this.ui.log(`Deleted save file for ${heroName}.`);
+                this.ui.showNotification(`Deleted: ${heroName}`, "info");
+                
+                // Refresh the load modal with updated save list
+                setTimeout(() => {
+                    const modals = document.querySelectorAll('.modal-overlay');
+                    modals.forEach(modal => modal.remove());
+                    this.loadGame(); // Reopen load modal with updated list
+                }, 100);
+                
+            } catch (error) {
+                this.ui.log("Failed to delete save file: " + error.message);
+                this.ui.showNotification("Delete failed!", "error");
+            }
         }
     }
 
