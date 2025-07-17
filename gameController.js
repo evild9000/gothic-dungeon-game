@@ -2156,14 +2156,14 @@ class GameController {
         `;
 
         // Update the existing combat modal with victory content
-        // Target the first flex child div which contains the combat interface
-        const modalContainer = document.querySelector('#enhanced-combat-modal > div');
-        const combatInterface = modalContainer ? modalContainer.querySelector('div:first-child') : null;
+        // Target the combat interface section (first child of the flex container)
+        const combatInterface = document.querySelector('#enhanced-combat-modal > div > div:first-child');
         
         if (combatInterface) {
             combatInterface.innerHTML = victoryContent;
         } else {
             console.error('Could not find combat interface element to update');
+            console.log('Available elements:', document.querySelector('#enhanced-combat-modal'));
             // Fallback: show victory options directly if we can't update the interface
             this.showVictoryOptions();
         }
