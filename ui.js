@@ -422,6 +422,12 @@ class UIManager {
         
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
+        
+        // Determine positioning based on options
+        const isTopPositioned = options.position === 'top';
+        const alignItems = isTopPositioned ? 'flex-start' : 'center';
+        const paddingTop = isTopPositioned ? '20px' : '0';
+        
         modal.style.cssText = `
             position: fixed;
             top: 0;
@@ -431,8 +437,10 @@ class UIManager {
             background: rgba(0, 0, 0, 0.7);
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: ${alignItems};
             z-index: 2000;
+            padding-top: ${paddingTop};
+            overflow-y: auto;
         `;
 
         const modalContent = document.createElement('div');
@@ -445,6 +453,7 @@ class UIManager {
             max-width: ${options.maxWidth || '700px'};
             width: 95%;
             color: white;
+            ${isTopPositioned ? 'margin-bottom: 20px;' : ''}
         `;
 
         const modalTitle = document.createElement('h3');

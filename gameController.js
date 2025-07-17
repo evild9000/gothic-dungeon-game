@@ -127,6 +127,7 @@ class GameController {
             this.ui.log(`Welcome, ${heroName}! Your adventure begins!`);
             this.ui.showNotification(`Welcome, ${heroName}!`, "success");
             this.ui.render(); // Update UI to reflect name change
+            this.ui.updateButtonStates(); // Ensure button states are refreshed
         }
         
         console.log('Hero name confirmed:', heroName);
@@ -148,6 +149,7 @@ class GameController {
             this.ui.log("Welcome, Hero! Your adventure begins!");
             this.ui.showNotification("Welcome, Hero!", "success");
             this.ui.render(); // Update UI to reflect name change
+            this.ui.updateButtonStates(); // Ensure button states are refreshed
         }
         
         console.log('Using default hero name: Hero');
@@ -293,6 +295,7 @@ class GameController {
             this.ui.clearChatLog();
             this.ui.log(`Welcome ${heroName}! Your adventure begins!`);
             this.ui.render();
+            this.ui.updateButtonStates(); // Ensure button states reflect new game state
             this.ui.showNotification(`Welcome ${heroName}!`, "success");
         }
         
@@ -600,6 +603,7 @@ class GameController {
             
             this.ui.log(`${this.gameState.hero.name} loaded successfully! (Saved: ${loadedState.saveDate || 'Unknown Date'})`);
             this.ui.render();
+            this.ui.updateButtonStates(); // Explicitly refresh button states including shop gold display
             this.ui.showNotification(`Loaded: ${this.gameState.hero.name}`, "success");
             
         } catch (error) {
@@ -3400,7 +3404,7 @@ class GameController {
                 text: "Close",
                 onClick: () => {}
             }
-        ], { maxWidth: '1100px' });
+        ], { maxWidth: '1100px', position: 'top' });
     }
 
     calculateEquippedStats() {
