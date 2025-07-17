@@ -797,6 +797,31 @@ class GameController {
             if (this.gameState.currentEnemies.length > 0) {
                 // Special abilities for specific underling types
                 
+                // Warrior: Taunt when any ally is under 50% health and has mana
+                if (underling.type === 'tank' && underling.mana >= 8) {
+                    const allPartyMembers = [this.gameState.hero, ...this.gameState.hero.underlings.filter(u => u.isAlive)];
+                    const injuredMembers = allPartyMembers.filter(member => {
+                        const healthPercent = member.health / member.maxHealth;
+                        return healthPercent < 0.5;
+                    });
+                    
+                    if (injuredMembers.length > 0) {
+                        // Activate taunt ability
+                        underling.mana -= 8;
+                        
+                        // Set taunt state on game state
+                        this.gameState.warriorTauntActive = true;
+                        this.gameState.tauntingWarrior = underling;
+                        
+                        this.ui.log(`${underling.name} uses Protective Taunt! All enemies will focus on the warrior next turn. (Cost: 8 MP)`);
+                        this.ui.log(`${underling.name} gains +25% defense while taunting!`);
+                        
+                        // Update combat interface
+                        setTimeout(() => this.showCombatInterface(), (index + 1) * 300);
+                        return; // Skip normal attack
+                    }
+                }
+                
                 // Healer: Heal most wounded ally if under 50% health and has mana
                 if (underling.type === 'support' && underling.mana >= 10) {
                     const allPartyMembers = [this.gameState.hero, ...this.gameState.hero.underlings.filter(u => u.isAlive)];
@@ -1324,8 +1349,17 @@ class GameController {
         const allTargets = [this.gameState.hero, ...aliveUnderlings];
         
         this.gameState.currentEnemies.forEach(enemy => {
-            // Each enemy picks a random target from alive party members
-            const target = allTargets[Math.floor(Math.random() * allTargets.length)];
+            let target;
+            
+            // Check if warrior taunt is active
+            if (this.gameState.warriorTauntActive && this.gameState.tauntingWarrior && this.gameState.tauntingWarrior.isAlive) {
+                // All enemies must attack the taunting warrior
+                target = this.gameState.tauntingWarrior;
+                this.ui.log(`${enemy.name} is forced to attack ${target.name} due to Protective Taunt!`);
+            } else {
+                // Each enemy picks a random target from alive party members
+                target = allTargets[Math.floor(Math.random() * allTargets.length)];
+            }
             
             // Calculate stat-based attack bonus (enemies use melee by default)
             const statBonus = this.calculateAttackBonus(enemy, 'melee');
@@ -1339,7 +1373,16 @@ class GameController {
             // Apply damage variance (60-100% of attack value) and critical multiplier
             const baseDamage = Math.floor(totalAttack * (0.6 + Math.random() * 0.4));
             const critDamage = Math.floor(baseDamage * critResult.multiplier);
-            const actualDamage = this.gameState.defendingThisTurn ? Math.floor(critDamage / 2) : critDamage;
+            
+            // Apply defense bonuses
+            let actualDamage = this.gameState.defendingThisTurn ? Math.floor(critDamage / 2) : critDamage;
+            
+            // Apply warrior taunt defense bonus if this target is the taunting warrior
+            let tauntDefenseBonus = '';
+            if (this.gameState.warriorTauntActive && target === this.gameState.tauntingWarrior) {
+                actualDamage = Math.floor(actualDamage * 0.75); // 25% defense bonus (75% damage taken)
+                tauntDefenseBonus = ' (Taunt defense +25%)';
+            }
             
             target.health -= actualDamage;
             
@@ -1349,7 +1392,7 @@ class GameController {
             const defendText = this.gameState.defendingThisTurn ? ' (Reduced by defending)' : '';
             
             if (target === this.gameState.hero) {
-                this.ui.log(`${enemy.name} attacks you for ${actualDamage} damage!${critText}${statText}${defendText} (Hero: ${Math.max(0, this.gameState.hero.health)}/${this.gameState.hero.maxHealth} HP)`);
+                this.ui.log(`${enemy.name} attacks you for ${actualDamage} damage!${critText}${statText}${defendText}${tauntDefenseBonus} (Hero: ${Math.max(0, this.gameState.hero.health)}/${this.gameState.hero.maxHealth} HP)`);
                 
                 // Check if player is defeated
                 if (this.gameState.hero.health <= 0) {
@@ -1359,7 +1402,7 @@ class GameController {
             } else {
                 // Underling was attacked
                 const underlingIndex = this.gameState.hero.underlings.findIndex(u => u === target);
-                this.ui.log(`${enemy.name} attacks ${target.name} for ${actualDamage} damage!${this.gameState.defendingThisTurn ? ' (Reduced by defending)' : ''} (${target.name}: ${Math.max(0, target.health)}/${target.maxHealth} HP)`);
+                this.ui.log(`${enemy.name} attacks ${target.name} for ${actualDamage} damage!${this.gameState.defendingThisTurn ? ' (Reduced by defending)' : ''}${tauntDefenseBonus} (${target.name}: ${Math.max(0, target.health)}/${target.maxHealth} HP)`);
                 
                 // Check if underling is defeated
                 if (target.health <= 0) {
@@ -1367,6 +1410,13 @@ class GameController {
                     target.isAlive = false;
                     this.ui.log(`${target.name} has fallen in battle!`);
                     this.ui.showNotification(`${target.name} defeated!`, "error");
+                    
+                    // If the taunting warrior dies, clear taunt state
+                    if (this.gameState.warriorTauntActive && target === this.gameState.tauntingWarrior) {
+                        this.gameState.warriorTauntActive = false;
+                        this.gameState.tauntingWarrior = null;
+                        this.ui.log(`Protective Taunt ends as ${target.name} falls!`);
+                    }
                     
                     // Remove from current targets list
                     const targetIndex = allTargets.indexOf(target);
@@ -1383,6 +1433,15 @@ class GameController {
             }
         });
         
+        // Clear taunt state after enemies attack (taunt only lasts one turn)
+        if (this.gameState.warriorTauntActive) {
+            this.gameState.warriorTauntActive = false;
+            if (this.gameState.tauntingWarrior && this.gameState.tauntingWarrior.isAlive) {
+                this.ui.log(`${this.gameState.tauntingWarrior.name}'s Protective Taunt ends.`);
+            }
+            this.gameState.tauntingWarrior = null;
+        }
+        
         // Update UI to reflect health changes and fallen underlings
         this.ui.render();
     }
@@ -1397,6 +1456,10 @@ class GameController {
         // Close any open modals
         const existingModals = document.querySelectorAll('.modal-overlay');
         existingModals.forEach(modal => modal.remove());
+        
+        // Clear taunt state when combat ends in defeat
+        this.gameState.warriorTauntActive = false;
+        this.gameState.tauntingWarrior = null;
         
         // Calculate penalties
         const goldLoss = Math.floor(this.gameState.hero.gold * 0.2); // 20% gold loss
@@ -1439,6 +1502,10 @@ class GameController {
         
         // Set combat state to false
         this.gameState.inCombat = false;
+        
+        // Clear taunt state when combat ends
+        this.gameState.warriorTauntActive = false;
+        this.gameState.tauntingWarrior = null;
         
         // Ensure rations property exists
         if (!this.gameState.hero.rations) {
@@ -1917,7 +1984,7 @@ class GameController {
             <p>Available underlings for recruitment:</p>
             <ul>
                 <li>Archer (Cost: 100 gold) - Ranged damage dealer</li>
-                <li>Warrior (Cost: 150 gold) - Melee tank</li>
+                <li>Warrior (Cost: 150 gold) - Melee tank with protective taunt</li>
                 <li>Healer (Cost: 175 gold) - Support and healing</li>
                 <li>Mage (Cost: 200 gold) - Magic damage and support</li>
             </ul>
