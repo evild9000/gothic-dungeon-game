@@ -2156,9 +2156,16 @@ class GameController {
         `;
 
         // Update the existing combat modal with victory content
-        const combatInterface = document.querySelector('#enhanced-combat-modal .enhanced-combat-interface');
+        // Target the first flex child div which contains the combat interface
+        const modalContainer = document.querySelector('#enhanced-combat-modal > div');
+        const combatInterface = modalContainer ? modalContainer.querySelector('div:first-child') : null;
+        
         if (combatInterface) {
             combatInterface.innerHTML = victoryContent;
+        } else {
+            console.error('Could not find combat interface element to update');
+            // Fallback: show victory options directly if we can't update the interface
+            this.showVictoryOptions();
         }
     }
 
@@ -2660,41 +2667,92 @@ class GameController {
 
         this.ui.log("Opening recruitment center...");
         
-        const recruitmentContent = `
-            <p>Available underlings for recruitment:</p>
-            <ul>
-                <li>Archer (Cost: 100 gold) - Ranged damage dealer</li>
-                <li>Warrior (Cost: 150 gold) - Melee tank with protective taunt</li>
-                <li>Healer (Cost: 175 gold) - Support and healing</li>
-                <li>Mage (Cost: 200 gold) - Magic damage and support</li>
-            </ul>
-            <p>Your gold: ${this.gameState.hero.gold}</p>
-            <p>Current underlings: ${this.gameState.hero.underlings.length} / ${this.gameState.hero.leadership} (Leadership limit)</p>
-            ${this.gameState.hero.underlings.length >= this.gameState.hero.leadership ? 
-                '<p style="color: #ff6b6b;"><strong>⚠ Leadership limit reached! Upgrade leadership to recruit more underlings.</strong></p>' : 
-                '<p style="color: #51cf66;">You can recruit more underlings!</p>'
+        // Define available underlings with their details
+        const availableUnderlings = [
+            {
+                id: 'archer',
+                name: 'Archer',
+                cost: 100,
+                description: 'Ranged damage dealer with precise shots',
+                icon: '🏹'
+            },
+            {
+                id: 'warrior',
+                name: 'Warrior',
+                cost: 150,
+                description: 'Melee tank with protective taunt ability',
+                icon: '⚔️'
+            },
+            {
+                id: 'healer',
+                name: 'Healer',
+                cost: 175,
+                description: 'Support specialist with healing magic',
+                icon: '✨'
+            },
+            {
+                id: 'mage',
+                name: 'Mage',
+                cost: 200,
+                description: 'Magic damage and arcane support',
+                icon: '🔮'
             }
+        ];
+        
+        const recruitmentContent = `
+            <div style="text-align: center; margin-bottom: 15px;">
+                <h3 style="color: #d4af37; margin-bottom: 10px;">🏰 Recruitment Center 🏰</h3>
+                <p style="color: #51cf66; font-weight: bold;">Your Gold: ${this.gameState.hero.gold}</p>
+                <p style="color: #4ecdc4;">Current Underlings: ${this.gameState.hero.underlings.length} / ${this.gameState.hero.leadership} (Leadership limit)</p>
+                ${this.gameState.hero.underlings.length >= this.gameState.hero.leadership ? 
+                    '<p style="color: #ff6b6b; font-weight: bold;">⚠ Leadership limit reached! Upgrade leadership to recruit more.</p>' : 
+                    '<p style="color: #51cf66;">✅ You can recruit more underlings!</p>'
+                }
+            </div>
+            
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #444; border-radius: 8px; padding: 10px; background: #1a1a2a;">
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 10px; padding: 8px; background: #2a2a3a; border-radius: 5px; font-weight: bold; color: #d4af37;">
+                    <div>Underling Type & Abilities</div>
+                    <div style="text-align: center;">Cost</div>
+                    <div style="text-align: center;">Action</div>
+                </div>
+                
+                ${availableUnderlings.map(underling => {
+                    const canAfford = this.gameState.hero.gold >= underling.cost;
+                    const canRecruit = this.gameState.hero.underlings.length < this.gameState.hero.leadership;
+                    const isAvailable = canAfford && canRecruit;
+                    
+                    return `
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; align-items: center; padding: 12px; margin: 5px 0; background: ${isAvailable ? '#0a2a0a' : '#2a0a0a'}; border-radius: 5px; border-left: 3px solid ${isAvailable ? '#51cf66' : '#ff6b6b'};">
+                        <div>
+                            <div style="font-weight: bold; color: ${isAvailable ? '#51cf66' : '#ff6b6b'};">${underling.icon} ${underling.name}</div>
+                            <div style="font-size: 12px; color: #ccc; margin-top: 3px;">${underling.description}</div>
+                        </div>
+                        <div style="text-align: center; font-weight: bold; color: #ffd93d;">💰${underling.cost}g</div>
+                        <div style="text-align: center;">
+                            <button onclick="window.game.controller.recruitUnderling('${underling.id}', ${underling.cost})" 
+                                    style="padding: 6px 12px; background: ${isAvailable ? 'linear-gradient(45deg, #2a4d3a, #4a7c59)' : 'linear-gradient(45deg, #4a2a2a, #6a3a3a)'}; 
+                                           border: 1px solid ${isAvailable ? '#51cf66' : '#ff6b6b'}; color: white; border-radius: 4px; cursor: ${isAvailable ? 'pointer' : 'not-allowed'}; 
+                                           font-size: 12px; font-weight: bold;"
+                                    ${!isAvailable ? 'disabled' : ''}>
+                                🤝 Recruit
+                            </button>
+                        </div>
+                    </div>
+                    `;
+                }).join('')}
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #2a2a3a; border-radius: 5px; text-align: center;">
+                <div style="font-size: 12px; color: #888; font-style: italic;">
+                    💡 Tip: Upgrade your Leadership in the Characters menu to recruit more underlings
+                </div>
+            </div>
         `;
 
-        this.ui.createModal("Recruitment", recruitmentContent, [
+        this.ui.createModal("Recruitment Center", recruitmentContent, [
             {
-                text: "Recruit Archer",
-                onClick: () => this.recruitUnderling('archer', 100)
-            },
-            {
-                text: "Recruit Warrior",
-                onClick: () => this.recruitUnderling('warrior', 150)
-            },
-            {
-                text: "Recruit Healer",
-                onClick: () => this.recruitUnderling('healer', 175)
-            },
-            {
-                text: "Recruit Mage",
-                onClick: () => this.recruitUnderling('mage', 200)
-            },
-            {
-                text: "Close",
+                text: "Leave Center",
                 onClick: () => this.returnToVillage()
             }
         ]);
