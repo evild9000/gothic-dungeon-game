@@ -393,7 +393,16 @@ class UIManager {
         }, 3000);
     }
 
+    closeAllModals() {
+        // Remove all existing modal overlays to prevent stacking
+        const existingModals = document.querySelectorAll('.modal-overlay');
+        existingModals.forEach(modal => modal.remove());
+    }
+
     createModal(title, content, buttons = [], options = {}) {
+        // Close any existing modals first to prevent stacking
+        this.closeAllModals();
+        
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.style.cssText = `

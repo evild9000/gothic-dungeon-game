@@ -2104,7 +2104,12 @@ class GameController {
         this.ui.render();
         
         // Refresh the crafting modal to show updated gold amounts
-        setTimeout(() => this.openCrafting(), 100);
+        setTimeout(() => {
+            // Close the current modal and reopen cleanly
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(modal => modal.remove());
+            this.openCrafting();
+        }, 100);
     }
 
     openRecruitment() {
@@ -2391,7 +2396,12 @@ class GameController {
         this.ui.render();
         
         // Refresh the shop modal to show updated gold amounts
-        setTimeout(() => this.openShop(), 100);
+        setTimeout(() => {
+            // Close the current modal and reopen cleanly
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(modal => modal.remove());
+            this.openShop();
+        }, 100);
     }
 
     openTemple() {
@@ -2534,7 +2544,12 @@ class GameController {
         this.ui.showNotification("Temple service completed!", "success");
         this.ui.render();
         // Refresh the temple modal to show updated stats
-        setTimeout(() => this.openTemple(), 100);
+        setTimeout(() => {
+            // Close the current modal and reopen cleanly
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(modal => modal.remove());
+            this.openTemple();
+        }, 100);
     }
 
     showResurrectionOptions() {
@@ -2598,7 +2613,12 @@ class GameController {
         this.ui.render();
         
         // Return to main temple view
-        setTimeout(() => this.openTemple(), 500);
+        setTimeout(() => {
+            // Close the current modal and reopen cleanly
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(modal => modal.remove());
+            this.openTemple();
+        }, 500);
     }
 
     manageUnderlingEquipment() {
@@ -2756,7 +2776,12 @@ class GameController {
             this.ui.render();
             
             // Refresh equipment modal
-            setTimeout(() => this.manageUnderlingEquipment(), 100);
+            setTimeout(() => {
+                // Close the current modal and reopen cleanly
+                const modals = document.querySelectorAll('.modal-overlay');
+                modals.forEach(modal => modal.remove());
+                this.manageUnderlingEquipment();
+            }, 100);
         }
     }
 
@@ -2785,7 +2810,12 @@ class GameController {
             this.ui.render();
             
             // Refresh equipment modal
-            setTimeout(() => this.manageUnderlingEquipment(), 100);
+            setTimeout(() => {
+                // Close the current modal and reopen cleanly
+                const modals = document.querySelectorAll('.modal-overlay');
+                modals.forEach(modal => modal.remove());
+                this.manageUnderlingEquipment();
+            }, 100);
         }
     }
 
@@ -2882,7 +2912,12 @@ class GameController {
         
         this.ui.render();
         // Refresh the inventory modal
-        setTimeout(() => this.openInventory(), 100);
+        setTimeout(() => {
+            // Close the current modal and reopen cleanly
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(modal => modal.remove());
+            this.openInventory();
+        }, 100);
     }
 
     useConsumable(item) {
@@ -3036,7 +3071,12 @@ class GameController {
             },
             {
                 text: "Back",
-                onClick: () => setTimeout(() => this.openCharacterManagement(), 100)
+                onClick: () => setTimeout(() => {
+                    // Close the current modal and reopen cleanly
+                    const modals = document.querySelectorAll('.modal-overlay');
+                    modals.forEach(modal => modal.remove());
+                    this.openCharacterManagement();
+                }, 100)
             }
         ]);
     }
@@ -3062,7 +3102,12 @@ class GameController {
         this.ui.render();
         
         // Refresh the underling management view
-        setTimeout(() => this.manageUnderling(index), 100);
+        setTimeout(() => {
+            // Close the current modal and reopen cleanly
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(modal => modal.remove());
+            this.manageUnderling(index);
+        }, 100);
     }
 
     dismissUnderling(index) {
@@ -3074,7 +3119,12 @@ class GameController {
         this.ui.render();
         
         // Go back to character management
-        setTimeout(() => this.openCharacterManagement(), 100);
+        setTimeout(() => {
+            // Close the current modal and reopen cleanly
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(modal => modal.remove());
+            this.openCharacterManagement();
+        }, 100);
     }
 
     attemptHeroLevelUp() {
@@ -3086,7 +3136,12 @@ class GameController {
             this.ui.showNotification(`Hero leveled up!`, "success");
             this.ui.render();
             // Refresh character management
-            setTimeout(() => this.openCharacterManagement(), 100);
+            setTimeout(() => {
+                // Close the current modal and reopen cleanly
+                const modals = document.querySelectorAll('.modal-overlay');
+                modals.forEach(modal => modal.remove());
+                this.openCharacterManagement();
+            }, 100);
         } else {
             this.ui.log(`Need ${requiredXP - this.gameState.hero.fame} more XP to level up.`);
             this.ui.showNotification("Not enough XP!", "error");
@@ -3124,7 +3179,12 @@ class GameController {
             },
             {
                 text: "Cancel",
-                onClick: () => setTimeout(() => this.openCharacterManagement(), 100)
+                onClick: () => setTimeout(() => {
+                    // Close the current modal and reopen cleanly
+                    const modals = document.querySelectorAll('.modal-overlay');
+                    modals.forEach(modal => modal.remove());
+                    this.openCharacterManagement();
+                }, 100)
             }
         ]);
     }
@@ -3141,7 +3201,12 @@ class GameController {
         this.ui.render();
         
         // Refresh character management after a short delay
-        setTimeout(() => this.openCharacterManagement(), 100);
+        setTimeout(() => {
+            // Close the current modal and reopen cleanly
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(modal => modal.remove());
+            this.openCharacterManagement();
+        }, 100);
     }
 
     returnToVillage() {
