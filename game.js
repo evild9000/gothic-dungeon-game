@@ -18,6 +18,9 @@ class Game {
         this.ui.log("Leadership determines how many underlings you can recruit. Upgrade it in the Characters menu!");
         this.ui.log("Keyboard shortcuts: Ctrl+S (Save), Ctrl+L (Load), D (Dungeon), C (Craft), R (Recruit), H (Shop), I (Inventory), K (Characters)");
         
+        // Check if hero needs a unique name
+        this.controller.checkAndPromptHeroName();
+        
         // Add some CSS animations
         this.addCustomStyles();
     }

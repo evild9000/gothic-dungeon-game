@@ -24,14 +24,142 @@ class GameController {
         };
         
         this.ui = null; // Will be set when UI is initialized
+        this.heroNamingInProgress = false; // Flag to prevent multiple naming prompts
     }
 
     setUI(uiManager) {
         this.ui = uiManager;
     }
 
+    checkAndPromptHeroName() {
+        // Check if hero has a default/generic name that needs to be made unique
+        const heroName = this.gameState.hero.name;
+        const needsUniqueName = !heroName || heroName === 'Hero' || heroName.trim() === '';
+        
+        if (needsUniqueName && !this.heroNamingInProgress) {
+            console.log('Hero needs unique name, showing naming prompt...');
+            this.showHeroNamingPrompt();
+        }
+    }
+
+    showHeroNamingPrompt() {
+        // Set flag to prevent multiple prompts
+        this.heroNamingInProgress = true;
+        
+        // Disable keyboard shortcuts while naming prompt is active
+        if (this.ui) {
+            this.ui.disableKeyboardShortcuts();
+        }
+        
+        // Close any open UI elements first
+        this.closeDockedCombatPanel();
+        
+        // Close any open modals
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(modal => modal.remove());
+        
+        const nameContent = `
+            <div style="text-align: center;">
+                <h4>🏰 Welcome, Adventurer! 🏰</h4>
+                <p>Before you begin your quest, please tell us your name:</p>
+                <input type="text" id="heroNameInput" placeholder="Enter your hero's name..." 
+                       style="width: 250px; padding: 8px; margin: 15px 0; border: 2px solid #d4af37; border-radius: 5px; background: #2a2a2a; color: white; text-align: center; font-size: 16px;" 
+                       maxlength="20" autocomplete="off">
+                <p style="color: #888; font-size: 12px;">Maximum 20 characters</p>
+                <div style="margin-top: 15px; padding: 10px; background: #2a2a3a; border-radius: 5px;">
+                    <p style="color: #d4af37; font-size: 14px; margin: 0;">
+                        💡 This will be your unique hero identity throughout your adventure!
+                    </p>
+                </div>
+            </div>
+        `;
+
+        this.ui.createModal("Create Your Hero", nameContent, [
+            {
+                text: "Begin Adventure",
+                onClick: () => this.confirmHeroName()
+            },
+            {
+                text: "Use Default Name",
+                onClick: () => this.useDefaultHeroName()
+            }
+        ]);
+        
+        // Focus on the input field after modal is created
+        setTimeout(() => {
+            const input = document.getElementById('heroNameInput');
+            if (input) {
+                input.focus();
+                // Enter key to confirm name
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.confirmHeroName();
+                    }
+                });
+            }
+        }, 100);
+    }
+
+    confirmHeroName() {
+        const nameInput = document.getElementById('heroNameInput');
+        let heroName = nameInput ? nameInput.value.trim() : '';
+        
+        // Validate and sanitize hero name
+        if (!heroName) {
+            heroName = 'Hero'; // Default if nothing entered
+        }
+        
+        // Sanitize name (remove special characters that might break saves)
+        heroName = heroName.replace(/[<>:"/\\|?*]/g, '').substring(0, 20);
+        
+        // Update hero name
+        this.gameState.hero.name = heroName;
+        
+        // Close modal and re-enable keyboard shortcuts
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(modal => modal.remove());
+        
+        // Clear the naming in progress flag
+        this.heroNamingInProgress = false;
+        
+        if (this.ui) {
+            this.ui.enableKeyboardShortcuts();
+            this.ui.log(`Welcome, ${heroName}! Your adventure begins!`);
+            this.ui.showNotification(`Welcome, ${heroName}!`, "success");
+            this.ui.render(); // Update UI to reflect name change
+        }
+        
+        console.log('Hero name confirmed:', heroName);
+    }
+
+    useDefaultHeroName() {
+        // Use default hero name and close modal
+        this.gameState.hero.name = 'Hero';
+        
+        // Close modal and re-enable keyboard shortcuts
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(modal => modal.remove());
+        
+        // Clear the naming in progress flag
+        this.heroNamingInProgress = false;
+        
+        if (this.ui) {
+            this.ui.enableKeyboardShortcuts();
+            this.ui.log("Welcome, Hero! Your adventure begins!");
+            this.ui.showNotification("Welcome, Hero!", "success");
+            this.ui.render(); // Update UI to reflect name change
+        }
+        
+        console.log('Using default hero name: Hero');
+    }
+
     newGame() {
         console.log('Starting new game...');
+        
+        // Disable keyboard shortcuts while naming prompt is active
+        if (this.ui) {
+            this.ui.disableKeyboardShortcuts();
+        }
         
         // Close any open UI elements first
         this.closeDockedCombatPanel();
@@ -65,7 +193,12 @@ class GameController {
             },
             {
                 text: "Cancel",
-                onClick: () => {}
+                onClick: () => {
+                    // Re-enable keyboard shortcuts when canceling
+                    if (this.ui) {
+                        this.ui.enableKeyboardShortcuts();
+                    }
+                }
             }
         ]);
         
@@ -95,6 +228,11 @@ class GameController {
         
         // Sanitize name (remove special characters that might break saves)
         heroName = heroName.replace(/[<>:"/\\|?*]/g, '').substring(0, 20);
+        
+        // Re-enable keyboard shortcuts before proceeding
+        if (this.ui) {
+            this.ui.enableKeyboardShortcuts();
+        }
         
         if (isHardReset) {
             this.performBrowserRefresh();
@@ -359,6 +497,11 @@ class GameController {
             // Close any open modals
             const modals = document.querySelectorAll('.modal-overlay');
             modals.forEach(modal => modal.remove());
+            
+            // Re-enable keyboard shortcuts (in case they were disabled)
+            if (this.ui) {
+                this.ui.enableKeyboardShortcuts();
+            }
             
             this.gameState = loadedState;
             

@@ -102,6 +102,7 @@ class UIManager {
         };
 
         // Add keyboard shortcuts
+        this.keyboardShortcutsEnabled = true;
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
     }
 
@@ -118,6 +119,11 @@ class UIManager {
     }
 
     handleKeyPress(event) {
+        // Check if keyboard shortcuts are disabled (e.g., during name input)
+        if (!this.keyboardShortcutsEnabled) {
+            return;
+        }
+        
         switch(event.key) {
             case 's':
                 if (event.ctrlKey) {
@@ -159,6 +165,17 @@ class UIManager {
                 }
                 break;
         }
+    }
+
+    // Methods to control keyboard shortcuts during input dialogs
+    disableKeyboardShortcuts() {
+        this.keyboardShortcutsEnabled = false;
+        console.log('Keyboard shortcuts disabled');
+    }
+
+    enableKeyboardShortcuts() {
+        this.keyboardShortcutsEnabled = true;
+        console.log('Keyboard shortcuts enabled');
     }
 
     log(message) {
