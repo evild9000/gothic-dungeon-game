@@ -194,6 +194,14 @@ class GameController {
                     this.gameState.hero.size = 5;
                 }
                 
+                // Ensure all stats are numbers and not undefined/null
+                this.gameState.hero.strength = this.gameState.hero.strength || 5;
+                this.gameState.hero.dexterity = this.gameState.hero.dexterity || 5;
+                this.gameState.hero.constitution = this.gameState.hero.constitution || 5;
+                this.gameState.hero.intelligence = this.gameState.hero.intelligence || 5;
+                this.gameState.hero.willpower = this.gameState.hero.willpower || 5;
+                this.gameState.hero.size = this.gameState.hero.size || 5;
+                
                 // Add rations if missing (backward compatibility)
                 if (this.gameState.hero.rations === undefined) {
                     this.gameState.hero.rations = 0;
@@ -785,6 +793,28 @@ class GameController {
         }
         
         return coloredMessage;
+    }
+
+    ensureHeroStatsInitialized() {
+        // Ensure all hero stats are properly initialized with default values
+        if (!this.gameState.hero.strength || this.gameState.hero.strength === undefined) {
+            this.gameState.hero.strength = 5;
+        }
+        if (!this.gameState.hero.dexterity || this.gameState.hero.dexterity === undefined) {
+            this.gameState.hero.dexterity = 5;
+        }
+        if (!this.gameState.hero.constitution || this.gameState.hero.constitution === undefined) {
+            this.gameState.hero.constitution = 5;
+        }
+        if (!this.gameState.hero.intelligence || this.gameState.hero.intelligence === undefined) {
+            this.gameState.hero.intelligence = 5;
+        }
+        if (!this.gameState.hero.willpower || this.gameState.hero.willpower === undefined) {
+            this.gameState.hero.willpower = 5;
+        }
+        if (!this.gameState.hero.size || this.gameState.hero.size === undefined) {
+            this.gameState.hero.size = 5;
+        }
     }
 
     closeEnhancedCombatModal() {
@@ -2813,6 +2843,9 @@ class GameController {
     openCharacterManagement() {
         this.ui.log("Opening character management...");
         
+        // Ensure hero stats are properly initialized
+        this.ensureHeroStatsInitialized();
+        
         const hero = this.gameState.hero;
         const equippedStats = this.calculateEquippedStats();
         
@@ -2829,12 +2862,12 @@ class GameController {
                         <p style="font-size: 12px; color: #aaa; margin-left: 20px;">Next upgrade cost: ${Math.pow(hero.leadership + 1, 2) * 10} gold</p>
                         <hr style="margin: 10px 0; border-color: #444;">
                         <p><strong>Core Attributes (Base):</strong></p>
-                        <p>Strength: ${hero.strength} (Melee attack bonus: +${this.calculateAttackBonus(hero, 'melee')})</p>
-                        <p>Dexterity: ${hero.dexterity} (Ranged attack bonus: +${this.calculateAttackBonus(hero, 'ranged')}, Crit chance: ${(typeof hero.dexterity === 'number' && !isNaN(hero.dexterity)) ? Math.min(30, hero.dexterity * 2.5).toFixed(1) : '0.0'}%)</p>
-                        <p>Constitution: ${hero.constitution} (HP bonus: +${this.calculateHealthBonus(hero)})</p>
-                        <p>Intelligence: ${hero.intelligence} (Arcane attack bonus: +${this.calculateAttackBonus(hero, 'arcane')})</p>
-                        <p>Willpower: ${hero.willpower} (Divine attack bonus: +${this.calculateAttackBonus(hero, 'divine')})</p>
-                        <p>Size: ${hero.size} (Affects hit chance and damage)</p>
+                        <p>Strength: ${hero.strength || 5} (Melee attack bonus: +${this.calculateAttackBonus(hero, 'melee')})</p>
+                        <p>Dexterity: ${hero.dexterity || 5} (Ranged attack bonus: +${this.calculateAttackBonus(hero, 'ranged')}, Crit chance: ${(typeof hero.dexterity === 'number' && !isNaN(hero.dexterity)) ? Math.min(30, hero.dexterity * 2.5).toFixed(1) : '0.0'}%)</p>
+                        <p>Constitution: ${hero.constitution || 5} (HP bonus: +${this.calculateHealthBonus(hero)})</p>
+                        <p>Intelligence: ${hero.intelligence || 5} (Arcane attack bonus: +${this.calculateAttackBonus(hero, 'arcane')})</p>
+                        <p>Willpower: ${hero.willpower || 5} (Divine attack bonus: +${this.calculateAttackBonus(hero, 'divine')})</p>
+                        <p>Size: ${hero.size || 5} (Affects hit chance and damage)</p>
                         <hr style="margin: 10px 0; border-color: #444;">
                         <p><strong>Derived Stats:</strong></p>
                         <p>Health: ${hero.health}/${hero.maxHealth} (Base + CON bonus)</p>
