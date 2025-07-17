@@ -47,16 +47,16 @@ class GameController {
                 level: 1,
                 fame: 0,
                 gold: 100,
-                health: 100,
-                maxHealth: 100,
-                mana: 100,
-                maxMana: 100,
+                health: 100, // Will be recalculated by applyStatBonuses
+                maxHealth: 100, // Base health, will be modified by stat bonuses
+                mana: 100, // Will be recalculated by applyStatBonuses
+                maxMana: 100, // Base mana, will be modified by stat bonuses
                 leadership: 1,
                 rations: 0, // Starting rations for dungeon resting
                 // New stat system - all start at base 5
                 strength: 5,      // Affects melee weapon attack
                 dexterity: 5,     // Affects ranged weapon attack + crit chance (2.5% per point) + crit damage
-                constitution: 5,  // Affects hit points (5 HP per point over 5)
+                constitution: 5,  // Affects hit points (7 HP per point over 5)
                 intelligence: 5,  // Affects mana + arcane spell attack
                 willpower: 5,     // Affects mana + divine spell attack + magic resistance
                 size: 5,          // Affects hit chance, hit points, and damage
@@ -282,11 +282,17 @@ class GameController {
         this.gameState.currentEnemies = [];
         
         const enemyTypes = ['Goblin', 'Orc', 'Skeleton', 'Wolf', 'Spider'];
+        const enemyTypeCounts = {}; // Track count for each enemy type
         
         for (let i = 0; i < enemyCount; i++) {
             const enemyType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+            
+            // Increment count for this enemy type
+            enemyTypeCounts[enemyType] = (enemyTypeCounts[enemyType] || 0) + 1;
+            
             const enemy = {
-                name: enemyType,
+                name: enemyTypeCounts[enemyType] > 1 ? `${enemyType} ${enemyTypeCounts[enemyType]}` : enemyType,
+                type: enemyType, // Store the base type for modifiers
                 level: this.gameState.dungeonLevel + Math.floor(Math.random() * 2),
                 health: 50 + (this.gameState.dungeonLevel * 10),
                 maxHealth: 50 + (this.gameState.dungeonLevel * 10),
@@ -311,8 +317,9 @@ class GameController {
     }
 
     applyEnemyStatModifiers(enemy) {
-        // Apply stat modifiers based on enemy type
-        switch(enemy.name) {
+        // Apply stat modifiers based on enemy type (use base type, not display name)
+        const enemyType = enemy.type || enemy.name; // Fallback for compatibility
+        switch(enemyType) {
             case 'Goblin':
                 enemy.dexterity += 2; // Quick and sneaky
                 enemy.intelligence += 1; // Cunning
@@ -2948,7 +2955,7 @@ class GameController {
         const equippedStats = this.calculateEquippedStats();
         
         let characterContent = `
-            <div style="display: flex; gap: 25px; max-width: 1000px; margin: 0 auto;">
+            <div style="display: flex; gap: 25px; max-width: 1000px; margin: 0 auto; align-items: flex-start; justify-content: center; min-height: 60vh;">
                 <div style="flex: 1; min-width: 450px;">
                     <h4 style="text-align: center; color: #d4af37; margin-bottom: 15px;">Hero: ${hero.name}</h4>
                     <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 10px 0;">
