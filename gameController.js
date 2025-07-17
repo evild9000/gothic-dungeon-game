@@ -3334,7 +3334,7 @@ class GameController {
         const equippedStats = this.calculateEquippedStats();
         
         let characterContent = `
-            <div style="display: flex; gap: 25px; max-width: 1000px; margin: 0 auto; align-items: flex-start; justify-content: center; margin-top: 20px; padding-top: 20px;">
+            <div style="display: flex; gap: 25px; max-width: 1000px; margin: 0 auto; align-items: flex-start; justify-content: center; padding-top: 10px;">
                 <div style="flex: 1; min-width: 450px;">
                     <h4 style="text-align: center; color: #d4af37; margin-bottom: 15px;">Hero: ${hero.name}</h4>
                     <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 10px 0;">

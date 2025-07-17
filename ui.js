@@ -426,7 +426,7 @@ class UIManager {
         // Determine positioning based on options
         const isTopPositioned = options.position === 'top';
         const alignItems = isTopPositioned ? 'flex-start' : 'center';
-        const paddingTop = isTopPositioned ? '20px' : '0';
+        const paddingTop = isTopPositioned ? '5px' : '0';
         
         modal.style.cssText = `
             position: fixed;
