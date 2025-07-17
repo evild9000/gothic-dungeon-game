@@ -1264,6 +1264,17 @@ class GameController {
         if (modal) {
             modal.remove();
         }
+        
+        // Also clean up any victory-related elements
+        const victoryOverlay = document.getElementById('victory-confirmation-overlay');
+        if (victoryOverlay) {
+            victoryOverlay.remove();
+        }
+        
+        const returnButton = document.getElementById('return-to-victory-btn');
+        if (returnButton) {
+            returnButton.remove();
+        }
     }
 
     playerAttack() {
@@ -2192,11 +2203,78 @@ class GameController {
         }
         
         // Log a message and keep the combat interface open for log review
-        this.ui.log("Victory confirmation dismissed. Review the combat log, then use the Flee button to exit when ready.");
-        this.ui.showNotification("Victory overlay closed. Use Flee button to exit when ready.", "info");
+        this.ui.log("Victory confirmation dismissed. Review the combat log below.");
+        this.ui.showNotification("Combat log available for review. Check the chat area!", "info");
+        
+        // Add a "Return to Victory Options" button to the combat interface
+        this.addReturnToVictoryButton();
         
         // The combat log remains accessible and the enhanced combat modal stays open
-        // Players can use the Flee button to exit combat when they're done reviewing
+    }
+
+    addReturnToVictoryButton() {
+        // Add a floating button to return to victory options
+        const existingButton = document.getElementById('return-to-victory-btn');
+        if (existingButton) {
+            existingButton.remove();
+        }
+
+        const returnButtonHtml = `
+            <div id="return-to-victory-btn" style="
+                position: fixed;
+                top: 50%;
+                right: 30px;
+                transform: translateY(-50%);
+                z-index: 1500;
+                background: linear-gradient(45deg, #2a4d3a, #4a7c59);
+                border: 3px solid #51cf66;
+                border-radius: 12px;
+                padding: 15px 20px;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+                cursor: pointer;
+                transition: all 0.3s ease;
+                backdrop-filter: blur(5px);
+                max-width: 200px;
+            " onclick="window.game.controller.returnToVictoryOptions()">
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; margin-bottom: 8px;">🏆</div>
+                    <div style="color: white; font-weight: bold; font-size: 14px; margin-bottom: 5px;">
+                        Ready to Proceed?
+                    </div>
+                    <div style="color: #51cf66; font-size: 12px; font-style: italic;">
+                        Click to return to victory options
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', returnButtonHtml);
+
+        // Add hover effects
+        const button = document.getElementById('return-to-victory-btn');
+        if (button) {
+            button.addEventListener('mouseenter', () => {
+                button.style.transform = 'translateY(-50%) scale(1.05)';
+                button.style.boxShadow = '0 12px 35px rgba(0, 0, 0, 0.8)';
+                button.style.borderColor = '#70e070';
+            });
+            button.addEventListener('mouseleave', () => {
+                button.style.transform = 'translateY(-50%) scale(1)';
+                button.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.6)';
+                button.style.borderColor = '#51cf66';
+            });
+        }
+    }
+
+    returnToVictoryOptions() {
+        // Remove the return button
+        const returnButton = document.getElementById('return-to-victory-btn');
+        if (returnButton) {
+            returnButton.remove();
+        }
+        
+        // Show the victory options directly
+        this.showVictoryOptions();
     }
 
     showVictoryOptions() {
@@ -2204,6 +2282,12 @@ class GameController {
         const victoryOverlay = document.getElementById('victory-confirmation-overlay');
         if (victoryOverlay) {
             victoryOverlay.remove();
+        }
+        
+        // Remove the return to victory button if it exists
+        const returnButton = document.getElementById('return-to-victory-btn');
+        if (returnButton) {
+            returnButton.remove();
         }
         
         // Close the enhanced combat modal since combat is over
