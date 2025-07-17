@@ -548,102 +548,46 @@ class UIManager {
     }
 
     setBackground(backgroundType, specificImage = null) {
-        const spritesArea = this.elements.spritesArea;
+        // Remove all existing background classes from body
+        document.body.classList.remove('village-bg', 'dungeon-bg', 'shop-bg', 'crafting-bg', 'recruitment-bg', 'temple-bg', 'main-bg');
         
-        // Remove all background classes
-        spritesArea.className = spritesArea.className.replace(/\b\w+-background\b/g, '').replace(/\bmobile-mode\b/g, '');
-        
-        let imagePath = '';
+        // Add the appropriate CSS class to body for responsive backgrounds
         let backgroundClass = '';
-        
-        // Determine background class first (needed for both mobile and desktop)
         switch(backgroundType) {
             case 'village':
-                backgroundClass = 'village-background';
+            case 'main':
+                backgroundClass = 'village-bg';
                 break;
             case 'dungeon':
-                backgroundClass = 'dungeon-background';
+                backgroundClass = 'dungeon-bg';
                 break;
             case 'shop':
-                backgroundClass = 'shop-background';
+                backgroundClass = 'shop-bg';
                 break;
             case 'crafting':
-                backgroundClass = 'crafting-background';
+                backgroundClass = 'crafting-bg';
                 break;
             case 'recruitment':
-                backgroundClass = 'recruitment-background';
+                backgroundClass = 'recruitment-bg';
                 break;
             case 'temple':
-                backgroundClass = 'temple-background';
+                backgroundClass = 'temple-bg';
                 break;
             default:
-                backgroundClass = 'village-background';
+                backgroundClass = 'village-bg';
         }
         
-        // On mobile, skip images entirely and use CSS gradients only for better performance
+        // Apply the CSS class to body for responsive background handling
+        document.body.classList.add(backgroundClass);
+        
+        // Log the background change
         if (this.isMobile) {
-            // Clear any existing background image
-            spritesArea.style.backgroundImage = '';
-            
-            // Add the specific background class for CSS gradients
-            spritesArea.classList.add(backgroundClass);
-            spritesArea.classList.add('mobile-mode');
-            
-            // Force a visual update with animation
-            spritesArea.style.transition = 'all 0.5s ease';
-            spritesArea.style.transform = 'scale(0.98)';
-            setTimeout(() => {
-                spritesArea.style.transform = 'scale(1)';
-            }, 100);
-            
-            this.log(`📱 Mobile: ${backgroundType} area loaded`);
-            console.log(`Mobile background applied: ${backgroundClass}`, spritesArea.classList.toString());
-            this.currentBackground = backgroundType;
-            return;
+            this.log(`📱 Mobile: ${backgroundType} background loaded`);
+        } else {
+            this.log(`🖥️ Desktop: ${backgroundType} background loaded`);
         }
         
-        // Desktop image loading logic
-        const supportsWebP = this.checkWebPSupport();
-        const imageExtension = supportsWebP ? '.webp' : '.jpg';
-        const basePath = 'images/backgrounds/';
-        
-        switch(backgroundType) {
-            case 'village':
-                imagePath = `${basePath}village${imageExtension}`;
-                break;
-            case 'dungeon':
-                const dungeonIndex = specificImage !== null ? specificImage : Math.floor(Math.random() * this.dungeonBackgrounds.length);
-                imagePath = `${basePath}${this.dungeonBackgrounds[dungeonIndex]}${imageExtension}`;
-                break;
-            case 'shop':
-                imagePath = `${basePath}shop${imageExtension}`;
-                break;
-            case 'crafting':
-                imagePath = `${basePath}crafting${imageExtension}`;
-                break;
-            case 'recruitment':
-                imagePath = `${basePath}recruitment${imageExtension}`;
-                break;
-            case 'temple':
-                imagePath = `${basePath}temple${imageExtension}`;
-                break;
-            default:
-                imagePath = `${basePath}village${imageExtension}`;
-        }
-        
-        // Test if image exists, fall back to CSS gradients if not
-        const img = new Image();
-        img.onload = () => {
-            // Image loaded successfully, apply it
-            spritesArea.style.backgroundImage = `url('${imagePath}')`;
-            spritesArea.classList.add(backgroundClass);
-            this.log(`Background changed to: ${backgroundType}`);
-        };
-        img.onerror = () => {
-            this.handleImageFallback(spritesArea, backgroundClass, backgroundType, imagePath, supportsWebP, imageExtension);
-        };
-        img.src = imagePath;
-        
+        console.log(`Background applied: ${backgroundClass}`, document.body.classList.toString());
         this.currentBackground = backgroundType;
     }
 

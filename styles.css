@@ -1,0 +1,129 @@
+/* Gothic Dungeon Game - Mobile Responsive Backgrounds */
+
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: scroll; /* Better for mobile performance */
+    transition: background-image 0.3s ease;
+}
+
+/* Mobile WebP backgrounds (up to 768px) */
+@media (max-width: 768px) {
+    /* Default/Village background for mobile */
+    body.village-bg,
+    body.main-bg {
+        background-image: url('./backgrounds/village-mobile.webp');
+    }
+    
+    /* Dungeon background for mobile */
+    body.dungeon-bg {
+        background-image: url('./backgrounds/dungeon-mobile.webp');
+    }
+    
+    /* Shop background for mobile */
+    body.shop-bg {
+        background-image: url('./backgrounds/shop-mobile.webp');
+    }
+    
+    /* Crafting background for mobile */
+    body.crafting-bg {
+        background-image: url('./backgrounds/crafting-mobile.webp');
+    }
+    
+    /* Recruitment background for mobile */
+    body.recruitment-bg {
+        background-image: url('./backgrounds/recruitment-mobile.webp');
+    }
+    
+    /* Temple background for mobile */
+    body.temple-bg {
+        background-image: url('./backgrounds/temple-mobile.webp');
+    }
+}
+
+/* Desktop WebP backgrounds (769px and up) */
+@media (min-width: 769px) {
+    /* Default/Village background for desktop */
+    body.village-bg,
+    body.main-bg {
+        background-image: url('./backgrounds/village-desktop.webp');
+        background-attachment: fixed; /* Parallax effect for desktop */
+    }
+    
+    /* Dungeon background for desktop */
+    body.dungeon-bg {
+        background-image: url('./backgrounds/dungeon-desktop.webp');
+        background-attachment: fixed;
+    }
+    
+    /* Shop background for desktop */
+    body.shop-bg {
+        background-image: url('./backgrounds/shop-desktop.webp');
+        background-attachment: fixed;
+    }
+    
+    /* Crafting background for desktop */
+    body.crafting-bg {
+        background-image: url('./backgrounds/crafting-desktop.webp');
+        background-attachment: fixed;
+    }
+    
+    /* Recruitment background for desktop */
+    body.recruitment-bg {
+        background-image: url('./backgrounds/recruitment-desktop.webp');
+        background-attachment: fixed;
+    }
+    
+    /* Temple background for desktop */
+    body.temple-bg {
+        background-image: url('./backgrounds/temple-desktop.webp');
+        background-attachment: fixed;
+    }
+}
+
+/* Fallback for browsers without WebP support */
+@supports not (background-image: url('test.webp')) {
+    body.village-bg,
+    body.main-bg {
+        background-image: url('./backgrounds/village-fallback.jpg');
+    }
+    
+    body.dungeon-bg {
+        background-image: url('./backgrounds/dungeon-fallback.jpg');
+    }
+    
+    body.shop-bg {
+        background-image: url('./backgrounds/shop-fallback.jpg');
+    }
+    
+    body.crafting-bg {
+        background-image: url('./backgrounds/crafting-fallback.jpg');
+    }
+    
+    body.recruitment-bg {
+        background-image: url('./backgrounds/recruitment-fallback.jpg');
+    }
+    
+    body.temple-bg {
+        background-image: url('./backgrounds/temple-fallback.jpg');
+    }
+}
+
+/* Ensure backgrounds don't interfere with UI readability */
+.modal-overlay {
+    backdrop-filter: blur(2px);
+}
+
+#chatContainer {
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(3px);
+}
+
+#gameInterface {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(2px);
+}
