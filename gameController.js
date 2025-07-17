@@ -6,7 +6,7 @@ class GameController {
                 name: "Hero",
                 level: 1,
                 fame: 0,
-                gold: 100,
+                gold: 1000,
                 health: 100,
                 maxHealth: 100,
                 mana: 100,
@@ -250,7 +250,7 @@ class GameController {
                 name: heroName,
                 level: 1,
                 fame: 0,
-                gold: 100,
+                gold: 1000,
                 health: 100, // Will be recalculated by applyStatBonuses
                 maxHealth: 100, // Base health, will be modified by stat bonuses
                 mana: 100, // Will be recalculated by applyStatBonuses
@@ -670,6 +670,7 @@ class GameController {
             enemyTypeCounts[enemyType] = (enemyTypeCounts[enemyType] || 0) + 1;
             
             const enemy = {
+                id: `${enemyType}_${Date.now()}_${i}`, // Unique identifier for each enemy
                 name: enemyTypeCounts[enemyType] > 1 ? `${enemyType} ${enemyTypeCounts[enemyType]}` : enemyType,
                 type: enemyType, // Store the base type for modifiers
                 level: this.gameState.dungeonLevel + Math.floor(Math.random() * 2),
@@ -1518,8 +1519,8 @@ class GameController {
             this.ui.log(`You gained ${goldReward} gold and ${xpReward} experience! (Hero bonus + Dungeon Lv.${this.gameState.dungeonLevel})`);
             this.ui.showNotification(`Defeated ${target.name}! +${goldReward} gold, +${xpReward} XP`, "success");
             
-            // Remove defeated enemy
-            this.gameState.currentEnemies.shift();
+            // Remove the specific defeated enemy by ID, not by position
+            this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.id !== target.id);
             
             // Check if all enemies defeated
             if (this.gameState.currentEnemies.length === 0) {
@@ -1531,6 +1532,9 @@ class GameController {
             }
         }
 
+        // Update combat chat display immediately to show combat results
+        this.updateCombatChatDisplay();
+        
         // Enemies counterattack
         this.enemiesAttack();
         
@@ -1546,6 +1550,9 @@ class GameController {
         
         // Reduce incoming damage by 50%
         this.gameState.defendingThisTurn = true;
+        
+        // Update combat chat display immediately
+        this.updateCombatChatDisplay();
         
         // Enemies attack
         this.enemiesAttack();
