@@ -393,7 +393,7 @@ class UIManager {
         }, 3000);
     }
 
-    createModal(title, content, buttons = []) {
+    createModal(title, content, buttons = [], options = {}) {
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.style.cssText = `
@@ -416,7 +416,7 @@ class UIManager {
             border: 2px solid #444;
             border-radius: 10px;
             padding: 20px;
-            max-width: 700px;
+            max-width: ${options.maxWidth || '700px'};
             width: 95%;
             color: white;
         `;

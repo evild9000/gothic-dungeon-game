@@ -70,7 +70,10 @@ class GameController {
             inDungeon: false,
             inCombat: false,
             currentScreen: 'village',
-            defendingThisTurn: false
+            defendingThisTurn: false,
+            // Reset combat states
+            warriorTauntActive: false,
+            tauntingWarrior: null
         };
         
         // Reset combat-related state
@@ -354,9 +357,16 @@ class GameController {
     }
 
     applyEnemyStatBonuses(enemy) {
-        // Apply constitution bonus to enemy health
+        // Apply constitution and size bonuses to enemy health
         const healthBonus = this.calculateHealthBonus(enemy);
-        enemy.maxHealth = Math.max(1, enemy.maxHealth + healthBonus);
+        const sizeHealthBonus = this.calculateSizeHealthBonus(enemy);
+        
+        // Calculate new health with minimum 10 HP cap
+        const totalHealthBonus = healthBonus + sizeHealthBonus;
+        const newMaxHealth = enemy.maxHealth + totalHealthBonus;
+        const minimumHealth = 10; // Minimum 10 HP regardless of stat penalties
+        
+        enemy.maxHealth = Math.max(minimumHealth, newMaxHealth);
         enemy.health = enemy.maxHealth; // Enemies start at full health
         
         // Ensure all values are valid numbers and not NaN
@@ -400,8 +410,10 @@ class GameController {
         switch(weaponType) {
             case 'melee':
                 if (typeof attacker.strength === 'number' && !isNaN(attacker.strength)) {
-                    bonus = Math.floor((attacker.strength - 5) * 0.5); // STR bonus for melee
+                    bonus += Math.floor((attacker.strength - 5) * 0.5); // STR bonus for melee
                 }
+                // Add SIZE bonus for melee weapons (can be negative)
+                bonus += this.calculateSizeAttackBonus(attacker);
                 break;
             case 'ranged':
                 if (typeof attacker.dexterity === 'number' && !isNaN(attacker.dexterity)) {
@@ -420,15 +432,37 @@ class GameController {
                 break;
         }
         
-        return Math.max(0, bonus);
+        // Only prevent negative bonuses for non-melee weapons or when STR component would make it positive
+        if (weaponType !== 'melee') {
+            return Math.max(0, bonus);
+        }
+        return bonus; // Allow negative total for melee if SIZE penalty is large
     }
 
     calculateHealthBonus(character) {
-        // Constitution provides bonus HP: (CON - 5) * 5 HP
+        // Constitution provides bonus/penalty HP: (CON - 5) * 7 HP
         if (!character || typeof character.constitution !== 'number' || isNaN(character.constitution)) {
             return 0;
         }
-        return Math.max(0, (character.constitution - 5) * 5);
+        return (character.constitution - 5) * 7;
+    }
+
+    calculateSizeHealthBonus(character) {
+        // Size provides bonus/penalty HP: (SIZE - 5) * 7 HP
+        // Larger size = more HP, smaller size = less HP
+        if (!character || typeof character.size !== 'number' || isNaN(character.size)) {
+            return 0;
+        }
+        return (character.size - 5) * 7;
+    }
+
+    calculateSizeAttackBonus(character) {
+        // Size provides bonus/penalty to melee attack: (SIZE - 5) * 1
+        // Larger size = more melee damage, smaller size = less melee damage
+        if (!character || typeof character.size !== 'number' || isNaN(character.size)) {
+            return 0;
+        }
+        return (character.size - 5) * 1;
     }
 
     calculateManaBonus(character) {
@@ -438,6 +472,20 @@ class GameController {
             return 0;
         }
         return Math.max(0, (character.intelligence + character.willpower - 10) * 2.5);
+    }
+
+    calculateDefenseBonus(character) {
+        // DEX above 5 increases defense, below 5 decreases it: (DEX - 5) * 0.75
+        // SIZE above 5 decreases defense, below 5 increases it: (5 - SIZE) * 0.75
+        if (!character || typeof character.dexterity !== 'number' || typeof character.size !== 'number' || 
+            isNaN(character.dexterity) || isNaN(character.size)) {
+            return 0;
+        }
+        
+        const dexBonus = (character.dexterity - 5) * 0.75;  // +DEX = +defense
+        const sizeBonus = (5 - character.size) * 0.75;     // +SIZE = -defense, -SIZE = +defense
+        
+        return dexBonus + sizeBonus;
     }
 
     getWeaponType(attacker) {
@@ -482,15 +530,21 @@ class GameController {
         // Remove previous stat bonuses if they exist
         if (character.statBonusesApplied) {
             baseHealth -= character.previousHealthBonus || 0;
+            baseHealth -= character.previousSizeHealthBonus || 0;
             baseMana -= character.previousManaBonus || 0;
         }
         
         // Calculate new stat bonuses
         const healthBonus = this.calculateHealthBonus(character);
+        const sizeHealthBonus = this.calculateSizeHealthBonus(character);
         const manaBonus = this.calculateManaBonus(character);
         
-        // Apply new bonuses
-        character.maxHealth = Math.max(1, baseHealth + healthBonus);
+        // Apply new bonuses with minimum 10 HP cap
+        const totalHealthBonus = healthBonus + sizeHealthBonus;
+        const newMaxHealth = baseHealth + totalHealthBonus;
+        const minimumHealth = 10; // Minimum 10 HP regardless of stat penalties
+        
+        character.maxHealth = Math.max(minimumHealth, newMaxHealth);
         character.maxMana = Math.max(1, baseMana + manaBonus);
         
         // Maintain current health/mana percentages
@@ -500,6 +554,7 @@ class GameController {
         // Track that bonuses have been applied
         character.statBonusesApplied = true;
         character.previousHealthBonus = healthBonus;
+        character.previousSizeHealthBonus = sizeHealthBonus;
         character.previousManaBonus = manaBonus;
     }
 
@@ -1457,6 +1512,13 @@ class GameController {
             // Apply defense bonuses
             let actualDamage = this.gameState.defendingThisTurn ? Math.floor(critDamage / 2) : critDamage;
             
+            // Apply stat-based defense bonus
+            const defenseBonus = this.calculateDefenseBonus(target);
+            if (defenseBonus !== 0) {
+                const defenseMult = Math.max(0.1, 1 - (defenseBonus * 0.05)); // Each defense point = 5% damage reduction, min 10% damage
+                actualDamage = Math.floor(actualDamage * defenseMult);
+            }
+            
             // Apply warrior taunt defense bonus if this target is the taunting warrior
             let tauntDefenseBonus = '';
             if (this.gameState.warriorTauntActive && target === this.gameState.tauntingWarrior) {
@@ -1470,9 +1532,10 @@ class GameController {
             const critText = critResult.isCritical ? ` CRITICAL HIT! (${critResult.multiplier.toFixed(1)}x)` : '';
             const statText = statBonus > 0 ? ` (+${statBonus} stat)` : '';
             const defendText = this.gameState.defendingThisTurn ? ' (Reduced by defending)' : '';
+            const defenseText = defenseBonus !== 0 ? ` (${defenseBonus > 0 ? '+' : ''}${defenseBonus.toFixed(1)} defense)` : '';
             
             if (target === this.gameState.hero) {
-                this.ui.log(`${enemy.name} attacks you for ${actualDamage} damage!${critText}${statText}${defendText}${tauntDefenseBonus} (Hero: ${Math.max(0, this.gameState.hero.health)}/${this.gameState.hero.maxHealth} HP)`);
+                this.ui.log(`${enemy.name} attacks you for ${actualDamage} damage!${critText}${statText}${defendText}${defenseText}${tauntDefenseBonus} (Hero: ${Math.max(0, this.gameState.hero.health)}/${this.gameState.hero.maxHealth} HP)`);
                 
                 // Check if player is defeated
                 if (this.gameState.hero.health <= 0) {
@@ -1482,7 +1545,7 @@ class GameController {
             } else {
                 // Underling was attacked
                 const underlingIndex = this.gameState.hero.underlings.findIndex(u => u === target);
-                this.ui.log(`${enemy.name} attacks ${target.name} for ${actualDamage} damage!${this.gameState.defendingThisTurn ? ' (Reduced by defending)' : ''}${tauntDefenseBonus} (${target.name}: ${Math.max(0, target.health)}/${target.maxHealth} HP)`);
+                this.ui.log(`${enemy.name} attacks ${target.name} for ${actualDamage} damage!${this.gameState.defendingThisTurn ? ' (Reduced by defending)' : ''}${defenseText}${tauntDefenseBonus} (${target.name}: ${Math.max(0, target.health)}/${target.maxHealth} HP)`);
                 
                 // Check if underling is defeated
                 if (target.health <= 0) {
@@ -2149,7 +2212,7 @@ class GameController {
                 constitution: 8,
                 intelligence: 4,
                 willpower: 6,
-                size: 6
+                size: 5
             },
             mage: { 
                 name: "Mage", 
@@ -2165,7 +2228,7 @@ class GameController {
                 constitution: 4,
                 intelligence: 8,
                 willpower: 8,
-                size: 4
+                size: 5
             },
             healer: { 
                 name: "Healer", 
@@ -2181,7 +2244,7 @@ class GameController {
                 constitution: 6,
                 intelligence: 7,
                 willpower: 9,
-                size: 4
+                size: 5
             }
         };
 
@@ -2850,10 +2913,10 @@ class GameController {
         const equippedStats = this.calculateEquippedStats();
         
         let characterContent = `
-            <div style="display: flex; gap: 20px;">
-                <div style="flex: 1;">
-                    <h4>Hero: ${hero.name}</h4>
-                    <div style="background: #1a1a1a; padding: 10px; border-radius: 5px; margin: 10px 0;">
+            <div style="display: flex; gap: 25px; max-width: 1000px; margin: 0 auto;">
+                <div style="flex: 1; min-width: 450px;">
+                    <h4 style="text-align: center; color: #d4af37; margin-bottom: 15px;">Hero: ${hero.name}</h4>
+                    <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 10px 0;">
                         <p><strong>Level:</strong> ${hero.level}</p>
                         <p><strong>Fame (XP):</strong> ${hero.fame} / ${hero.level * 100}</p>
                         <p><strong>Gold:</strong> ${hero.gold}</p>
@@ -2862,20 +2925,20 @@ class GameController {
                         <p style="font-size: 12px; color: #aaa; margin-left: 20px;">Next upgrade cost: ${Math.pow(hero.leadership + 1, 2) * 10} gold</p>
                         <hr style="margin: 10px 0; border-color: #444;">
                         <p><strong>Core Attributes (Base):</strong></p>
-                        <p>Strength: ${hero.strength || 5} (Melee attack bonus: +${this.calculateAttackBonus(hero, 'melee')})</p>
-                        <p>Dexterity: ${hero.dexterity || 5} (Ranged attack bonus: +${this.calculateAttackBonus(hero, 'ranged')}, Crit chance: ${(typeof hero.dexterity === 'number' && !isNaN(hero.dexterity)) ? Math.min(30, hero.dexterity * 2.5).toFixed(1) : '0.0'}%)</p>
+                        <p>Strength: ${hero.strength || 5} (Melee attack bonus: +${this.calculateAttackBonus(hero, 'melee')} [STR: +${Math.floor((hero.strength - 5) * 0.5)} + SIZE: ${this.calculateSizeAttackBonus(hero) > 0 ? '+' : ''}${this.calculateSizeAttackBonus(hero)}])</p>
+                        <p>Dexterity: ${hero.dexterity || 5} (Ranged attack bonus: +${this.calculateAttackBonus(hero, 'ranged')}, Crit chance: ${(typeof hero.dexterity === 'number' && !isNaN(hero.dexterity)) ? Math.min(30, hero.dexterity * 2.5).toFixed(1) : '0.0'}%, Defense bonus: ${(hero.dexterity - 5) * 0.75 > 0 ? '+' : ''}${((hero.dexterity - 5) * 0.75).toFixed(1)})</p>
                         <p>Constitution: ${hero.constitution || 5} (HP bonus: +${this.calculateHealthBonus(hero)})</p>
                         <p>Intelligence: ${hero.intelligence || 5} (Arcane attack bonus: +${this.calculateAttackBonus(hero, 'arcane')})</p>
                         <p>Willpower: ${hero.willpower || 5} (Divine attack bonus: +${this.calculateAttackBonus(hero, 'divine')})</p>
-                        <p>Size: ${hero.size || 5} (Affects hit chance and damage)</p>
+                        <p>Size: ${hero.size || 5} (Defense bonus: ${(5 - hero.size) * 0.75 > 0 ? '+' : ''}${((5 - hero.size) * 0.75).toFixed(1)}, HP bonus: ${this.calculateSizeHealthBonus(hero) > 0 ? '+' : ''}${this.calculateSizeHealthBonus(hero)}, Melee attack bonus: ${this.calculateSizeAttackBonus(hero) > 0 ? '+' : ''}${this.calculateSizeAttackBonus(hero)})</p>
                         <hr style="margin: 10px 0; border-color: #444;">
                         <p><strong>Derived Stats:</strong></p>
-                        <p>Health: ${hero.health}/${hero.maxHealth} (Base + CON bonus)</p>
+                        <p>Health: ${hero.health}/${hero.maxHealth} (Base + CON bonus: +${this.calculateHealthBonus(hero)} + SIZE bonus: ${this.calculateSizeHealthBonus(hero) > 0 ? '+' : ''}${this.calculateSizeHealthBonus(hero)})</p>
                         <p>Mana: ${hero.mana}/${hero.maxMana} (Base + INT/WIL bonus: +${this.calculateManaBonus(hero)})</p>
                         <hr style="margin: 10px 0; border-color: #444;">
                         <p><strong>Base Stats + Equipment:</strong></p>
                         <p>Attack: ${10 + (hero.level * 2)} + ${equippedStats.attack} = ${10 + (hero.level * 2) + equippedStats.attack}</p>
-                        <p>Defense: ${5 + hero.level} + ${equippedStats.defense} = ${5 + hero.level + equippedStats.defense}</p>
+                        <p>Defense: ${5 + hero.level} + ${equippedStats.defense} + ${this.calculateDefenseBonus(hero).toFixed(1)} = ${(5 + hero.level + equippedStats.defense + this.calculateDefenseBonus(hero)).toFixed(1)} (Base + Equipment + DEX/SIZE bonuses)</p>
                         <p>Max Underlings: ${hero.leadership}</p>
                         <hr style="margin: 10px 0; border-color: #444;">
                         <p><strong>Equipment Slots:</strong></p>
@@ -2884,27 +2947,27 @@ class GameController {
                         <p>Accessory: ${this.getEquippedItem('accessory')?.name || 'None'}</p>
                     </div>
                 </div>
-                <div style="flex: 1;">
-                    <h4>Underlings (${hero.underlings.length})</h4>
-                    <div style="max-height: 400px; overflow-y: auto;">
+                <div style="flex: 1; min-width: 350px;">
+                    <h4 style="text-align: center; color: #d4af37; margin-bottom: 15px;">Underlings (${hero.underlings.length})</h4>
+                    <div style="max-height: 450px; overflow-y: auto;">
                         ${hero.underlings.length > 0 ? 
                             hero.underlings.map((underling, index) => `
-                                <div style="background: #1a1a1a; padding: 10px; margin: 5px 0; border-radius: 5px;">
-                                    <h5>${underling.name} (${underling.type})</h5>
+                                <div style="background: #1a1a1a; padding: 12px; margin: 8px 0; border-radius: 8px;">
+                                    <h5 style="color: #4ecdc4; margin-bottom: 8px;">${underling.name} (${underling.type})</h5>
                                     <p><strong>Level:</strong> ${underling.level}</p>
                                     <p><strong>Health:</strong> ${underling.health}/${underling.maxHealth}</p>
                                     <p><strong>Mana:</strong> ${underling.mana}/${underling.maxMana}</p>
                                     <p><strong>Attack:</strong> ${underling.attack} | <strong>Defense:</strong> ${underling.defense}</p>
-                                    <div style="font-size: 11px; color: #bbb; margin-top: 5px;">
+                                    <div style="font-size: 11px; color: #bbb; margin-top: 8px;">
                                         <strong>Stats:</strong> STR: ${underling.strength || 5}, DEX: ${underling.dexterity || 5}, CON: ${underling.constitution || 5}, INT: ${underling.intelligence || 5}, WIL: ${underling.willpower || 5}, SIZ: ${underling.size || 5}
                                     </div>
                                     <button onclick="window.game.controller.manageUnderling(${index})" 
-                                            style="margin-top: 5px; padding: 3px 10px; background: #2a2a2a; border: 1px solid #555; color: white; border-radius: 3px; cursor: pointer;">
+                                            style="margin-top: 8px; padding: 4px 12px; background: #2a2a2a; border: 1px solid #555; color: white; border-radius: 4px; cursor: pointer;">
                                         Manage
                                     </button>
                                 </div>
                             `).join('') : 
-                            '<p style="color: #888;">No underlings recruited</p>'
+                            '<p style="color: #888; text-align: center; padding: 20px;">No underlings recruited</p>'
                         }
                     </div>
                 </div>
@@ -2920,7 +2983,7 @@ class GameController {
                 text: "Close",
                 onClick: () => {}
             }
-        ]);
+        ], { maxWidth: '1100px' });
     }
 
     calculateEquippedStats() {
