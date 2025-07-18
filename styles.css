@@ -115,15 +115,16 @@ body {
 
 /* Ensure backgrounds don't interfere with UI readability */
 .modal-overlay {
+    -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(2px);
 }
-
 #chatContainer {
     background: rgba(0, 0, 0, 0.85);
+    -webkit-backdrop-filter: blur(3px);
     backdrop-filter: blur(3px);
 }
-
 #gameInterface {
     background: rgba(0, 0, 0, 0.8);
+    -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(2px);
 }

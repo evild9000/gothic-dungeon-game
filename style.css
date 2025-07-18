@@ -16,6 +16,7 @@ body {
         linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 25%, #0a0a0a 50%, #1a1a0a 75%, #0a0a0a 100%);
     color: #d4af37;
     overflow: hidden;
+    -webkit-user-select: none;
     user-select: none;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
     background-attachment: fixed;
@@ -399,10 +400,8 @@ body {
 }
 
 /* Firefox scrollbar styling */
-#chat-log {
-    scrollbar-width: auto;
-    scrollbar-color: #d4af37 #1a0a0a;
-}
+/* Removed 'scrollbar-color' for better browser compatibility */
+/* Custom scrollbar styles for #chat-log are handled by ::-webkit-scrollbar above */
 
 /* Ultra-compact mobile design */
 @media (max-width: 768px) {
@@ -787,6 +786,7 @@ body {
 
 /* Modal improvements */
 .modal-overlay {
+    -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(2px);
     background: rgba(0, 0, 0, 0.4) !important;
 }
@@ -1048,6 +1048,7 @@ body {
     width: 320px;
     height: 100vh;
     background: rgba(0, 0, 0, 0.3);
+    -webkit-backdrop-filter: blur(3px);
     backdrop-filter: blur(3px);
     z-index: 1000;
     display: flex;
