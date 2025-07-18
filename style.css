@@ -253,16 +253,14 @@ body {
 
 #sprites-area {
     flex: 1;
-    background: 
-        radial-gradient(ellipse at center, rgba(40, 20, 10, 0.3) 0%, rgba(10, 5, 2, 0.8) 70%),
-        linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 25%, #0a0a0a 50%, #1a1a0a 75%, #0a0a0a 100%);
+    background: transparent; /* Let the beautiful background images show through! */
     position: relative;
     overflow: hidden;
     border: 3px solid #8b4513;
     border-image: linear-gradient(45deg, #8b4513, #d4af37, #8b4513) 1;
     box-shadow: 
-        inset 0 0 50px rgba(0, 0, 0, 0.8),
-        inset 0 0 100px rgba(139, 69, 19, 0.2);
+        inset 0 0 50px rgba(0, 0, 0, 0.3),
+        inset 0 0 100px rgba(139, 69, 19, 0.1);
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -279,8 +277,8 @@ body {
     right: 0;
     bottom: 0;
     background: 
-        radial-gradient(circle at 30% 40%, rgba(212, 175, 55, 0.1) 0%, transparent 40%),
-        radial-gradient(circle at 70% 60%, rgba(139, 69, 19, 0.1) 0%, transparent 40%);
+        radial-gradient(circle at 30% 40%, rgba(212, 175, 55, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 70% 60%, rgba(139, 69, 19, 0.05) 0%, transparent 40%);
     pointer-events: none;
     animation: mysticalGlow 8s ease-in-out infinite alternate;
     z-index: 1;
@@ -345,8 +343,8 @@ body {
 }
 
 @keyframes mysticalGlow {
-    0% { opacity: 0.3; }
-    100% { opacity: 0.7; }
+    0% { opacity: 0.1; }
+    100% { opacity: 0.3; }
 }
 
 #chat-log {
