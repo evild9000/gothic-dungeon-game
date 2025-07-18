@@ -55,60 +55,60 @@ class GameController {
     }
 
     getResponsivePadding() {
-        return this.isMobile ? '4px' : '15px';
+        return this.isMobile ? '2px' : '15px'; // Further reduced from 4px to 2px
     }
 
     getResponsiveMargin() {
-        return this.isMobile ? '2px' : '8px';
+        return this.isMobile ? '1px' : '8px'; // Further reduced from 2px to 1px
     }
 
     getResponsiveFontSize(base = 14) {
-        return this.isMobile ? Math.max(8, base - 5) : base;
+        return this.isMobile ? Math.max(6, base - 8) : base; // Further reduced: was base-5, now base-8, min 6px
     }
 
     getResponsiveButtonPadding() {
-        return this.isMobile ? '3px 5px' : '12px 15px';
+        return this.isMobile ? '2px 3px' : '12px 15px'; // Further reduced from 3px 5px to 2px 3px
     }
 
     getResponsiveModalPadding() {
-        return this.isMobile ? '6px' : '20px';
+        return this.isMobile ? '3px' : '20px'; // Further reduced from 6px to 3px
     }
 
     getResponsiveModalMargin() {
-        return this.isMobile ? '3px' : '20px';
+        return this.isMobile ? '1px' : '20px'; // Further reduced from 3px to 1px
     }
 
     getResponsiveGap() {
-        return this.isMobile ? '4px' : '20px';
+        return this.isMobile ? '2px' : '20px'; // Further reduced from 4px to 2px
     }
 
     getResponsiveIconSize() {
-        return this.isMobile ? '12px' : '24px';
+        return this.isMobile ? '8px' : '24px'; // Further reduced from 12px to 8px
     }
 
     getResponsiveBorderRadius() {
-        return this.isMobile ? '3px' : '8px';
+        return this.isMobile ? '2px' : '8px'; // Further reduced from 3px to 2px
     }
 
     // Additional mobile-specific helpers for ultra-compact design
     getResponsiveModalWidth() {
-        return this.isMobile ? '98vw' : '600px';
+        return this.isMobile ? '99vw' : '600px'; // Increased from 98vw to 99vw for more space
     }
 
     getResponsiveModalHeight() {
-        return this.isMobile ? '95vh' : '80vh';
+        return this.isMobile ? '98vh' : '80vh'; // Increased from 95vh to 98vh for more space
     }
 
     getResponsiveCombatHeight() {
-        return this.isMobile ? '45vh' : '60vh';
+        return this.isMobile ? '40vh' : '60vh'; // Reduced from 45vh to 40vh
     }
 
     getResponsiveChatHeight() {
-        return this.isMobile ? '25vh' : '35vh';
+        return this.isMobile ? '20vh' : '35vh'; // Reduced from 25vh to 20vh
     }
 
     getResponsiveInputWidth() {
-        return this.isMobile ? '95%' : '250px';
+        return this.isMobile ? '98%' : '250px'; // Increased from 95% to 98%
     }
 
     getResponsiveButtonHeight() {

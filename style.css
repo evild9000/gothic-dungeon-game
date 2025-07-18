@@ -404,28 +404,52 @@ body {
     scrollbar-color: #d4af37 #1a0a0a;
 }
 
-/* Responsive design */
+/* Ultra-compact mobile design */
 @media (max-width: 768px) {
     #gui {
-        padding: 8px;
-        gap: 8px;
+        padding: 3px; /* Reduced from 8px to 3px */
+        gap: 3px; /* Reduced from 8px to 3px */
         flex-wrap: wrap;
     }
     
     #gui button {
-        padding: 10px 12px;
-        font-size: 11px;
-        letter-spacing: 0.5px;
-        min-height: 40px;
-        flex: 1 1 calc(33.33% - 8px);
-        max-width: calc(33.33% - 8px);
+        padding: 4px 6px; /* Reduced from 10px 12px to 4px 6px */
+        font-size: 9px; /* Reduced from 11px to 9px */
+        letter-spacing: 0.3px; /* Reduced from 0.5px to 0.3px */
+        min-height: 24px; /* Reduced from 40px to 24px */
+        flex: 1 1 calc(33.33% - 3px); /* Adjusted gap from 8px to 3px */
+        max-width: calc(33.33% - 3px); /* Adjusted gap from 8px to 3px */
     }
     
     #chat-log {
-        height: 200px; /* Increased from 120px to 200px for mobile */
-        font-size: 14px;
-        line-height: 1.4;
-        padding: 10px;
+        height: 150px; /* Reduced from 200px to 150px for ultra-compact mobile */
+        font-size: 10px; /* Reduced from 14px to 10px */
+        line-height: 1.2; /* Reduced from 1.4 to 1.2 */
+        padding: 5px; /* Reduced from 10px to 5px */
+    }
+    
+    /* Ultra-compact modal styling for mobile */
+    .modal-content {
+        margin: 2px !important; /* Reduced from 10px to 2px */
+        padding: 5px !important; /* Reduced from 15px to 5px */
+        font-size: 9px !important; /* Very small font for mobile modals */
+    }
+    
+    .modal-content h2, .modal-content h3, .modal-content h4 {
+        font-size: 11px !important; /* Ultra-compact headers */
+        margin: 2px 0 !important; /* Minimal margins */
+    }
+    
+    .modal-content button {
+        padding: 3px 5px !important; /* Ultra-compact modal buttons */
+        font-size: 8px !important; /* Very small button text */
+        margin: 1px !important; /* Minimal margins */
+        min-height: 20px !important; /* Reduced button height */
+    }
+    
+    /* Ultra-compact scrollbar for mobile */
+    #chat-log::-webkit-scrollbar {
+        width: 8px; /* Reduced from 14px to 8px */
     }
     
     /* Better mobile background gradients */
@@ -965,32 +989,32 @@ body {
     transform: scale(1.02);
 }
 
-/* Responsive design enhancements */
-@media (max-width: 768px) {
+/* Responsive design enhancements for tablets */
+@media (max-width: 1024px) and (min-width: 769px) {
     #gui {
-        padding: 8px;
-        gap: 8px;
+        padding: 5px; /* Reduced from 8px to 5px */
+        gap: 5px; /* Reduced from 8px to 5px */
     }
     
     #gui button {
-        padding: 10px 14px;
-        font-size: 12px;
-        letter-spacing: 0.5px;
+        padding: 6px 8px; /* Reduced from 10px 14px to 6px 8px */
+        font-size: 10px; /* Reduced from 12px to 10px */
+        letter-spacing: 0.3px; /* Reduced from 0.5px to 0.3px */
     }
     
     #chat-log {
-        height: 180px; /* Increased from 140px to 180px for tablets */
-        font-size: 12px;
-        padding: 12px;
+        height: 140px; /* Reduced from 180px to 140px for tablets */
+        font-size: 10px; /* Reduced from 12px to 10px */
+        padding: 8px; /* Reduced from 12px to 8px */
     }
     
     .sprite {
-        transform: scale(0.8);
+        transform: scale(0.7); /* Reduced from 0.8 to 0.7 */
     }
     
     .modal-content {
-        margin: 10px !important;
-        padding: 15px !important;
+        margin: 5px !important; /* Reduced from 10px to 5px */
+        padding: 8px !important; /* Reduced from 15px to 8px */
     }
 }
 

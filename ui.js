@@ -204,15 +204,23 @@ class UIManager {
     }
 
     render() {
-        this.renderSprites();
+        // Disabled old sprite rendering - now using enhanced combat modal system
+        // this.renderSprites();
         this.updateChatLog();
         this.updateButtonStates();
     }
 
     renderSprites() {
-        // Clear existing sprites
+        // DEPRECATED: Sprite rendering disabled in favor of enhanced combat modal system
+        // Clear existing sprites to ensure nothing is displayed
         this.elements.spritesArea.innerHTML = '';
-
+        
+        // All sprite rendering is now handled by the enhanced combat modal system
+        // This function is kept for backward compatibility but does nothing
+        return;
+        
+        // OLD CODE BELOW - DISABLED
+        /*
         // Only render sprites when in dungeons (during combat)
         if (this.gameState.inDungeon) {
             // Render hero sprite
@@ -230,6 +238,7 @@ class UIManager {
                 this.renderEnemy(enemy, index);
             });
         }
+        */
     }
 
     renderHero() {
