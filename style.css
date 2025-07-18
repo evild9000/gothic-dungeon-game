@@ -354,7 +354,7 @@ body {
     border-top: 3px solid #8b4513;
     border-image: linear-gradient(90deg, #8b4513, #d4af37, #8b4513) 1;
     padding: 15px;
-    height: 180px;
+    height: 280px; /* Increased from 180px to 280px for better visibility */
     overflow-y: auto;
     font-family: 'Metal Mania', cursive;
     font-size: 16px;
@@ -367,27 +367,41 @@ body {
     box-shadow: 
         inset 0 4px 8px rgba(0, 0, 0, 0.6),
         inset 0 0 20px rgba(139, 69, 19, 0.2);
+    /* Enhanced scrolling behavior */
+    scroll-behavior: smooth;
 }
 
-/* Scrollbar styling for chat log */
+/* Enhanced scrollbar styling for chat log */
 #chat-log::-webkit-scrollbar {
-    width: 12px;
+    width: 14px; /* Slightly wider for better usability */
 }
 
 #chat-log::-webkit-scrollbar-track {
     background: linear-gradient(180deg, #1a0a0a, #0a0a0a);
-    border-radius: 6px;
+    border-radius: 7px;
+    border: 1px solid #2a1a0a;
 }
 
 #chat-log::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #8b4513, #d4af37);
-    border-radius: 6px;
+    background: linear-gradient(180deg, #8b4513, #d4af37, #8b4513);
+    border-radius: 7px;
     border: 1px solid #5a2d0a;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(212, 175, 55, 0.3);
 }
 
 #chat-log::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #d4af37, #8b4513);
-    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+    background: linear-gradient(180deg, #d4af37, #ffd700, #d4af37);
+    box-shadow: 
+        0 0 15px rgba(212, 175, 55, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Firefox scrollbar styling */
+#chat-log {
+    scrollbar-width: auto;
+    scrollbar-color: #d4af37 #1a0a0a;
 }
 
 /* Responsive design */
@@ -408,7 +422,7 @@ body {
     }
     
     #chat-log {
-        height: 120px;
+        height: 200px; /* Increased from 120px to 200px for mobile */
         font-size: 14px;
         line-height: 1.4;
         padding: 10px;
@@ -965,7 +979,7 @@ body {
     }
     
     #chat-log {
-        height: 140px;
+        height: 180px; /* Increased from 140px to 180px for tablets */
         font-size: 12px;
         padding: 12px;
     }

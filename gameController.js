@@ -734,7 +734,7 @@ class GameController {
         
         this.ui.log(`Entering dungeon level ${this.gameState.dungeonLevel}...`);
         this.ui.log("Enemies appear before you!");
-        this.ui.render();
+        // Removed ui.render() to prevent old sprite display from showing
         
         // Show combat interface
         this.showCombatInterface();
@@ -1128,8 +1128,8 @@ class GameController {
                 </div>
                 
                 <!-- Combat Actions -->
-                <div style="background: #2a2a3a; padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; border: 2px solid #4a4a6a;">
-                    <h4 style="color: #4ecdc4; margin-bottom: ${this.getResponsiveMargin()}; text-align: center; font-size: ${this.getResponsiveFontSize(16)}px;">⚡ Choose Your Action</h4>
+                <div style="background: rgba(42, 42, 58, 0.7); padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; border: 2px solid #4a4a6a;">
+                    <h4 style="color: #4ecdc4; margin-bottom: ${this.getResponsiveMargin()}; text-align: center; font-size: ${this.getResponsiveFontSize(16)}px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);">⚡ Choose Your Action</h4>
                     <div style="display: grid; grid-template-columns: ${this.isMobile ? '1fr 1fr' : '1fr 1fr'}; gap: ${this.getResponsiveMargin()};">
                         <button class="enhanced-combat-btn attack-btn" onclick="window.game.controller.playerAttack()" 
                                 style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #8b0000, #dc143c); border: 2px solid #ff6b6b; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px;">
@@ -1149,8 +1149,8 @@ class GameController {
                         </button>
                     </div>
                     
-                    <div style="margin-top: ${this.getResponsiveMargin()}; padding: ${this.getResponsiveMargin()}; background: #1a1a2a; border-radius: ${this.getResponsiveBorderRadius()}; text-align: center;">
-                        <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #888; font-style: italic;">
+                    <div style="margin-top: ${this.getResponsiveMargin()}; padding: ${this.getResponsiveMargin()}; background: rgba(26, 26, 42, 0.8); border-radius: ${this.getResponsiveBorderRadius()}; text-align: center;">
+                        <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #ccc; font-style: italic; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);">
                             💡 Tip: Defend reduces incoming damage by 50% | Use items to heal your party
                         </div>
                     </div>
@@ -1177,14 +1177,14 @@ class GameController {
                 left: ${this.getResponsiveModalMargin()};
                 right: ${this.getResponsiveModalMargin()};
                 bottom: ${this.getResponsiveModalMargin()};
-                background: rgba(0, 0, 0, 0.9);
+                background: rgba(0, 0, 0, 0.3);
                 border: 3px solid #d4af37;
                 border-radius: ${this.getResponsiveBorderRadius()};
                 z-index: 1000;
                 display: flex;
                 flex-direction: column;
                 padding: ${this.getResponsiveModalPadding()};
-                backdrop-filter: blur(5px);
+                backdrop-filter: blur(3px);
             ">
                 <div style="
                     flex: 1;
@@ -1196,7 +1196,7 @@ class GameController {
                     <div style="
                         flex: 1;
                         ${this.isMobile ? 'margin-bottom: 5px;' : ''}
-                        background: rgba(20, 20, 40, 0.9);
+                        background: rgba(20, 20, 40, 0.4);
                         border-radius: ${this.getResponsiveBorderRadius()};
                         padding: ${this.getResponsivePadding()};
                         overflow-y: auto;
@@ -1209,7 +1209,7 @@ class GameController {
                     <!-- Chat Window Section -->
                     <div style="
                         flex: 1;
-                        background: rgba(40, 20, 20, 0.9);
+                        background: rgba(40, 20, 20, 0.4);
                         border-radius: ${this.getResponsiveBorderRadius()};
                         padding: ${this.getResponsivePadding()};
                         display: flex;
@@ -1223,7 +1223,7 @@ class GameController {
                         <div id="combat-chat-display" style="
                             flex: 1;
                             overflow-y: auto;
-                            background: rgba(0, 0, 0, 0.4);
+                            background: rgba(0, 0, 0, 0.2);
                             border-radius: ${this.getResponsiveBorderRadius()};
                             padding: ${this.getResponsiveMargin()};
                             border: 1px solid #666;
@@ -1264,8 +1264,8 @@ class GameController {
     updateCombatChatDisplay() {
         const chatDisplay = document.getElementById('combat-chat-display');
         if (chatDisplay && this.gameState.chatLog) {
-            // Show last 20 messages to keep it manageable
-            const recentMessages = this.gameState.chatLog.slice(-20);
+            // Show last 50 messages to take advantage of larger chat area
+            const recentMessages = this.gameState.chatLog.slice(-50);
             chatDisplay.innerHTML = recentMessages.map(msg => 
                 `<div style="margin-bottom: 8px; font-family: Arial, sans-serif; font-weight: bold; line-height: 1.3;">${this.colorizeMessage(msg)}</div>`
             ).join('');
@@ -2549,7 +2549,7 @@ class GameController {
         
         this.ui.log(`🔍 Exploring deeper into dungeon level ${this.gameState.dungeonLevel}...`);
         this.ui.log("New enemies block your path!");
-        this.ui.render();
+        // Removed ui.render() to prevent old sprite display from showing
         
         setTimeout(() => this.showCombatInterface(), 500);
     }
@@ -2571,7 +2571,7 @@ class GameController {
         this.ui.setBackground('dungeon');
         
         this.ui.log("New enemies block your path!");
-        this.ui.render();
+        // Removed ui.render() to prevent old sprite display from showing
         
         setTimeout(() => this.showCombatInterface(), 500);
     }
