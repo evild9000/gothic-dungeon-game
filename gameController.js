@@ -182,19 +182,35 @@ class GameController {
         // Initialize inventory and character managers
         try {
             console.log('Initializing InventoryManager...');
+            if (typeof InventoryManager === 'undefined') {
+                throw new Error('InventoryManager class not found. Check if inventoryManager.js is loaded.');
+            }
             this.inventoryManager = new InventoryManager(this);
             console.log('InventoryManager initialized successfully');
             
             console.log('Initializing CharacterManager...');
+            if (typeof CharacterManager === 'undefined') {
+                throw new Error('CharacterManager class not found. Check if characterManager.js is loaded.');
+            }
             this.characterManager = new CharacterManager(this);
             console.log('CharacterManager initialized successfully');
             
             // Apply initial stat bonuses
             this.characterManager.applyStatBonuses();
             console.log('Managers initialization complete');
-        } catch (error) {
+            
+        // Make managers globally accessible for debugging
+        window.inventoryManager = this.inventoryManager;
+        window.characterManager = this.characterManager;
+        
+        // Add debug helper to window
+        window.debugGameManagers = () => this.debugManagers();        } catch (error) {
             console.error('Error initializing managers:', error);
             this.ui.log("Error initializing game systems: " + error.message);
+            
+            // Set to null so they can be re-initialized later
+            this.inventoryManager = null;
+            this.characterManager = null;
         }
     }
 
@@ -3789,10 +3805,26 @@ class GameController {
     }
 
     openInventory() {
-        if (this.inventoryManager) {
+        console.log('openInventory called, checking managers...');
+        console.log('InventoryManager:', this.inventoryManager);
+        
+        if (!this.inventoryManager) {
+            console.log('InventoryManager not initialized, creating new instance...');
+            try {
+                this.inventoryManager = new InventoryManager(this);
+                console.log('InventoryManager created successfully');
+            } catch (error) {
+                console.error('Failed to create InventoryManager:', error);
+                this.ui.log("Error: Failed to initialize inventory system.");
+                return;
+            }
+        }
+        
+        try {
             this.inventoryManager.openInventory();
-        } else {
-            this.ui.log("Inventory system not initialized!");
+        } catch (error) {
+            console.error('Error opening inventory:', error);
+            this.ui.log("Error opening inventory: " + error.message);
         }
     }
 
@@ -3850,18 +3882,65 @@ class GameController {
     }
 
     openCharacterManagement() {
-        if (this.characterManager) {
+        console.log('openCharacterManagement called, checking managers...');
+        console.log('CharacterManager:', this.characterManager);
+        
+        if (!this.characterManager) {
+            console.log('CharacterManager not initialized, creating new instance...');
+            try {
+                this.characterManager = new CharacterManager(this);
+                console.log('CharacterManager created successfully');
+            } catch (error) {
+                console.error('Failed to create CharacterManager:', error);
+                this.ui.log("Error: Failed to initialize character management system.");
+                return;
+            }
+        }
+        
+        try {
             this.characterManager.openCharacterManagement();
-        } else {
-            this.ui.log("Character management system not initialized!");
+        } catch (error) {
+            console.error('Error opening character management:', error);
+            this.ui.log("Error opening character management: " + error.message);
         }
     }
 
+    // Debug function to check and reinitialize managers
+    debugManagers() {
+        console.log('=== Manager Debug Information ===');
+        console.log('InventoryManager available:', !!this.inventoryManager);
+        console.log('CharacterManager available:', !!this.characterManager);
+        console.log('InventoryManager class defined:', typeof InventoryManager !== 'undefined');
+        console.log('CharacterManager class defined:', typeof CharacterManager !== 'undefined');
+        
+        if (!this.inventoryManager || !this.characterManager) {
+            console.log('Attempting to reinitialize managers...');
+            this.initializeManagers();
+        }
+        
+        return {
+            inventoryManager: !!this.inventoryManager,
+            characterManager: !!this.characterManager,
+            classesAvailable: {
+                InventoryManager: typeof InventoryManager !== 'undefined',
+                CharacterManager: typeof CharacterManager !== 'undefined'
+            }
+        };
+    }
+
     calculateEquippedStats() {
+        if (!this.characterManager) {
+            console.warn('CharacterManager not available for calculateEquippedStats');
+            return { attack: 0, defense: 0, health: 0, mana: 0 };
+        }
         return this.characterManager.calculateEquippedStats();
     }
 
     getEquippedItem(type) {
+        if (!this.characterManager) {
+            console.warn('CharacterManager not available for getEquippedItem');
+            return null;
+        }
         return this.characterManager.getEquippedItem(type);
     }
 

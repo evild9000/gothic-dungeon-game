@@ -366,7 +366,7 @@ class UIManager {
                 this.elements.recruitBtn.textContent = `Recruit Underlings (${this.gameState.hero.underlings.length}/${this.gameState.hero.leadership})`;
             }
             
-            this.elements.shopBtn.textContent = `Shop (Gold: ${this.gameState.hero.gold})`;
+            this.elements.shopBtn.textContent = `Shop`;
             this.elements.templeBtn.textContent = `Temple (Healing & Resurrection)`;
             
             // Reset the onclick handlers to default (in case they were overridden)
