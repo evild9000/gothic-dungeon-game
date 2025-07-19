@@ -40,7 +40,7 @@ class CharacterManager {
                 constitution: "Increases health points and stamina", 
                 intelligence: "Increases mana and arcane spell damage",
                 willpower: "Increases mana, divine spell damage, and magic resistance",
-                size: "Affects health, melee damage, and defense"
+                size: "Affects health, melee damage, and defense (larger = more HP/damage but less defense, smaller = less HP/damage but more defense)"
             }
         };
     }

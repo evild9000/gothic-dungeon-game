@@ -1762,7 +1762,6 @@ class GameController {
 
         // Living underlings also attack!
         const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
-        const defeatedEnemiesThisTurn = new Set(); // Track enemies defeated by underlings this turn
         
         aliveUnderlings.forEach((underling, index) => {
             if (this.gameState.currentEnemies.length > 0) {
@@ -1774,18 +1773,11 @@ class GameController {
                 }
                 
                 // Normal attack for all other cases
-                // Each underling targets the first available enemy (not yet defeated this turn)
-                let underlingTarget = null;
-                for (let i = 0; i < this.gameState.currentEnemies.length; i++) {
-                    const potentialTarget = this.gameState.currentEnemies[i];
-                    if (!defeatedEnemiesThisTurn.has(potentialTarget)) {
-                        underlingTarget = potentialTarget;
-                        break;
-                    }
-                }
+                // Each underling targets a random enemy that's still alive
+                const underlingTarget = this.gameState.currentEnemies[Math.floor(Math.random() * this.gameState.currentEnemies.length)];
                 
                 // Skip if no valid target found
-                if (!underlingTarget) {
+                if (!underlingTarget || underlingTarget.health <= 0) {
                     return;
                 }
                 
@@ -1825,19 +1817,16 @@ class GameController {
                 
                 // Check if enemy is defeated by underling
                 if (underlingTarget.health <= 0) {
-                    // Mark this enemy as defeated to prevent double-processing
-                    defeatedEnemiesThisTurn.add(underlingTarget);
-                    
                     // Use centralized defeat handler
                     this.handleEnemyDefeat(underlingTarget, underling.name);
+                    
+                    // Remove defeated enemy immediately
+                    this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.id !== underlingTarget.id);
                 }
             }
         });
         
-        // Remove all defeated enemies after all underlings have attacked
-        this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => !defeatedEnemiesThisTurn.has(enemy));
-
-        // Safety check: Also remove any enemies with health <= 0 (in case of edge cases)
+        // Remove any enemies with health <= 0 (safety cleanup)
         this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.health > 0);
 
         // Check if all enemies defeated after underling attacks
@@ -2212,6 +2201,11 @@ class GameController {
         const allTargets = [this.gameState.hero, ...aliveUnderlings];
         
         this.gameState.currentEnemies.forEach(enemy => {
+            // Try monster abilities first (25% chance)
+            if (this.tryMonsterAbility(enemy)) {
+                return; // Skip normal attack if ability was used
+            }
+            
             let target;
             
             // Check if warrior taunt is active
@@ -4352,8 +4346,8 @@ class GameController {
      */
     getHeroAbilities() {
         // Define hero abilities that scale with level and stats
-        return {
-            'heal': new Ability({
+        const abilities = {
+            'hero_heal': new Ability({
                 id: 'hero_heal',
                 name: 'Healing Light',
                 description: 'Restore health to yourself or an ally',
@@ -4369,7 +4363,7 @@ class GameController {
                 }]
             }),
             
-            'fireball': new Ability({
+            'hero_fireball': new Ability({
                 id: 'hero_fireball',
                 name: 'Fireball',
                 description: 'Launch a ball of fire at an enemy',
@@ -4385,7 +4379,7 @@ class GameController {
                 }]
             }),
             
-            'lightning_bolt': new Ability({
+            'hero_lightning': new Ability({
                 id: 'hero_lightning',
                 name: 'Lightning Bolt',
                 description: 'Strike an enemy with lightning',
@@ -4401,7 +4395,7 @@ class GameController {
                 }]
             }),
             
-            'shield': new Ability({
+            'hero_shield': new Ability({
                 id: 'hero_shield',
                 name: 'Protective Shield',
                 description: 'Grant magical protection to an ally',
@@ -4416,7 +4410,7 @@ class GameController {
                 }]
             }),
             
-            'group_heal': new Ability({
+            'hero_group_heal': new Ability({
                 id: 'hero_group_heal',
                 name: 'Healing Circle',
                 description: 'Heal all party members',
@@ -4432,7 +4426,7 @@ class GameController {
                 }]
             }),
             
-            'power_strike': new Ability({
+            'hero_power_strike': new Ability({
                 id: 'hero_power_strike',
                 name: 'Power Strike',
                 description: 'A devastating melee attack',
@@ -4448,7 +4442,7 @@ class GameController {
                 }]
             }),
             
-            'ice_shard': new Ability({
+            'hero_ice_shard': new Ability({
                 id: 'hero_ice_shard',
                 name: 'Ice Shard',
                 description: 'Launch sharp ice that may slow enemies',
@@ -4470,7 +4464,7 @@ class GameController {
                 ]
             }),
             
-            'rage': new Ability({
+            'hero_rage': new Ability({
                 id: 'hero_rage',
                 name: 'Berserker Rage',
                 description: 'Increase your attack power temporarily',
@@ -4485,6 +4479,8 @@ class GameController {
                 }]
             })
         };
+        
+        return abilities;
     }
 
     showHeroAbilitySelection() {
@@ -4534,7 +4530,7 @@ class GameController {
                             style="padding: 10px 20px; background: linear-gradient(45deg, #4a2d7a, #6b3fa0); border: 2px solid #9966cc; color: white; border-radius: 6px; cursor: pointer; font-weight: bold;">
                         ✨ Cast Ability
                     </button>
-                    <button onclick="window.game.controller.closeModal()" 
+                    <button onclick="document.querySelector('.docked-modal').remove()" 
                             style="padding: 10px 20px; background: linear-gradient(45deg, #666, #888); border: 2px solid #aaa; color: white; border-radius: 6px; cursor: pointer; font-weight: bold;">
                         ❌ Cancel
                     </button>
@@ -4821,10 +4817,80 @@ class GameController {
                     }
                 });
             }
-            return true;
+        }
+        
+        return true;
+    }
+
+    // Monster ability usage system
+    tryMonsterAbility(monster) {
+        if (!monster || !monster.name) {
+            return false;
         }
 
-        return false;
+        // Define monster abilities by type
+        const monsterAbilities = {
+            'Spider': ['spider_poison', 'spider_web'],
+            'Wolf': [], // Wolves don't have special abilities, just normal attacks
+            'Orc': [],
+            'Goblin': [],
+            'Skeleton': []
+        };
+
+        const abilities = monsterAbilities[monster.name] || [];
+        if (abilities.length === 0) {
+            return false;
+        }
+
+        // 25% chance to use an ability instead of normal attack
+        if (Math.random() > 0.25) {
+            return false;
+        }
+
+        // Pick a random ability
+        const abilityId = abilities[Math.floor(Math.random() * abilities.length)];
+        const ability = MonsterAbilities.getAbility(abilityId);
+        
+        if (!ability) {
+            return false;
+        }
+
+        // Get valid targets (hero + living underlings)
+        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+        const allTargets = [this.gameState.hero, ...aliveUnderlings];
+        const validTargets = ability.getValidTargets(monster, allTargets, this.gameState);
+        
+        if (validTargets.length === 0) {
+            return false;
+        }
+
+        // Select target(s)
+        let targets = [];
+        if (ability.targeting.type === 'single') {
+            targets = [validTargets[Math.floor(Math.random() * validTargets.length)]];
+        } else if (ability.targeting.type === 'all') {
+            targets = validTargets;
+        }
+
+        if (targets.length === 0) {
+            return false;
+        }
+
+        // Use the ability
+        const result = ability.use(monster, targets, this.gameState, this);
+        
+        if (result.success) {
+            this.ui.log(`${monster.name} uses ${ability.name}!`);
+            if (result.results) {
+                result.results.forEach(r => {
+                    if (r.message) {
+                        this.ui.log(r.message);
+                    }
+                });
+            }
+        }
+        
+        return result.success;
     }
 }
 
