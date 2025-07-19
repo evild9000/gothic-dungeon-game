@@ -1460,6 +1460,11 @@ class GameController {
                                     <div style="margin-top: 3px;">
                                         <span style="color: ${getHealthColor(underling.health, underling.maxHealth)}; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px;">${underling.health}</span>
                                         <span style="color: #888; font-size: ${this.getResponsiveFontSize(12)}px;">/${underling.maxHealth} HP</span>
+                                        <br>
+                                        <span style="color: #4da6ff; font-weight: bold; font-size: ${this.getResponsiveFontSize(10)}px;">${underling.mana || 0}</span>
+                                        <span style="color: #888; font-size: ${this.getResponsiveFontSize(10)}px;">/${underling.maxMana || 100} MP</span>
+                                        <span style="color: #ffb84d; font-weight: bold; font-size: ${this.getResponsiveFontSize(10)}px; margin-left: 8px;">${underling.stamina || 0}</span>
+                                        <span style="color: #888; font-size: ${this.getResponsiveFontSize(10)}px;">/${underling.maxStamina || 100} SP</span>
                                     </div>
                                 </div>
                             </div>

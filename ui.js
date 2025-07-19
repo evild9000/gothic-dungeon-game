@@ -196,6 +196,11 @@ class UIManager {
         this.elements.chatLog.innerText = this.gameState.chatLog.join('\n');
         // Auto-scroll to bottom
         this.elements.chatLog.scrollTop = this.elements.chatLog.scrollHeight;
+        
+        // Also update combat chat display if it exists
+        if (this.gameController && typeof this.gameController.updateCombatChatDisplay === 'function') {
+            this.gameController.updateCombatChatDisplay();
+        }
     }
 
     clearChatLog() {

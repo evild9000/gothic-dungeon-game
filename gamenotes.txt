@@ -1,0 +1,103 @@
+future todo:
+- mobile screen layout and background images - maybe some tweaks yet
+- move some small chunks out of gamecontroller to other controllers
+- allow to sell items in shop?
+=============
+underling inventory: revamp because it doesnt show items equipped-- move the equipment slot graphics and equipment management for underlings to the inventory module and remove it from the character management 
+
+--
+
+test- warrior shield bash stun isnt causing the foe to lose their turn, they get a chance to resist based on will/con 'save'
+test -give some little icons near the  name for status effects, such as stunned, webbed, poisoned, burning, etc review all spells, abilities, powers and if there is an ongoing status effect positive or negative give an icon for it to the 	affected target with a hover over tooltip showing rounds remaining of the effect and information about it.
+
+here are the latest list of bugs, issues and feature requests:  - healing light only allowed targeting the hero not all allies
+- casting a spell by the hero should count as its turn and then proceed to the next entity, not allow me to keep casting spells or attack as well
+- protective shield only allowed me to cast on warrior underling not other allies or self
+- i want silk armor to include a small mana bonus for each piece - obviously calculate this into the wearers max mana
+- healer should not use healing abilities unless someone is at 60% health or less
+- when using an item such as a stamina or mana potion, when the modal comes up to select the target, show their mana and stamina as well as their health
+- when the party exits a dungeon the message says they recover 15% HP/SP - change it to say HP/Mana and stamina
+
+
+test - all spells, abilities
+- summons
+
+
+====
+
+
+set up ability, skill or power templates
+with:  target, mana, effect (function: heal, damage, # targets, enemies or allies, resist, atk or def buff or debuff, stat debuff or buff, stun/paralyze/slow, DOT, summon, vampiric, poison, bleed, burn, special flag which calls a method or function with the spell or ability name to apply additional special effects, passing to it the hero, underlings, enemies, possible equipment?)
+
+add species (stat and slot variability)
+- elf str 4 dex 7 con 4 int 6 wil 6 siz 4
+- dwarf str 6 dex 4 con 7wil 6 siz 4
+- human 
+- gnome str 3  dex 7  int 6 wil 6 siz 3
+- orc  str 7 int 4 con 6 siz 6
+- goblin str 4 dex 7 con 6 siz 4
+- giantkin
+	ogre  str 9 dex 4 con 7 int 3 wil 4 siz 9 
+	troll str 8 con 8 int 3 wil 3 siz 9 
+	giant str 12 dex 3 con 10 int 4 wil 4 siz 10
+- yeti str 8 dex 4 con 6 int 4 wil 6 siz 6
+- beastling
+	bull
+	bear
+	snake
+	tiger
+	rat
+	wolf
+	spider
+- plantfolk
+- planar
+	-elemental fire
+	-elemental earth
+	-elemental water
+	-elemental air
+	-demonic
+	-angelic
+	-cthonic
+- fae
+- undead
+- kraken
+- dragon
+- gargoyle
+- ooze
+	
+	
+add classes
+- warrior
+	-subtype
+- priest
+	-subtype
+- arcane
+	-subtype
+- skirmisher
+	-subtype
+	
+- needed for simple web game?  lets keep to basic classes and old school skills and spells
+add skill progression and training costs xp/gold
+
+add crafting
+add loot drops
+puzzles, traps, mysteries, rituals, magical pools, etc, genies, wandering tinkerers, nodes
+==
+
+Option 2: Netlify Drop (30 seconds)
+Go to netlify.com/drop
+Drag your entire mobgame folder to the browser
+Get instant URL like https://amazing-name-123456.netlify.app
+
+Option 3: Vercel (1 minute)
+Go to vercel.com
+Sign in with GitHub
+Import your repository
+Auto-deploy to https://your-project.vercel.app
+
+Option 4: CodePen (Quick Test)
+Go to codepen.io
+Copy/paste your HTML, CSS, JS into separate panels
+Get instant shareable link
+
+
