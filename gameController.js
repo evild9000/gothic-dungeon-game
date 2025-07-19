@@ -1979,17 +1979,25 @@ class GameController {
             headerText = '🎯 Select Target';
             panelContent = `
                 <div class="docked-target-list">
-                    ${items.map((target, index) => `
+                    ${items.map((target, index) => {
+                        // Get the actual character object to access mana/stamina
+                        let actualCharacter = target.isHero ? this.gameState.hero : target.underlingRef;
+                        let manaInfo = actualCharacter && actualCharacter.maxMana ? `${actualCharacter.mana || 0}/${actualCharacter.maxMana}` : 'N/A';
+                        let staminaInfo = actualCharacter && actualCharacter.maxStamina ? `${actualCharacter.stamina || 0}/${actualCharacter.maxStamina}` : 'N/A';
+                        
+                        return `
                         <div class="docked-target-option" onclick="window.game.controller.useCombatItemOnTarget(${this.currentSelectedItemIndex}, ${index})">
                             <div class="docked-target-info">
                                 <div>
                                     <h4>${target.name}</h4>
                                     <div class="docked-target-health">Health: ${target.health}/${target.maxHealth}</div>
+                                    <div class="docked-target-mana">Mana: ${manaInfo}</div>
+                                    <div class="docked-target-stamina">Stamina: ${staminaInfo}</div>
                                 </div>
                                 <div class="docked-target-icon">${target.isHero ? '👑' : '🛡️'}</div>
                             </div>
-                        </div>
-                    `).join('')}
+                        </div>`
+                    }).join('')}
                 </div>
             `;
         } else if (panelType === 'combat') {
@@ -2983,7 +2991,7 @@ class GameController {
         if (restoredMembers.length > 0) {
             this.ui.log("🌿 Leaving the dungeon, your party recovers from their trials...");
             this.ui.log(`✨ Restored: ${restoredMembers.join(', ')}`);
-            this.ui.showNotification("Party recovered 15% HP/MP!", "success");
+            this.ui.showNotification("Party recovered 15% HP/Mana/Stamina!", "success");
         }
     }
 
@@ -3388,42 +3396,42 @@ class GameController {
                 name: "Silk Hood", 
                 type: "armor",
                 slot: "head",
-                stats: { defense: 1 }, 
+                stats: { defense: 1, mana: 2 }, 
                 equipped: false 
             },
             silk_sleeves: { 
                 name: "Silk Sleeves", 
                 type: "armor",
                 slot: "arms",
-                stats: { defense: 1 }, 
+                stats: { defense: 1, mana: 2 }, 
                 equipped: false 
             },
             silk_gloves: { 
                 name: "Silk Gloves", 
                 type: "armor",
                 slot: "hands",
-                stats: { defense: 1 }, 
+                stats: { defense: 1, mana: 2 }, 
                 equipped: false 
             },
             silk_robe: { 
                 name: "Silk Robe", 
                 type: "armor",
                 slot: "chest",
-                stats: { defense: 2 }, 
+                stats: { defense: 2, mana: 3 }, 
                 equipped: false 
             },
             silk_pants: { 
                 name: "Silk Pants", 
                 type: "armor",
                 slot: "legs",
-                stats: { defense: 1 }, 
+                stats: { defense: 1, mana: 2 }, 
                 equipped: false 
             },
             silk_shoes: { 
                 name: "Silk Shoes", 
                 type: "armor",
                 slot: "feet",
-                stats: { defense: 1 }, 
+                stats: { defense: 1, mana: 2 }, 
                 equipped: false 
             },
             
@@ -4585,10 +4593,10 @@ class GameController {
             'hero_shield': new Ability({
                 id: 'hero_shield',
                 name: 'Protective Shield',
-                description: 'Grant magical protection to an ally',
+                description: 'Grant magical protection to an ally or yourself',
                 icon: '🛡️',
                 type: 'spell',
-                targeting: { type: 'single', validTargets: 'allies', count: 1 },
+                targeting: { type: 'single', validTargets: 'allies_and_self', count: 1 },
                 costs: { mana: 6 },
                 effects: [{
                     type: 'buff_defense',
@@ -4905,24 +4913,33 @@ class GameController {
             }
             this.ui.showNotification("Ability cast successfully!", "success");
             
-            // Close the docked modal and continue combat
+            // Close the docked modal
             const modal = document.querySelector('.docked-modal');
             if (modal) {
                 modal.remove();
             }
             
-            // Trigger enemy turn
+            // Update UI first
+            this.ui.render();
+            
+            // Hero's turn is over after casting, start enemy turns
             setTimeout(() => {
-                this.processEnemyTurns();
-            }, 1000);
+                this.enemiesAttack();
+                
+                // Update combat interface after enemy attacks
+                setTimeout(() => {
+                    this.showCombatInterface();
+                    this.updateCombatChatDisplay();
+                }, 1000);
+            }, 500);
             
         } else {
             this.ui.log(result.message || "Failed to cast ability!");
             this.ui.showNotification(result.message || "Failed to cast ability!", "error");
+            
+            // Update UI but don't end turn on failed cast
+            this.ui.render();
         }
-        
-        // Update UI
-        this.ui.render();
     }
 
     processEnemyTurns() {
@@ -5009,7 +5026,28 @@ class GameController {
             } else if (selectedAbility.targeting.validTargets === 'allies') {
                 // For healing/buff abilities, pick most wounded ally
                 const woundedAllies = validTargets.filter(ally => ally.health < ally.maxHealth);
-                if (woundedAllies.length > 0) {
+                
+                // Special check for healer class - only heal if someone is at 60% health or less
+                if (underling.type === 'support' && selectedAbility.effects && 
+                    selectedAbility.effects.some(effect => effect.type === 'heal')) {
+                    const criticallyWounded = woundedAllies.filter(ally => {
+                        const healthPercent = ally.health / ally.maxHealth;
+                        return healthPercent <= 0.6;
+                    });
+                    
+                    if (criticallyWounded.length === 0) {
+                        // No one needs healing urgently, skip this healing ability
+                        return false;
+                    }
+                    
+                    // Pick the most wounded from critically wounded allies
+                    const mostWounded = criticallyWounded.reduce((worst, current) => {
+                        const currentPercent = current.health / current.maxHealth;
+                        const worstPercent = worst.health / worst.maxHealth;
+                        return currentPercent < worstPercent ? current : worst;
+                    });
+                    targets = [mostWounded];
+                } else if (woundedAllies.length > 0) {
                     const mostWounded = woundedAllies.reduce((worst, current) => {
                         const currentPercent = current.health / current.maxHealth;
                         const worstPercent = worst.health / worst.maxHealth;
