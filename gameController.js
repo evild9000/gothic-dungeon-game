@@ -63,11 +63,11 @@ class GameController {
         
         modal.style.cssText = `
             position: fixed;
-            top: ${isMobile ? '10px' : '20px'};
-            right: ${isMobile ? '10px' : '20px'};
-            width: ${isMobile ? 'calc(100vw - 20px)' : '650px'};
+            top: ${isMobile ? '10px' : '50px'};
+            left: ${isMobile ? '10px' : '50px'};
+            width: ${isMobile ? 'calc(100vw - 20px)' : '700px'};
             max-width: ${isMobile ? 'none' : '90vw'};
-            max-height: ${isMobile ? 'calc(100vh - 20px)' : 'calc(100vh - 40px)'};
+            max-height: ${isMobile ? 'calc(100vh - 20px)' : 'calc(100vh - 100px)'};
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1419 100%);
             border: 2px solid #4a5568;
             border-radius: 12px;
@@ -180,11 +180,22 @@ class GameController {
     
     initializeManagers() {
         // Initialize inventory and character managers
-        this.inventoryManager = new InventoryManager(this);
-        this.characterManager = new CharacterManager(this);
-        
-        // Apply initial stat bonuses
-        this.characterManager.applyStatBonuses();
+        try {
+            console.log('Initializing InventoryManager...');
+            this.inventoryManager = new InventoryManager(this);
+            console.log('InventoryManager initialized successfully');
+            
+            console.log('Initializing CharacterManager...');
+            this.characterManager = new CharacterManager(this);
+            console.log('CharacterManager initialized successfully');
+            
+            // Apply initial stat bonuses
+            this.characterManager.applyStatBonuses();
+            console.log('Managers initialization complete');
+        } catch (error) {
+            console.error('Error initializing managers:', error);
+            this.ui.log("Error initializing game systems: " + error.message);
+        }
     }
 
     // Mobile detection and responsive helpers
@@ -1513,6 +1524,8 @@ class GameController {
     }
 
     playerAttack() {
+        console.log('Player attack called');
+        
         if (!this.gameState.currentEnemies || this.gameState.currentEnemies.length === 0) {
             this.ui.log("No enemies to attack!");
             return;
@@ -2933,7 +2946,7 @@ class GameController {
             {
                 text: "Close Workshop",
                 onClick: () => {
-                    document.querySelector('.docked-modal').remove();
+                    document.querySelector('.docked-modal')?.remove();
                     this.returnToVillage();
                 }
             }
@@ -3002,7 +3015,7 @@ class GameController {
         // Refresh the crafting modal to show updated gold amounts
         setTimeout(() => {
             // Close the current modal and reopen cleanly
-            const modals = document.querySelectorAll('.modal-overlay');
+            const modals = document.querySelectorAll('.docked-modal');
             modals.forEach(modal => modal.remove());
             this.openCrafting();
         }, 100);
@@ -3114,7 +3127,7 @@ class GameController {
             {
                 text: "Leave Center",
                 onClick: () => {
-                    document.querySelector('.docked-modal').remove();
+                    document.querySelector('.docked-modal')?.remove();
                     this.returnToVillage();
                 }
             }
@@ -3304,7 +3317,7 @@ class GameController {
             {
                 text: "Leave Store",
                 onClick: () => {
-                    document.querySelector('.docked-modal').remove();
+                    document.querySelector('.docked-modal')?.remove();
                     this.returnToVillage();
                 }
             }
@@ -3351,7 +3364,7 @@ class GameController {
         // Refresh the shop modal to show updated gold amounts
         setTimeout(() => {
             // Close the current modal and reopen cleanly
-            const modals = document.querySelectorAll('.modal-overlay');
+            const modals = document.querySelectorAll('.docked-modal');
             modals.forEach(modal => modal.remove());
             this.openShop();
         }, 100);
@@ -3447,21 +3460,10 @@ class GameController {
 
         templeButtons.push({
             text: "Leave Temple",
-            onClick: () => this.returnToVillage()
-        });
-
-        // Update the Leave Temple button to close the docked modal
-        templeButtons = templeButtons.map(button => {
-            if (button.text === "Leave Temple") {
-                return {
-                    ...button,
-                    onClick: () => {
-                        document.querySelector('.docked-modal').remove();
-                        this.returnToVillage();
-                    }
-                };
+            onClick: () => {
+                document.querySelector('.docked-modal')?.remove();
+                this.returnToVillage();
             }
-            return button;
         });
         
         this.createDockedModal("Sacred Temple", templeContent, templeButtons);
@@ -3513,7 +3515,7 @@ class GameController {
         // Refresh the temple modal to show updated stats
         setTimeout(() => {
             // Close the current modal and reopen cleanly
-            const modals = document.querySelectorAll('.modal-overlay');
+            const modals = document.querySelectorAll('.docked-modal');
             modals.forEach(modal => modal.remove());
             this.openTemple();
         }, 100);
