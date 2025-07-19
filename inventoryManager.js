@@ -508,12 +508,12 @@ class InventoryManager {
                 </div>
                 <div style="display: flex; gap: 5px;">
                     ${item.type !== 'consumable' ? `
-                        <button onclick="window.game.inventoryManager.equipItemByIndex(${index})" 
+                        <button onclick="window.inventoryManager.equipItemByIndex(${index})" 
                                 style="padding: 2px 8px; background: #2a4d3a; border: 1px solid #51cf66; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
                             Equip
                         </button>
                     ` : `
-                        <button onclick="window.game.inventoryManager.useConsumableByIndex(${index})" 
+                        <button onclick="window.inventoryManager.useConsumableByIndex(${index})" 
                                 style="padding: 2px 8px; background: #4a4a2d; border: 1px solid #ffd93d; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
                             Use
                         </button>
@@ -584,10 +584,18 @@ class InventoryManager {
     
     // Equip item to appropriate slot
     equipItemToSlot(item, character, targetSlot = null) {
+        console.log('equipItemToSlot called with:', item.name, 'for character with slots:', character.equipmentSlots ? Object.keys(character.equipmentSlots) : 'none');
+        
+        if (!character.equipmentSlots) {
+            console.warn('Character has no equipment slots');
+            return false;
+        }
+        
         const compatibleSlots = this.getItemSlotCompatibility(item);
+        console.log('Compatible slots for', item.name, ':', compatibleSlots);
         
         if (compatibleSlots.length === 0) {
-            this.ui.log(`${item.name} cannot be equipped!`);
+            this.ui.log(`${item.name} cannot be equipped - no compatible slots!`);
             return false;
         }
         
@@ -599,20 +607,26 @@ class InventoryManager {
         // Otherwise, find first available compatible slot
         for (const slotId of compatibleSlots) {
             if (!character.equipmentSlots[slotId]) {
+                console.log('Equipping to empty slot:', slotId);
                 return this.equipToSpecificSlot(item, character, slotId);
             }
         }
         
         // If no free slots, replace the first compatible slot
         const slotToReplace = compatibleSlots[0];
+        console.log('Replacing item in slot:', slotToReplace);
         this.unequipFromSlot(character, slotToReplace);
         return this.equipToSpecificSlot(item, character, slotToReplace);
     }
     
     // Equip item to specific slot
     equipToSpecificSlot(item, character, slotId) {
+        console.log('equipToSpecificSlot:', item.name, 'to slot', slotId);
+        
         // Unequip any item currently in the slot
         if (character.equipmentSlots[slotId]) {
+            const currentItem = character.equipmentSlots[slotId];
+            console.log('Unequipping current item:', currentItem.name);
             this.unequipFromSlot(character, slotId);
         }
         
@@ -621,8 +635,9 @@ class InventoryManager {
         item.equipped = true;
         item.equippedSlot = slotId;
         
+        console.log('Successfully equipped', item.name, 'to slot', slotId);
         this.ui.log(`Equipped ${item.name} to ${slotId}!`);
-        this.ui.showNotification(`Equipped ${item.name}!`, "success");
+        
         return true;
     }
     
@@ -654,11 +669,40 @@ class InventoryManager {
             return;
         }
         
+        console.log('Attempting to equip item:', item.name, 'Type:', item.type);
+        
+        // Ensure character manager is available
+        if (!this.gameController.characterManager) {
+            this.ui.log("Character system not ready!");
+            return;
+        }
+        
         // Initialize equipment slots if not done yet
         this.gameController.characterManager.initializeCharacterEquipment(this.gameState.hero);
         
+        // Check if hero has equipment slots now
+        if (!this.gameState.hero.equipmentSlots) {
+            this.ui.log("Equipment system not initialized!");
+            return;
+        }
+        
+        console.log('Hero equipment slots:', Object.keys(this.gameState.hero.equipmentSlots));
+        
+        // Remove item from inventory/equipment arrays first
+        const heroItemIndex = this.gameState.hero.equipment.findIndex(heroItem => heroItem === item);
+        if (heroItemIndex > -1) {
+            this.gameState.hero.equipment.splice(heroItemIndex, 1);
+        } else {
+            const inventoryIndex = this.gameState.hero.inventory.findIndex(heroItem => heroItem === item);
+            if (inventoryIndex > -1) {
+                this.gameState.hero.inventory.splice(inventoryIndex, 1);
+            }
+        }
+        
         // Use new slot-based equipment system
         if (this.equipItemToSlot(item, this.gameState.hero)) {
+            this.ui.log(`Equipped ${item.name}!`);
+            this.ui.showNotification(`Equipped ${item.name}!`, "success");
             this.ui.render();
             
             // Refresh inventory modal
@@ -669,6 +713,10 @@ class InventoryManager {
                     this.openInventory();
                 }
             }, 100);
+        } else {
+            // Put item back if equipping failed
+            this.gameState.hero.equipment.push(item);
+            this.ui.log(`Cannot equip ${item.name}!`);
         }
     }
     
@@ -828,7 +876,7 @@ class InventoryManager {
                     ${item.stats ? Object.entries(item.stats).map(([stat, value]) => 
                         `<br><small style="color: #51cf66;">+${value} ${stat}</small>`).join('') : ''}
                 </div>
-                <button onclick="window.game.inventoryManager.unequipUnderlingItem('${underling.id}', '${item.name}')" 
+                <button onclick="window.inventoryManager.unequipUnderlingItem('${underling.id}', '${item.name}')" 
                         style="padding: 2px 6px; background: #8b4513; border: 1px solid #d4af37; color: white; border-radius: 2px; cursor: pointer; font-size: 9px;">
                     Unequip
                 </button>
@@ -850,7 +898,7 @@ class InventoryManager {
                     ${item.stats ? Object.entries(item.stats).map(([stat, value]) => 
                         `<br><small style="color: #51cf66;">+${value} ${stat}</small>`).join('') : ''}
                 </div>
-                <button onclick="window.game.inventoryManager.equipUnderlingItem('${underling.id}', ${this.getItemIndexInInventory(item)})" 
+                <button onclick="window.inventoryManager.equipUnderlingItem('${underling.id}', ${this.getItemIndexInInventory(item)})" 
                         style="padding: 2px 6px; background: #2a6b2a; border: 1px solid #51cf66; color: white; border-radius: 2px; cursor: pointer; font-size: 9px;">
                     Equip
                 </button>
