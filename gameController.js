@@ -1826,35 +1826,25 @@ class GameController {
             }
         });
         
-        // Remove any enemies with health <= 0 (safety cleanup)
+        // Check if main target is defeated (by hero) BEFORE filtering
+        if (target.health <= 0) {
+            // Use centralized defeat handler
+            this.handleEnemyDefeat(target, 'Hero');
+            
+            // Remove the specific defeated enemy by ID, not by position
+            this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.id !== target.id);
+        }
+
+        // Remove any other enemies with health <= 0 (safety cleanup after underling attacks already processed)
         this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.health > 0);
 
-        // Check if all enemies defeated after underling attacks
+        // Check if all enemies defeated
         if (this.gameState.currentEnemies.length === 0) {
             this.ui.log("All enemies defeated! You can continue deeper or exit the dungeon.");
             this.checkLevelUp();
             this.ui.render();
             this.showVictoryConfirmation();
             return;
-        }
-
-        // Check if main target is defeated (by hero) and still exists in enemy list
-        const targetStillExists = this.gameState.currentEnemies.find(enemy => enemy.id === target.id);
-        if (targetStillExists && target.health <= 0) {
-            // Use centralized defeat handler
-            this.handleEnemyDefeat(target, 'Hero');
-            
-            // Remove the specific defeated enemy by ID, not by position
-            this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.id !== target.id);
-            
-            // Check if all enemies defeated
-            if (this.gameState.currentEnemies.length === 0) {
-                this.ui.log("All enemies defeated! You can continue deeper or exit the dungeon.");
-                this.checkLevelUp();
-                this.ui.render();
-                this.showVictoryConfirmation();
-                return;
-            }
         }
 
         // Update combat chat display immediately to show combat results
@@ -2679,6 +2669,7 @@ class GameController {
         // Restore some health and mana for the party
         const restHpRestore = Math.floor(this.gameState.hero.maxHealth * 0.25); // 25% HP restoration
         const restManaRestore = Math.floor((this.gameState.hero.maxMana || 100) * 0.25); // 25% Mana restoration
+        const restStaminaRestore = Math.floor((this.gameState.hero.maxStamina || 100) * 0.25); // 25% Stamina restoration
         
         // Restore hero
         const heroHpBefore = this.gameState.hero.health;
@@ -2699,7 +2690,7 @@ class GameController {
         
         if (this.gameState.hero.maxStamina) {
             this.gameState.hero.stamina = Math.min(
-                (this.gameState.hero.stamina || 0) + restManaRestore, // Same rate as mana
+                (this.gameState.hero.stamina || 0) + restStaminaRestore, // Use proper stamina restore value
                 this.gameState.hero.maxStamina
             );
         }
@@ -2716,7 +2707,7 @@ class GameController {
             }
             
             if (this.gameState.hero.maxStamina) {
-                restoreText += `, +${Math.min(restManaRestore, this.gameState.hero.maxStamina - heroStaminaBefore)} SP`;
+                restoreText += `, +${Math.min(restStaminaRestore, this.gameState.hero.maxStamina - heroStaminaBefore)} SP`;
             }
             
             restoreText += ')';
@@ -3776,6 +3767,13 @@ class GameController {
                 type: 'consumable'
             },
             { 
+                id: 'stamina_potion', 
+                name: 'Stamina Potion', 
+                cost: 30, 
+                description: 'Restores 30 SP (Consumable)',
+                type: 'consumable'
+            },
+            { 
                 id: 'rations', 
                 name: 'Rations', 
                 cost: 25, 
@@ -3854,6 +3852,15 @@ class GameController {
                     value: 30
                 });
                 this.ui.log("Bought Mana Potion!");
+                break;
+            case 'stamina_potion':
+                this.gameState.hero.equipment.push({
+                    name: "Stamina Potion",
+                    type: "consumable",
+                    effect: "stamina",
+                    value: 30
+                });
+                this.ui.log("Bought Stamina Potion!");
                 break;
             case 'rations':
                 // Add or increase rations count
@@ -4198,6 +4205,11 @@ class GameController {
                 this.gameState.hero.mana = Math.min(this.gameState.hero.mana + item.value, this.gameState.hero.maxMana);
                 this.ui.log(`Used ${item.name}! Restored ${manaAmount} mana.`);
                 break;
+            case 'stamina':
+                const staminaAmount = Math.min(item.value, this.gameState.hero.maxStamina - this.gameState.hero.stamina);
+                this.gameState.hero.stamina = Math.min((this.gameState.hero.stamina || 0) + item.value, this.gameState.hero.maxStamina);
+                this.ui.log(`Used ${item.name}! Restored ${staminaAmount} stamina.`);
+                break;
             default:
                 this.ui.log(`Used ${item.name}!`);
         }
@@ -4354,7 +4366,7 @@ class GameController {
                 description: 'Restore health to yourself or an ally',
                 icon: '💚',
                 type: 'spell',
-                targeting: { type: 'single', validTargets: 'allies', count: 1 },
+                targeting: { type: 'single', validTargets: 'allies_and_self', count: 1 },
                 costs: { mana: 8 },
                 effects: [{
                     type: 'heal',
@@ -4609,13 +4621,19 @@ class GameController {
     getAllCombatCharacters() {
         const characters = [this.gameState.hero];
         
+        // Set factions for proper targeting
+        this.gameState.hero.faction = 'player';
+        
         // Add alive underlings
         if (this.gameState.hero.underlings) {
-            characters.push(...this.gameState.hero.underlings.filter(u => u.isAlive));
+            const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+            aliveUnderlings.forEach(u => u.faction = 'player');
+            characters.push(...aliveUnderlings);
         }
         
         // Add enemies
         if (this.gameState.currentEnemies) {
+            this.gameState.currentEnemies.forEach(e => e.faction = 'enemy');
             characters.push(...this.gameState.currentEnemies);
         }
         
@@ -4765,10 +4783,21 @@ class GameController {
             return false;
         }
 
-        // 30% chance to use an ability instead of normal attack
-        if (Math.random() > 0.3) {
-            return false;
+        // Check if we should skip ability usage (only when single enemy with low health)
+        const enemyCount = this.gameState.currentEnemies ? this.gameState.currentEnemies.length : 0;
+        if (enemyCount === 1) {
+            const singleEnemy = this.gameState.currentEnemies[0];
+            const enemyHealthPercent = singleEnemy.health / singleEnemy.maxHealth;
+            if (enemyHealthPercent < 0.33) {
+                // Skip ability usage when single enemy has <33% health
+                return false;
+            }
         }
+
+        // Otherwise, always try to use an ability (100% chance)
+        // if (Math.random() > 0.3) {
+        //     return false;
+        // }
 
         // Find a usable ability
         const usableAbilities = abilities.filter(ability => {

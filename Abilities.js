@@ -119,10 +119,50 @@ class Ability {
                 validTargets = [caster];
                 break;
             case 'allies':
+                // Set factions if not set
+                allCharacters.forEach(char => {
+                    if (!char.faction) {
+                        if (char.name === 'Hero' || char === gameState?.hero || char.isHero) {
+                            char.faction = 'player';
+                        } else if (char.name && gameState?.hero?.underlings?.includes(char)) {
+                            char.faction = 'player';
+                        } else {
+                            char.faction = 'enemy';
+                        }
+                    }
+                });
                 validTargets = allCharacters.filter(char => 
                     char.faction === caster.faction && char !== caster && char.health > 0);
                 break;
+            case 'allies_and_self':
+                // Set factions if not set
+                allCharacters.forEach(char => {
+                    if (!char.faction) {
+                        if (char.name === 'Hero' || char === gameState?.hero || char.isHero) {
+                            char.faction = 'player';
+                        } else if (char.name && gameState?.hero?.underlings?.includes(char)) {
+                            char.faction = 'player';
+                        } else {
+                            char.faction = 'enemy';
+                        }
+                    }
+                });
+                validTargets = allCharacters.filter(char => 
+                    char.faction === caster.faction && char.health > 0);
+                break;
             case 'enemies':
+                // Set factions if not set
+                allCharacters.forEach(char => {
+                    if (!char.faction) {
+                        if (char.name === 'Hero' || char === gameState?.hero || char.isHero) {
+                            char.faction = 'player';
+                        } else if (char.name && gameState?.hero?.underlings?.includes(char)) {
+                            char.faction = 'player';
+                        } else {
+                            char.faction = 'enemy';
+                        }
+                    }
+                });
                 validTargets = allCharacters.filter(char => 
                     char.faction !== caster.faction && char.health > 0);
                 break;
