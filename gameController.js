@@ -1215,7 +1215,15 @@ class GameController {
 
     // Centralized enemy defeat handler to prevent double rewards
     handleEnemyDefeat(enemy, defeatedBy = 'Hero') {
-        this.ui.log(`${enemy.name} is defeated by ${defeatedBy}!`);
+        // Check if this enemy has already been processed for rewards
+        if (enemy.rewardsProcessed) {
+            return; // Skip duplicate processing
+        }
+        
+        // Mark as processed to prevent double rewards
+        enemy.rewardsProcessed = true;
+        
+        this.ui.log(`${enemy.name} 💀 is defeated by ${defeatedBy}!`);
         
         // Drop loot based on enemy type
         this.dropLoot(enemy);
@@ -1249,7 +1257,7 @@ class GameController {
         this.gameState.hero.fame += xpReward;
         
         const bonusText = defeatedBy === 'Hero' ? ' (Hero bonus + ' : ' (';
-        this.ui.log(`You gained ${goldReward} gold and ${xpReward} experience!${bonusText}Dungeon Lv.${this.gameState.dungeonLevel})`);
+        this.ui.log(`You gained 💰${goldReward} gold and ⭐${xpReward} experience!${bonusText}Dungeon Lv.${this.gameState.dungeonLevel})`);
         this.ui.showNotification(`${defeatedBy} defeated ${enemy.name}! +${goldReward} gold, +${xpReward} XP`, "success");
     }
 
@@ -1409,7 +1417,7 @@ class GameController {
                             <div style="display: flex; align-items: center; margin: ${this.getResponsiveMargin()} 0; padding: ${this.getResponsiveMargin()}; background: #1a0000; border-radius: ${this.getResponsiveBorderRadius()}; border-left: 3px solid #ff6b6b;">
                                 <div style="font-size: ${this.getResponsiveIconSize()}; margin-right: ${this.getResponsiveMargin()};">${getCharacterIcon(enemy.name)}</div>
                                 <div style="flex: 1;">
-                                    <div style="font-weight: bold; color: #ff6b6b; font-size: ${this.getResponsiveFontSize(14)}px;">${enemy.name}</div>
+                                    <div style="font-weight: bold; color: #ff6b6b; font-size: ${this.getResponsiveFontSize(14)}px;">${enemy.name}${this.renderStatusEffects(enemy)}</div>
                                     <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #ccc;">Level ${enemy.level} | Attack: ${enemy.attack}</div>
                                     <div style="margin-top: 3px;">
                                         <span style="color: ${getHealthColor(enemy.health, enemy.maxHealth)}; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px;">${enemy.health}</span>
@@ -1428,7 +1436,7 @@ class GameController {
                         <div style="display: flex; align-items: center; margin: ${this.getResponsiveMargin()} 0; padding: ${this.getResponsiveMargin()}; background: #0a1a0a; border-radius: ${this.getResponsiveBorderRadius()}; border-left: 3px solid #d4af37;">
                             <div style="font-size: ${this.getResponsiveIconSize()}; margin-right: ${this.getResponsiveMargin()};">${getCharacterIcon('hero')}</div>
                             <div style="flex: 1;">
-                                <div style="font-weight: bold; color: #d4af37; font-size: ${this.getResponsiveFontSize(14)}px;">${this.gameState.hero.name || 'Hero'}</div>
+                                <div style="font-weight: bold; color: #d4af37; font-size: ${this.getResponsiveFontSize(14)}px;">${this.gameState.hero.name || 'Hero'}${this.renderStatusEffects(this.gameState.hero)}</div>
                                 <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #ccc;">Level ${this.gameState.hero.level} | Leader</div>
                                 <div style="margin-top: 3px;">
                                     <span style="color: ${getHealthColor(this.gameState.hero.health, this.gameState.hero.maxHealth)}; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px;">${this.gameState.hero.health}</span>
@@ -1447,7 +1455,7 @@ class GameController {
                             <div style="display: flex; align-items: center; margin: ${this.getResponsiveMargin()} 0; padding: ${this.getResponsiveMargin()}; background: #0a1a0a; border-radius: ${this.getResponsiveBorderRadius()}; border-left: 3px solid #51cf66;">
                                 <div style="font-size: ${this.getResponsiveIconSize()}; margin-right: ${this.getResponsiveMargin()};">${getCharacterIcon(underling.type)}</div>
                                 <div style="flex: 1;">
-                                    <div style="font-weight: bold; color: #51cf66; font-size: ${this.getResponsiveFontSize(14)}px;">${underling.name}</div>
+                                    <div style="font-weight: bold; color: #51cf66; font-size: ${this.getResponsiveFontSize(14)}px;">${underling.name}${this.renderStatusEffects(underling)}</div>
                                     <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #ccc;">Level ${underling.level} | ${underling.type}</div>
                                     <div style="margin-top: 3px;">
                                         <span style="color: ${getHealthColor(underling.health, underling.maxHealth)}; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px;">${underling.health}</span>
@@ -2174,6 +2182,9 @@ class GameController {
     }
 
     enemiesAttack() {
+        // Process status effects at the start of the enemy turn
+        this.processAllStatusEffects();
+        
         // Ensure all underlings have maxHealth (for backward compatibility)
         this.gameState.hero.underlings.forEach(underling => {
             if (!underling.maxHealth) {
@@ -2192,6 +2203,14 @@ class GameController {
         const allTargets = [this.gameState.hero, ...aliveUnderlings];
         
         this.gameState.currentEnemies.forEach(enemy => {
+            // Check if enemy is stunned or paralyzed
+            if (enemy.statusEffects && (enemy.statusEffects.stunned || enemy.statusEffects.paralyzed)) {
+                const effectName = enemy.statusEffects.stunned ? 'stunned' : 'paralyzed';
+                const effectIcon = this.getStatusEffectInfo()[effectName].icon;
+                this.ui.log(`${enemy.name} is ${effectName} and cannot act! ${effectIcon}`);
+                return; // Skip this enemy's turn
+            }
+            
             // Try monster abilities first (25% chance)
             if (this.tryMonsterAbility(enemy)) {
                 return; // Skip normal attack if ability was used
@@ -4355,8 +4374,163 @@ class GameController {
     }
 
     /**
-     * Hero Abilities System
+     * Status Effect System
      */
+    getStatusEffectInfo() {
+        return {
+            // Buffs (positive effects)
+            'attack_buff': { 
+                icon: '⚔️', 
+                color: '#51cf66', 
+                name: 'Attack Boost',
+                description: 'Increased attack power'
+            },
+            'defense_buff': { 
+                icon: '🛡️', 
+                color: '#51cf66', 
+                name: 'Defense Boost',
+                description: 'Increased defense'
+            },
+            
+            // Debuffs (negative effects)
+            'attack_debuff': { 
+                icon: '🗡️', 
+                color: '#ff6b6b', 
+                name: 'Weakened',
+                description: 'Reduced attack power'
+            },
+            'defense_debuff': { 
+                icon: '💔', 
+                color: '#ff6b6b', 
+                name: 'Vulnerable',
+                description: 'Reduced defense'
+            },
+            
+            // Crowd Control
+            'stunned': { 
+                icon: '💫', 
+                color: '#ffd93d', 
+                name: 'Stunned',
+                description: 'Cannot act for this turn'
+            },
+            'paralyzed': { 
+                icon: '⚡', 
+                color: '#ffd93d', 
+                name: 'Paralyzed',
+                description: 'Cannot move or act'
+            },
+            
+            // Damage Over Time
+            'poison': { 
+                icon: '☠️', 
+                color: '#9f7aea', 
+                name: 'Poisoned',
+                description: 'Takes poison damage each turn'
+            },
+            'bleeding': { 
+                icon: '🩸', 
+                color: '#e53e3e', 
+                name: 'Bleeding',
+                description: 'Loses health each turn'
+            },
+            'burn': { 
+                icon: '🔥', 
+                color: '#fd79a8', 
+                name: 'Burning',
+                description: 'Takes fire damage each turn'
+            },
+            
+            // Special Effects  
+            'regeneration': { 
+                icon: '💚', 
+                color: '#51cf66', 
+                name: 'Regenerating',
+                description: 'Heals each turn'
+            }
+        };
+    }
+
+    renderStatusEffects(character) {
+        if (!character.statusEffects || Object.keys(character.statusEffects).length === 0) {
+            return '';
+        }
+        
+        const statusInfo = this.getStatusEffectInfo();
+        let statusHtml = '<div class="status-effects" style="display: inline-block; margin-left: 5px;">';
+        
+        for (const [effectType, effectData] of Object.entries(character.statusEffects)) {
+            const info = statusInfo[effectType];
+            if (info && effectData.duration > 0) {
+                statusHtml += `
+                    <span class="status-icon" 
+                          style="color: ${info.color}; font-size: 12px; margin: 0 1px; cursor: help;" 
+                          title="${info.name}: ${info.description}&#10;Turns remaining: ${effectData.duration}&#10;Value: ${effectData.value || 'N/A'}">
+                        ${info.icon}
+                    </span>
+                `;
+            }
+        }
+        
+        statusHtml += '</div>';
+        return statusHtml;
+    }
+
+    updateStatusEffects(character) {
+        if (!character.statusEffects) {
+            character.statusEffects = {};
+            return;
+        }
+        
+        // Process each status effect
+        for (const [effectType, effectData] of Object.entries(character.statusEffects)) {
+            // Apply effect if it's an ongoing effect
+            if (effectType === 'poison' || effectType === 'bleeding' || effectType === 'burn') {
+                const damage = effectData.value || 3;
+                character.health = Math.max(0, character.health - damage);
+                this.ui.log(`${character.name} takes ${damage} ${effectType} damage! ${this.getStatusEffectInfo()[effectType].icon}`);
+            } else if (effectType === 'regeneration') {
+                const healing = effectData.value || 5;
+                const actualHealing = Math.min(healing, character.maxHealth - character.health);
+                character.health = Math.min(character.maxHealth, character.health + healing);
+                if (actualHealing > 0) {
+                    this.ui.log(`${character.name} regenerates ${actualHealing} health! 💚`);
+                }
+            }
+            
+            // Decrease duration
+            effectData.duration--;
+            
+            // Remove expired effects
+            if (effectData.duration <= 0) {
+                delete character.statusEffects[effectType];
+                const statusInfo = this.getStatusEffectInfo()[effectType];
+                if (statusInfo) {
+                    this.ui.log(`${character.name} recovers from ${statusInfo.name} ${statusInfo.icon}`);
+                }
+            }
+        }
+    }
+
+    processAllStatusEffects() {
+        // Process hero status effects
+        this.updateStatusEffects(this.gameState.hero);
+        
+        // Process underling status effects
+        if (this.gameState.hero.underlings) {
+            this.gameState.hero.underlings.forEach(underling => {
+                if (underling.isAlive) {
+                    this.updateStatusEffects(underling);
+                }
+            });
+        }
+        
+        // Process enemy status effects
+        if (this.gameState.currentEnemies) {
+            this.gameState.currentEnemies.forEach(enemy => {
+                this.updateStatusEffects(enemy);
+            });
+        }
+    }
     getHeroAbilities() {
         // Define hero abilities that scale with level and stats
         const abilities = {

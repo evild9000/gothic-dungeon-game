@@ -383,19 +383,14 @@ class Ability {
      */
     applyStatusEffect(target, effectType, value, duration) {
         if (!target.statusEffects) {
-            target.statusEffects = [];
+            target.statusEffects = {};
         }
         
-        // Remove existing effect of same type
-        target.statusEffects = target.statusEffects.filter(effect => effect.type !== effectType);
-        
-        // Add new effect
-        target.statusEffects.push({
-            type: effectType,
+        // Add or update effect
+        target.statusEffects[effectType] = {
             value: value,
-            duration: duration,
-            turnsRemaining: duration
-        });
+            duration: duration
+        };
     }
 }
 
