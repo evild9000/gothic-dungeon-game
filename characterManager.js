@@ -452,7 +452,137 @@ class CharacterManager {
             }
         ];
 
-        this.gameController.createDockedModal("Character Management", characterContent, characterButtons);
+        // Create wider modal for character management
+        this.createCharacterModal("Character Management", characterContent, characterButtons);
+    }
+
+    createCharacterModal(title, content, buttons = []) {
+        // Remove any existing modals
+        const existingModals = document.querySelectorAll('.docked-modal');
+        existingModals.forEach(modal => modal.remove());
+        
+        const modal = document.createElement('div');
+        modal.className = 'docked-modal character-modal';
+        
+        // Responsive sizing - character management needs more space
+        const isMobile = window.innerWidth <= 768;
+        
+        modal.style.cssText = `
+            position: fixed;
+            top: ${isMobile ? '10px' : '30px'};
+            left: ${isMobile ? '10px' : '30px'};
+            width: ${isMobile ? 'calc(100vw - 20px)' : '900px'};
+            max-width: ${isMobile ? 'none' : '97vw'};
+            max-height: ${isMobile ? 'calc(100vh - 20px)' : 'calc(100vh - 60px)'};
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1419 100%);
+            border: 2px solid #4a5568;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            font-family: 'Cinzel', serif;
+        `;
+        
+        // Modal header
+        const header = document.createElement('div');
+        header.style.cssText = `
+            background: linear-gradient(90deg, #2d3748, #4a5568);
+            color: #f7fafc;
+            padding: ${isMobile ? '12px' : '16px'};
+            font-size: ${isMobile ? '16px' : '18px'};
+            font-weight: bold;
+            border-bottom: 1px solid #4a5568;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        `;
+        
+        const titleElement = document.createElement('span');
+        titleElement.textContent = title;
+        titleElement.style.color = '#d4af37';
+        
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '✕';
+        closeButton.style.cssText = `
+            background: none;
+            border: none;
+            color: #f7fafc;
+            font-size: ${isMobile ? '18px' : '20px'};
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        `;
+        closeButton.onmouseover = () => closeButton.style.backgroundColor = '#e53e3e';
+        closeButton.onmouseout = () => closeButton.style.backgroundColor = 'transparent';
+        closeButton.onclick = () => modal.remove();
+        
+        header.appendChild(titleElement);
+        header.appendChild(closeButton);
+        
+        // Modal content
+        const contentDiv = document.createElement('div');
+        contentDiv.style.cssText = `
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: auto;
+            padding: ${isMobile ? '12px' : '20px'};
+            color: #f7fafc;
+        `;
+        contentDiv.innerHTML = content;
+        
+        // Modal footer with buttons
+        if (buttons.length > 0) {
+            const footer = document.createElement('div');
+            footer.style.cssText = `
+                background: linear-gradient(90deg, #2d3748, #4a5568);
+                padding: ${isMobile ? '12px' : '16px'};
+                border-top: 1px solid #4a5568;
+                display: flex;
+                gap: ${isMobile ? '8px' : '12px'};
+                flex-wrap: wrap;
+                justify-content: flex-end;
+            `;
+            
+            buttons.forEach(button => {
+                const btn = document.createElement('button');
+                btn.textContent = button.text;
+                btn.style.cssText = `
+                    padding: ${isMobile ? '8px 12px' : '10px 16px'};
+                    background: linear-gradient(45deg, #2a4d3a, #4a7c59);
+                    border: 1px solid #51cf66;
+                    color: white;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: ${isMobile ? '12px' : '14px'};
+                    font-weight: bold;
+                    transition: all 0.2s;
+                    font-family: 'Cinzel', serif;
+                `;
+                btn.onmouseover = () => {
+                    btn.style.background = 'linear-gradient(45deg, #4a7c59, #6aa76a)';
+                    btn.style.transform = 'translateY(-1px)';
+                };
+                btn.onmouseout = () => {
+                    btn.style.background = 'linear-gradient(45deg, #2a4d3a, #4a7c59)';
+                    btn.style.transform = 'translateY(0)';
+                };
+                btn.onclick = button.onClick;
+                footer.appendChild(btn);
+            });
+            
+            modal.appendChild(header);
+            modal.appendChild(contentDiv);
+            modal.appendChild(footer);
+        } else {
+            modal.appendChild(header);
+            modal.appendChild(contentDiv);
+        }
+        
+        document.body.appendChild(modal);
+        return modal;
     }
     
     generateStatUpgradeHTML(statName, currentValue) {

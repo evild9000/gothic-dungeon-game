@@ -57,11 +57,11 @@ class InventoryManager {
         
         modal.style.cssText = `
             position: fixed;
-            top: ${isMobile ? '10px' : '20px'};
-            right: ${isMobile ? '10px' : '20px'};
-            width: ${isMobile ? 'calc(100vw - 20px)' : '600px'};
-            max-width: ${isMobile ? 'none' : '90vw'};
-            max-height: ${isMobile ? 'calc(100vh - 20px)' : 'calc(100vh - 40px)'};
+            top: ${isMobile ? '10px' : '50px'};
+            left: ${isMobile ? '10px' : '50px'};
+            width: ${isMobile ? 'calc(100vw - 20px)' : '800px'};
+            max-width: ${isMobile ? 'none' : '95vw'};
+            max-height: ${isMobile ? 'calc(100vh - 20px)' : 'calc(100vh - 100px)'};
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1419 100%);
             border: 2px solid #4a5568;
             border-radius: 12px;
@@ -395,23 +395,15 @@ class InventoryManager {
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <h4 style="color: #d4af37; margin: 0;">🎒 Inventory</h4>
                         <div style="color: #51cf66; font-size: 14px; font-weight: bold;">
-                            ${this.getInventoryUsage()}/${this.getInventoryCapacity()} slots
+                            ${this.getInventoryUsage()} items (infinite capacity)
                         </div>
                     </div>
                     ${this.generateInventoryHTML()}
                     
                     <!-- Inventory Management -->
                     <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #444;">
-                        ${this.canExpandInventory() ? `
-                            <button onclick="window.game.controller.inventoryManager.expandInventory()" 
-                                    style="padding: 8px 15px; background: linear-gradient(45deg, #2a4d3a, #4a7c59); border: 1px solid #51cf66; color: white; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: bold;">
-                                🔧 Expand Inventory (${this.getInventoryExpansionCost()} gold)
-                            </button>
-                        ` : `
-                            <span style="color: #888; font-style: italic;">✨ Maximum inventory capacity reached!</span>
-                        `}
                         <div style="margin-top: 10px; font-size: 12px; color: #aaa;">
-                            💡 Tip: Expand your inventory to carry more items. Equipment slots are based on your species (currently human).
+                            💡 Tip: Your party shares one infinite inventory. Equipment slots are based on your species (currently human).
                         </div>
                     </div>
                 </div>
