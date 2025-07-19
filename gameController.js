@@ -196,17 +196,8 @@ class GameController {
             return;
         }
         
-        // Initialize inventory and character managers
+        // Initialize character manager first (no dependencies)
         try {
-            console.log('Initializing InventoryManager...');
-            if (typeof InventoryManager === 'undefined') {
-                throw new Error('InventoryManager class not found. Check if inventoryManager.js is loaded.');
-            }
-            if (!this.inventoryManager) {
-                this.inventoryManager = new InventoryManager(this);
-                console.log('InventoryManager initialized successfully');
-            }
-            
             console.log('Initializing CharacterManager...');
             if (typeof CharacterManager === 'undefined') {
                 throw new Error('CharacterManager class not found. Check if characterManager.js is loaded.');
@@ -214,6 +205,19 @@ class GameController {
             if (!this.characterManager) {
                 this.characterManager = new CharacterManager(this);
                 console.log('CharacterManager initialized successfully');
+            }
+            
+            // Initialize inventory manager second (depends on character manager)
+            console.log('Initializing InventoryManager...');
+            if (typeof InventoryManager === 'undefined') {
+                throw new Error('InventoryManager class not found. Check if inventoryManager.js is loaded.');
+            }
+            if (!this.inventoryManager) {
+                this.inventoryManager = new InventoryManager(this);
+                console.log('InventoryManager initialized successfully');
+                
+                // Now that both managers exist, initialize equipment properly
+                this.inventoryManager.initializeAllCharacterEquipment();
             }
             
             // Apply initial stat bonuses only if character manager is available
@@ -225,6 +229,12 @@ class GameController {
             // Make managers globally accessible for debugging
             window.inventoryManager = this.inventoryManager;
             window.characterManager = this.characterManager;
+            
+            // Also make them accessible through window.game for UI callbacks
+            if (window.game) {
+                window.game.inventoryManager = this.inventoryManager;
+                window.game.characterManager = this.characterManager;
+            }
             
             // Add debug helper to window
             window.debugGameManagers = () => this.debugManagers();

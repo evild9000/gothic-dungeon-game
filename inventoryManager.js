@@ -34,6 +34,12 @@ class InventoryManager {
     }
     
     initializeAllCharacterEquipment() {
+        // Check if character manager is available, if not defer initialization
+        if (!this.gameController.characterManager) {
+            console.log('CharacterManager not yet available, deferring equipment initialization');
+            return;
+        }
+        
         // Initialize hero equipment slots
         this.gameController.characterManager.initializeCharacterEquipment(this.gameState.hero);
         
@@ -399,6 +405,12 @@ class InventoryManager {
                         </div>
                     </div>
                     ${this.generateInventoryHTML()}
+                    
+                    <!-- Underling Equipment Management -->
+                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #444;">
+                        <h4 style="color: #d4af37; margin-bottom: 10px;">⚔️ Underling Equipment</h4>
+                        ${this.generateUnderlingEquipmentHTML()}
+                    </div>
                     
                     <!-- Inventory Management -->
                     <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #444;">
@@ -767,6 +779,193 @@ class InventoryManager {
         }
         
         return stats;
+    }
+    
+    generateUnderlingEquipmentHTML() {
+        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+        
+        if (aliveUnderlings.length === 0) {
+            return '<p style="color: #888; font-style: italic;">No living underlings to equip</p>';
+        }
+        
+        return `
+            <div style="max-height: 300px; overflow-y: auto; background: #1a1a2e; padding: 10px; border-radius: 8px; border: 1px solid #4a5568;">
+                ${aliveUnderlings.map(underling => `
+                    <div style="background: #2a1a3a; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid #6b4c93;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <h5 style="color: #d4af37; margin: 0;">${underling.name} (${underling.type})</h5>
+                            <small style="color: #4ecdc4;">Level ${underling.level} | ${underling.health}/${underling.maxHealth} HP</small>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <!-- Equipped Items -->
+                            <div style="flex: 1; min-width: 200px;">
+                                <h6 style="color: #51cf66; margin: 0 0 5px 0; font-size: 11px;">Equipped:</h6>
+                                ${this.getUnderlingEquippedItems(underling)}
+                            </div>
+                            
+                            <!-- Available Items -->
+                            <div style="flex: 1; min-width: 200px;">
+                                <h6 style="color: #ffd93d; margin: 0 0 5px 0; font-size: 11px;">Available:</h6>
+                                ${this.getUnderlingAvailableItems(underling)}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
+    getUnderlingEquippedItems(underling) {
+        if (!underling.equipment || underling.equipment.filter(item => item.equipped).length === 0) {
+            return '<div style="font-size: 10px; color: #888;">No equipped items</div>';
+        }
+        
+        return underling.equipment.filter(item => item.equipped).map(item => `
+            <div style="background: #1a1a2e; padding: 4px; margin: 2px 0; border-radius: 3px; font-size: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>${item.name}</strong> (${item.type})
+                    ${item.stats ? Object.entries(item.stats).map(([stat, value]) => 
+                        `<br><small style="color: #51cf66;">+${value} ${stat}</small>`).join('') : ''}
+                </div>
+                <button onclick="window.game.inventoryManager.unequipUnderlingItem('${underling.id}', '${item.name}')" 
+                        style="padding: 2px 6px; background: #8b4513; border: 1px solid #d4af37; color: white; border-radius: 2px; cursor: pointer; font-size: 9px;">
+                    Unequip
+                </button>
+            </div>
+        `).join('');
+    }
+    
+    getUnderlingAvailableItems(underling) {
+        const availableItems = this.getUnderlingCompatibleItems(underling);
+        
+        if (availableItems.length === 0) {
+            return '<div style="font-size: 10px; color: #888;">No compatible items</div>';
+        }
+        
+        return availableItems.slice(0, 3).map((item, index) => `
+            <div style="background: #1a1a2e; padding: 4px; margin: 2px 0; border-radius: 3px; font-size: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>${item.name}</strong> (${item.type})
+                    ${item.stats ? Object.entries(item.stats).map(([stat, value]) => 
+                        `<br><small style="color: #51cf66;">+${value} ${stat}</small>`).join('') : ''}
+                </div>
+                <button onclick="window.game.inventoryManager.equipUnderlingItem('${underling.id}', ${this.getItemIndexInInventory(item)})" 
+                        style="padding: 2px 6px; background: #2a6b2a; border: 1px solid #51cf66; color: white; border-radius: 2px; cursor: pointer; font-size: 9px;">
+                    Equip
+                </button>
+            </div>
+        `).join('') + (availableItems.length > 3 ? `<div style="font-size: 9px; color: #888; text-align: center;">+${availableItems.length - 3} more items...</div>` : '');
+    }
+    
+    getUnderlingCompatibleItems(underling) {
+        // Get hero's inventory items that could be given to underlings
+        const heroItems = this.gameState.hero.equipment.filter(item => 
+            !item.equipped && 
+            (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory' || item.type === 'consumable')
+        );
+        
+        // All items can be given to underlings (equipment and consumables)
+        return heroItems;
+    }
+    
+    getItemIndexInInventory(targetItem) {
+        const availableItems = [...this.gameState.hero.inventory, ...this.gameState.hero.equipment.filter(item => !item.equipped)];
+        return availableItems.findIndex(item => item === targetItem);
+    }
+    
+    equipUnderlingItem(underlingId, itemIndex) {
+        const underling = this.gameState.hero.underlings.find(u => u.id.toString() === underlingId.toString());
+        if (!underling || !underling.isAlive) {
+            this.ui.log("Cannot find living underling!");
+            return;
+        }
+
+        const availableItems = [...this.gameState.hero.inventory, ...this.gameState.hero.equipment.filter(item => !item.equipped)];
+        const item = availableItems[itemIndex];
+        if (!item) {
+            this.ui.log("Item not found!");
+            return;
+        }
+
+        // Remove from hero's equipment/inventory and add to underling's equipment
+        const heroItemIndex = this.gameState.hero.equipment.findIndex(heroItem => heroItem === item);
+        if (heroItemIndex > -1) {
+            this.gameState.hero.equipment.splice(heroItemIndex, 1);
+        } else {
+            const inventoryIndex = this.gameState.hero.inventory.findIndex(heroItem => heroItem === item);
+            if (inventoryIndex > -1) {
+                this.gameState.hero.inventory.splice(inventoryIndex, 1);
+            }
+        }
+        
+        // Ensure underling has equipment array
+        if (!underling.equipment) {
+            underling.equipment = [];
+        }
+        
+        // Unequip same type items first
+        underling.equipment.forEach(equippedItem => {
+            if (equippedItem.type === item.type && equippedItem.equipped) {
+                equippedItem.equipped = false;
+                this.gameState.hero.equipment.push(equippedItem);
+            }
+        });
+        underling.equipment = underling.equipment.filter(equippedItem => 
+            !(equippedItem.type === item.type && !equippedItem.equipped)
+        );
+        
+        // Equip new item
+        item.equipped = true;
+        underling.equipment.push(item);
+        
+        this.ui.log(`${underling.name} equipped ${item.name}!`);
+        this.ui.showNotification(`${underling.name} equipped ${item.name}!`, "success");
+        this.ui.render();
+        
+        // Refresh inventory modal
+        setTimeout(() => {
+            const modal = document.querySelector('.docked-modal');
+            if (modal) {
+                modal.remove();
+                this.openInventory();
+            }
+        }, 100);
+    }
+    
+    unequipUnderlingItem(underlingId, itemName) {
+        const underling = this.gameState.hero.underlings.find(u => u.id.toString() === underlingId.toString());
+        if (!underling || !underling.isAlive) {
+            this.ui.log("Cannot find living underling!");
+            return;
+        }
+
+        const item = underling.equipment ? underling.equipment.find(item => item.name === itemName && item.equipped) : null;
+        if (!item) {
+            this.ui.log("Item not found on underling!");
+            return;
+        }
+
+        // Remove from underling and return to hero's inventory
+        const itemIndex = underling.equipment.findIndex(equippedItem => equippedItem === item);
+        if (itemIndex > -1) {
+            underling.equipment.splice(itemIndex, 1);
+            item.equipped = false;
+            this.gameState.hero.equipment.push(item);
+            
+            this.ui.log(`${underling.name} unequipped ${item.name}!`);
+            this.ui.showNotification(`${item.name} returned to inventory!`, "info");
+            this.ui.render();
+            
+            // Refresh inventory modal
+            setTimeout(() => {
+                const modal = document.querySelector('.docked-modal');
+                if (modal) {
+                    modal.remove();
+                    this.openInventory();
+                }
+            }, 100);
+        }
     }
 }
 
