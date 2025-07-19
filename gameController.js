@@ -1838,8 +1838,9 @@ class GameController {
             return;
         }
 
-        // Check if main target is defeated (by hero)
-        if (target.health <= 0) {
+        // Check if main target is defeated (by hero) and still exists in enemy list
+        const targetStillExists = this.gameState.currentEnemies.find(enemy => enemy.id === target.id);
+        if (targetStillExists && target.health <= 0) {
             // Use centralized defeat handler
             this.handleEnemyDefeat(target, 'Hero');
             
@@ -4366,10 +4367,10 @@ class GameController {
             'hero_fireball': new Ability({
                 id: 'hero_fireball',
                 name: 'Fireball',
-                description: 'Launch a ball of fire at an enemy',
+                description: 'Launch a ball of fire at enemies',
                 icon: '🔥',
                 type: 'spell',
-                targeting: { type: 'single', validTargets: 'enemies', count: 1, range: 'ranged' },
+                targeting: { type: 'multiple', validTargets: 'enemies', count: 3, range: 'ranged' },
                 costs: { mana: 12 },
                 effects: [{
                     type: 'damage',
@@ -4382,10 +4383,10 @@ class GameController {
             'hero_lightning': new Ability({
                 id: 'hero_lightning',
                 name: 'Lightning Bolt',
-                description: 'Strike an enemy with lightning',
+                description: 'Chain lightning that arcs between enemies',
                 icon: '⚡',
                 type: 'spell',
-                targeting: { type: 'single', validTargets: 'enemies', count: 1, range: 'ranged' },
+                targeting: { type: 'multiple', validTargets: 'enemies', count: 2, range: 'ranged' },
                 costs: { mana: 10 },
                 effects: [{
                     type: 'damage',
@@ -4645,9 +4646,15 @@ class GameController {
         
         if (ability.targeting.type === 'self') {
             targets = [this.gameState.hero];
-        } else if (ability.targeting.type === 'all') {
+        } else if (ability.targeting.type === 'all' || ability.targeting.type === 'multiple') {
             targets = ability.getValidTargets(this.gameState.hero, allCharacters, this.gameState);
+            
+            // For multiple targeting, limit to the specified count
+            if (ability.targeting.type === 'multiple' && typeof ability.targeting.count === 'number') {
+                targets = targets.slice(0, ability.targeting.count);
+            }
         } else {
+            // Single target abilities need target selection
             const selectedTargetId = targetSelect ? targetSelect.value : '';
             if (!selectedTargetId) {
                 this.ui.showNotification("Please select a target!", "error");
@@ -4681,6 +4688,14 @@ class GameController {
                 return;
             }
             
+            // Special check for healing abilities - don't heal if already at full health
+            if (ability.effects && ability.effects.some(effect => effect.type === 'heal')) {
+                if (target.health >= target.maxHealth) {
+                    this.ui.showNotification(`${target.name || 'Target'} is already at full health!`, "error");
+                    return;
+                }
+            }
+            
             targets = [target];
         }
         
@@ -4698,8 +4713,11 @@ class GameController {
             }
             this.ui.showNotification("Ability cast successfully!", "success");
             
-            // Close modal and continue combat
-            this.closeModal();
+            // Close the docked modal and continue combat
+            const modal = document.querySelector('.docked-modal');
+            if (modal) {
+                modal.remove();
+            }
             
             // Trigger enemy turn
             setTimeout(() => {
@@ -4809,14 +4827,16 @@ class GameController {
         const result = selectedAbility.use(underling, targets, this.gameState, this);
         
         if (result.success) {
-            this.ui.log(`${underling.name} uses ${selectedAbility.name}!`);
+            this.ui.log(`🔮 ${underling.name} uses ${selectedAbility.name}! ${selectedAbility.icon}`);
             if (result.results) {
                 result.results.forEach(r => {
                     if (r.message) {
-                        this.ui.log(`  ${r.message}`);
+                        this.ui.log(`  ✨ ${r.message}`);
                     }
                 });
             }
+        } else {
+            this.ui.log(`❌ ${underling.name} failed to use ${selectedAbility.name}: ${result.message || 'Unknown error'}`);
         }
         
         return true;
@@ -4880,14 +4900,16 @@ class GameController {
         const result = ability.use(monster, targets, this.gameState, this);
         
         if (result.success) {
-            this.ui.log(`${monster.name} uses ${ability.name}!`);
+            this.ui.log(`👹 ${monster.name} uses ${ability.name}! ${ability.icon}`);
             if (result.results) {
                 result.results.forEach(r => {
                     if (r.message) {
-                        this.ui.log(r.message);
+                        this.ui.log(`  💀 ${r.message}`);
                     }
                 });
             }
+        } else {
+            this.ui.log(`❌ ${monster.name} failed to use ${ability.name}: ${result.message || 'Unknown error'}`);
         }
         
         return result.success;
