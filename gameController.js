@@ -23,6 +23,9 @@ class GameController {
                 equipment: [],
                 skills: [],
                 underlings: [],
+                // New inventory system
+                inventorySlots: 20,
+                inventory: []
             },
             dungeonLevel: 1,
             chatLog: [],
@@ -33,10 +36,155 @@ class GameController {
         
         this.ui = null; // Will be set when UI is initialized
         this.heroNamingInProgress = false; // Flag to prevent multiple naming prompts
+        
+        // Initialize managers - will be set after UI is ready
+        this.inventoryManager = null;
+        this.characterManager = null;
     }
 
     setUI(uiManager) {
         this.ui = uiManager;
+        
+        // Initialize managers after UI is set
+        this.initializeManagers();
+    }
+    
+    // Create docked modal similar to combat interface for consistency
+    createDockedModal(title, content, buttons = [], additionalClasses = '') {
+        // Remove any existing docked modals
+        const existingModals = document.querySelectorAll('.docked-modal');
+        existingModals.forEach(modal => modal.remove());
+        
+        const modal = document.createElement('div');
+        modal.className = `docked-modal ${additionalClasses}`;
+        
+        // Responsive sizing
+        const isMobile = window.innerWidth <= 768;
+        
+        modal.style.cssText = `
+            position: fixed;
+            top: ${isMobile ? '10px' : '20px'};
+            right: ${isMobile ? '10px' : '20px'};
+            width: ${isMobile ? 'calc(100vw - 20px)' : '650px'};
+            max-width: ${isMobile ? 'none' : '90vw'};
+            max-height: ${isMobile ? 'calc(100vh - 20px)' : 'calc(100vh - 40px)'};
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1419 100%);
+            border: 2px solid #4a5568;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            font-family: 'Cinzel', serif;
+        `;
+        
+        // Modal header
+        const header = document.createElement('div');
+        header.style.cssText = `
+            background: linear-gradient(90deg, #2d3748, #4a5568);
+            color: #f7fafc;
+            padding: ${isMobile ? '12px' : '16px'};
+            font-size: ${isMobile ? '16px' : '18px'};
+            font-weight: bold;
+            border-bottom: 1px solid #4a5568;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        `;
+        
+        const titleElement = document.createElement('span');
+        titleElement.textContent = title;
+        titleElement.style.color = '#d4af37';
+        
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '✕';
+        closeButton.style.cssText = `
+            background: none;
+            border: none;
+            color: #f7fafc;
+            font-size: ${isMobile ? '18px' : '20px'};
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        `;
+        closeButton.onmouseover = () => closeButton.style.backgroundColor = '#e53e3e';
+        closeButton.onmouseout = () => closeButton.style.backgroundColor = 'transparent';
+        closeButton.onclick = () => modal.remove();
+        
+        header.appendChild(titleElement);
+        header.appendChild(closeButton);
+        
+        // Modal content
+        const contentDiv = document.createElement('div');
+        contentDiv.style.cssText = `
+            flex: 1;
+            overflow-y: auto;
+            padding: ${isMobile ? '12px' : '20px'};
+            color: #f7fafc;
+        `;
+        contentDiv.innerHTML = content;
+        
+        // Modal footer with buttons
+        if (buttons.length > 0) {
+            const footer = document.createElement('div');
+            footer.style.cssText = `
+                background: linear-gradient(90deg, #2d3748, #4a5568);
+                padding: ${isMobile ? '12px' : '16px'};
+                border-top: 1px solid #4a5568;
+                display: flex;
+                gap: ${isMobile ? '8px' : '12px'};
+                flex-wrap: wrap;
+                justify-content: flex-end;
+            `;
+            
+            buttons.forEach(button => {
+                const btn = document.createElement('button');
+                btn.textContent = button.text;
+                btn.style.cssText = `
+                    padding: ${isMobile ? '8px 12px' : '10px 16px'};
+                    background: linear-gradient(45deg, #2a4d3a, #4a7c59);
+                    border: 1px solid #51cf66;
+                    color: white;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: ${isMobile ? '12px' : '14px'};
+                    font-weight: bold;
+                    transition: all 0.2s;
+                    font-family: 'Cinzel', serif;
+                `;
+                btn.onmouseover = () => {
+                    btn.style.background = 'linear-gradient(45deg, #4a7c59, #6aa76a)';
+                    btn.style.transform = 'translateY(-1px)';
+                };
+                btn.onmouseout = () => {
+                    btn.style.background = 'linear-gradient(45deg, #2a4d3a, #4a7c59)';
+                    btn.style.transform = 'translateY(0)';
+                };
+                btn.onclick = button.onClick;
+                footer.appendChild(btn);
+            });
+            
+            modal.appendChild(header);
+            modal.appendChild(contentDiv);
+            modal.appendChild(footer);
+        } else {
+            modal.appendChild(header);
+            modal.appendChild(contentDiv);
+        }
+        
+        document.body.appendChild(modal);
+        return modal;
+    }
+    
+    initializeManagers() {
+        // Initialize inventory and character managers
+        this.inventoryManager = new InventoryManager(this);
+        this.characterManager = new CharacterManager(this);
+        
+        // Apply initial stat bonuses
+        this.characterManager.applyStatBonuses();
     }
 
     // Mobile detection and responsive helpers
@@ -2781,10 +2929,13 @@ class GameController {
             </div>
         `;
 
-        this.ui.createModal("Crafting Workshop", craftingContent, [
+        this.createDockedModal("Crafting Workshop", craftingContent, [
             {
                 text: "Close Workshop",
-                onClick: () => this.returnToVillage()
+                onClick: () => {
+                    document.querySelector('.docked-modal').remove();
+                    this.returnToVillage();
+                }
             }
         ]);
     }
@@ -2959,10 +3110,13 @@ class GameController {
             </div>
         `;
 
-        this.ui.createModal("Recruitment Center", recruitmentContent, [
+        this.createDockedModal("Recruitment Center", recruitmentContent, [
             {
                 text: "Leave Center",
-                onClick: () => this.returnToVillage()
+                onClick: () => {
+                    document.querySelector('.docked-modal').remove();
+                    this.returnToVillage();
+                }
             }
         ]);
     }
@@ -3146,10 +3300,13 @@ class GameController {
             </div>
         `;
 
-        this.ui.createModal("General Store", shopContent, [
+        this.createDockedModal("General Store", shopContent, [
             {
                 text: "Leave Store",
-                onClick: () => this.returnToVillage()
+                onClick: () => {
+                    document.querySelector('.docked-modal').remove();
+                    this.returnToVillage();
+                }
             }
         ]);
     }
@@ -3293,7 +3450,21 @@ class GameController {
             onClick: () => this.returnToVillage()
         });
 
-        this.ui.createModal("Sacred Temple", templeContent, templeButtons);
+        // Update the Leave Temple button to close the docked modal
+        templeButtons = templeButtons.map(button => {
+            if (button.text === "Leave Temple") {
+                return {
+                    ...button,
+                    onClick: () => {
+                        document.querySelector('.docked-modal').remove();
+                        this.returnToVillage();
+                    }
+                };
+            }
+            return button;
+        });
+        
+        this.createDockedModal("Sacred Temple", templeContent, templeButtons);
     }
 
     buyTempleItem(itemType, cost) {
@@ -3616,69 +3787,11 @@ class GameController {
     }
 
     openInventory() {
-        this.ui.log("Opening inventory...");
-        
-        const equipment = this.gameState.hero.equipment;
-        const equippedItems = equipment.filter(item => item.equipped);
-        const unequippedItems = equipment.filter(item => !item.equipped);
-        
-        let inventoryContent = `
-            <div style="display: flex; gap: 20px;">
-                <div style="flex: 1;">
-                    <h4>Equipped Items</h4>
-                    ${equippedItems.length > 0 ? 
-                        equippedItems.map(item => `
-                            <div style="background: #1a1a1a; padding: 8px; margin: 5px 0; border-radius: 5px;">
-                                <strong>${item.name}</strong> (${item.type})
-                                ${item.stats ? Object.entries(item.stats).map(([stat, value]) => 
-                                    `<br><small>+${value} ${stat}</small>`).join('') : ''}
-                            </div>
-                        `).join('') : 
-                        '<p style="color: #888;">No items equipped</p>'
-                    }
-                </div>
-                <div style="flex: 1;">
-                    <h4>Inventory</h4>
-                    ${unequippedItems.length > 0 ? 
-                        unequippedItems.map((item, index) => `
-                            <div style="background: #1a1a1a; padding: 8px; margin: 5px 0; border-radius: 5px;">
-                                <strong>${item.name}</strong> (${item.type})
-                                ${item.stats ? Object.entries(item.stats).map(([stat, value]) => 
-                                    `<br><small>+${value} ${stat}</small>`).join('') : ''}
-                                ${item.effect ? `<br><small>Effect: ${item.effect} ${item.value || ''}</small>` : ''}
-                                <br><button onclick="window.game.controller.equipItem(${index})" style="margin-top: 5px; padding: 2px 8px; background: #2a2a2a; border: 1px solid #555; color: white; border-radius: 3px; cursor: pointer;">
-                                    ${item.type === 'consumable' ? 'Use' : 'Equip'}
-                                </button>
-                            </div>
-                        `).join('') : 
-                        '<p style="color: #888;">Inventory is empty</p>'
-                    }
-                </div>
-            </div>
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #444;">
-                <p><strong>Hero Stats:</strong></p>
-                <p>Gold: ${this.gameState.hero.gold} | Level: ${this.gameState.hero.level} | Fame: ${this.gameState.hero.fame}</p>
-                <p>Total Items: ${equipment.length} | Equipped: ${equippedItems.length}</p>
-            </div>
-        `;
-
-        const inventoryButtons = [
-            {
-                text: "Close",
-                onClick: () => {}
-            }
-        ];
-
-        // Add equipment management button if there are living underlings
-        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
-        if (aliveUnderlings.length > 0) {
-            inventoryButtons.unshift({
-                text: "Manage Underling Equipment",
-                onClick: () => this.manageUnderlingEquipment()
-            });
+        if (this.inventoryManager) {
+            this.inventoryManager.openInventory();
+        } else {
+            this.ui.log("Inventory system not initialized!");
         }
-
-        this.ui.createModal("Inventory & Equipment", inventoryContent, inventoryButtons);
     }
 
     equipItem(itemIndex) {
@@ -3735,274 +3848,43 @@ class GameController {
     }
 
     openCharacterManagement() {
-        this.ui.log("Opening character management...");
-        
-        // Ensure hero stats are properly initialized
-        this.ensureHeroStatsInitialized();
-        
-        const hero = this.gameState.hero;
-        const equippedStats = this.calculateEquippedStats();
-        
-        let characterContent = `
-            <div style="display: flex; gap: 25px; max-width: 1000px; margin: 0 auto; align-items: flex-start; justify-content: center; padding-top: 10px;">
-                <div style="flex: 1; min-width: 450px;">
-                    <h4 style="text-align: center; color: #d4af37; margin-bottom: 15px;">Hero: ${hero.name}</h4>
-                    <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                        <p><strong>Level:</strong> ${hero.level}</p>
-                        <p><strong>Fame (XP):</strong> ${hero.fame} / ${hero.level * 100}</p>
-                        <p><strong>Gold:</strong> ${hero.gold}</p>
-                        <p><strong>Rations:</strong> ${hero.rations || 0}</p>
-                        <p><strong>Leadership:</strong> ${hero.leadership}</p>
-                        <p style="font-size: 12px; color: #aaa; margin-left: 20px;">Next upgrade cost: ${Math.pow(hero.leadership + 1, 2) * 10} gold</p>
-                        <hr style="margin: 10px 0; border-color: #444;">
-                        <p><strong>Core Attributes (Base):</strong></p>
-                        <p>Strength: ${hero.strength || 5} (Melee attack bonus: +${this.calculateAttackBonus(hero, 'melee')} [STR: +${Math.floor((hero.strength - 5) * 0.5)} + SIZE: ${this.calculateSizeAttackBonus(hero) > 0 ? '+' : ''}${this.calculateSizeAttackBonus(hero)}])</p>
-                        <p>Dexterity: ${hero.dexterity || 5} (Ranged attack bonus: +${this.calculateAttackBonus(hero, 'ranged')}, Crit chance: ${(typeof hero.dexterity === 'number' && !isNaN(hero.dexterity)) ? Math.min(30, hero.dexterity * 2.5).toFixed(1) : '0.0'}%, Defense bonus: ${(hero.dexterity - 5) * 0.75 > 0 ? '+' : ''}${((hero.dexterity - 5) * 0.75).toFixed(1)})</p>
-                        <p>Constitution: ${hero.constitution || 5} (HP bonus: +${this.calculateHealthBonus(hero)})</p>
-                        <p>Intelligence: ${hero.intelligence || 5} (Arcane attack bonus: +${this.calculateAttackBonus(hero, 'arcane')})</p>
-                        <p>Willpower: ${hero.willpower || 5} (Divine attack bonus: +${this.calculateAttackBonus(hero, 'divine')})</p>
-                        <p>Size: ${hero.size || 5} (Defense bonus: ${(5 - hero.size) * 0.75 > 0 ? '+' : ''}${((5 - hero.size) * 0.75).toFixed(1)}, HP bonus: ${this.calculateSizeHealthBonus(hero) > 0 ? '+' : ''}${this.calculateSizeHealthBonus(hero)}, Melee attack bonus: ${this.calculateSizeAttackBonus(hero) > 0 ? '+' : ''}${this.calculateSizeAttackBonus(hero)})</p>
-                        <hr style="margin: 10px 0; border-color: #444;">
-                        <p><strong>Derived Stats:</strong></p>
-                        <p>Health: ${hero.health}/${hero.maxHealth} (Base + CON bonus: +${this.calculateHealthBonus(hero)} + SIZE bonus: ${this.calculateSizeHealthBonus(hero) > 0 ? '+' : ''}${this.calculateSizeHealthBonus(hero)})</p>
-                        <p>Mana: ${hero.mana}/${hero.maxMana} (Base + INT/WIL bonus: +${this.calculateManaBonus(hero)})</p>
-                        <hr style="margin: 10px 0; border-color: #444;">
-                        <p><strong>Base Stats + Equipment:</strong></p>
-                        <p>Attack: ${10 + (hero.level * 2)} + ${equippedStats.attack} = ${10 + (hero.level * 2) + equippedStats.attack}</p>
-                        <p>Defense: ${5 + hero.level} + ${equippedStats.defense} + ${this.calculateDefenseBonus(hero).toFixed(1)} = ${(5 + hero.level + equippedStats.defense + this.calculateDefenseBonus(hero)).toFixed(1)} (Base + Equipment + DEX/SIZE bonuses)</p>
-                        <p>Max Underlings: ${hero.leadership}</p>
-                        <hr style="margin: 10px 0; border-color: #444;">
-                        <p><strong>Equipment Slots:</strong></p>
-                        <p>Weapon: ${this.getEquippedItem('weapon')?.name || 'None'}</p>
-                        <p>Armor: ${this.getEquippedItem('armor')?.name || 'None'}</p>
-                        <p>Accessory: ${this.getEquippedItem('accessory')?.name || 'None'}</p>
-                    </div>
-                </div>
-                <div style="flex: 1; min-width: 350px;">
-                    <h4 style="text-align: center; color: #d4af37; margin-bottom: 15px;">Underlings (${hero.underlings.length})</h4>
-                    <div style="max-height: 450px; overflow-y: auto;">
-                        ${hero.underlings.length > 0 ? 
-                            hero.underlings.map((underling, index) => `
-                                <div style="background: #1a1a1a; padding: 12px; margin: 8px 0; border-radius: 8px;">
-                                    <h5 style="color: #4ecdc4; margin-bottom: 8px;">${underling.name} (${underling.type})</h5>
-                                    <p><strong>Level:</strong> ${underling.level}</p>
-                                    <p><strong>Health:</strong> ${underling.health}/${underling.maxHealth}</p>
-                                    <p><strong>Mana:</strong> ${underling.mana}/${underling.maxMana}</p>
-                                    <p><strong>Attack:</strong> ${underling.attack} | <strong>Defense:</strong> ${underling.defense}</p>
-                                    <div style="font-size: 11px; color: #bbb; margin-top: 8px;">
-                                        <strong>Stats:</strong> STR: ${underling.strength || 5}, DEX: ${underling.dexterity || 5}, CON: ${underling.constitution || 5}, INT: ${underling.intelligence || 5}, WIL: ${underling.willpower || 5}, SIZ: ${underling.size || 5}
-                                    </div>
-                                    <button onclick="window.game.controller.manageUnderling(${index})" 
-                                            style="margin-top: 8px; padding: 4px 12px; background: #2a2a2a; border: 1px solid #555; color: white; border-radius: 4px; cursor: pointer;">
-                                        Manage
-                                    </button>
-                                </div>
-                            `).join('') : 
-                            '<p style="color: #888; text-align: center; padding: 20px;">No underlings recruited</p>'
-                        }
-                    </div>
-                </div>
-            </div>
-        `;
-
-        this.ui.createModal("Character Management", characterContent, [
-            {
-                text: "Upgrade Leadership",
-                onClick: () => this.upgradeLeadership()
-            },
-            {
-                text: "Close",
-                onClick: () => {}
-            }
-        ], { maxWidth: '1100px', position: 'top' });
+        if (this.characterManager) {
+            this.characterManager.openCharacterManagement();
+        } else {
+            this.ui.log("Character management system not initialized!");
+        }
     }
 
     calculateEquippedStats() {
-        const stats = { attack: 0, defense: 0 };
-        
-        this.gameState.hero.equipment.forEach(item => {
-            if (item.equipped && item.stats) {
-                Object.entries(item.stats).forEach(([stat, value]) => {
-                    if (stats[stat] !== undefined) {
-                        stats[stat] += value;
-                    }
-                });
-            }
-        });
-        
-        return stats;
+        return this.characterManager.calculateEquippedStats();
     }
 
     getEquippedItem(type) {
-        return this.gameState.hero.equipment.find(item => item.type === type && item.equipped);
+        return this.characterManager.getEquippedItem(type);
     }
 
     manageUnderling(index) {
-        const underling = this.gameState.hero.underlings[index];
-        if (!underling) return;
-
-        const underlingContent = `
-            <h4>Managing: ${underling.name}</h4>
-            <div style="background: #1a1a1a; padding: 15px; border-radius: 5px;">
-                <p><strong>Type:</strong> ${underling.type}</p>
-                <p><strong>Level:</strong> ${underling.level}</p>
-                <p><strong>Health:</strong> ${underling.health}</p>
-                <p><strong>Attack:</strong> ${underling.attack}</p>
-                <p><strong>Defense:</strong> ${underling.defense}</p>
-                <hr style="margin: 15px 0; border-color: #444;">
-                <p><strong>Actions:</strong></p>
-                <p>Level up cost: ${underling.level * 50} gold</p>
-                <p>Dismiss: Remove from party (no refund)</p>
-            </div>
-        `;
-
-        this.ui.createModal(`Manage ${underling.name}`, underlingContent, [
-            {
-                text: "Level Up",
-                onClick: () => this.levelUpUnderling(index)
-            },
-            {
-                text: "Dismiss",
-                onClick: () => this.dismissUnderling(index)
-            },
-            {
-                text: "Back",
-                onClick: () => setTimeout(() => {
-                    // Close the current modal and reopen cleanly
-                    const modals = document.querySelectorAll('.modal-overlay');
-                    modals.forEach(modal => modal.remove());
-                    this.openCharacterManagement();
-                }, 100)
-            }
-        ]);
+        this.characterManager.manageUnderling(index);
     }
 
     levelUpUnderling(index) {
-        const underling = this.gameState.hero.underlings[index];
-        const cost = underling.level * 50;
-
-        if (this.gameState.hero.gold < cost) {
-            this.ui.log("Not enough gold to level up this underling!");
-            this.ui.showNotification("Insufficient gold!", "error");
-            return;
-        }
-
-        this.gameState.hero.gold -= cost;
-        underling.level++;
-        underling.health += 20;
-        underling.attack += 3;
-        underling.defense += 2;
-
-        this.ui.log(`${underling.name} leveled up to level ${underling.level}!`);
-        this.ui.showNotification(`${underling.name} leveled up!`, "success");
-        this.ui.render();
-        
-        // Refresh the underling management view
-        setTimeout(() => {
-            // Close the current modal and reopen cleanly
-            const modals = document.querySelectorAll('.modal-overlay');
-            modals.forEach(modal => modal.remove());
-            this.manageUnderling(index);
-        }, 100);
+        this.characterManager.levelUpUnderling(index);
     }
 
     dismissUnderling(index) {
-        const underling = this.gameState.hero.underlings[index];
-        this.gameState.hero.underlings.splice(index, 1);
-        
-        this.ui.log(`${underling.name} has been dismissed from your party.`);
-        this.ui.showNotification(`${underling.name} dismissed`, "success");
-        this.ui.render();
-        
-        // Go back to character management
-        setTimeout(() => {
-            // Close the current modal and reopen cleanly
-            const modals = document.querySelectorAll('.modal-overlay');
-            modals.forEach(modal => modal.remove());
-            this.openCharacterManagement();
-        }, 100);
+        this.characterManager.dismissUnderling(index);
     }
 
     attemptHeroLevelUp() {
-        const requiredXP = this.gameState.hero.level * 100;
-        if (this.gameState.hero.fame >= requiredXP) {
-            this.gameState.hero.level++;
-            this.gameState.hero.fame -= requiredXP;
-            this.ui.log(`Hero leveled up to level ${this.gameState.hero.level}!`);
-            this.ui.showNotification(`Hero leveled up!`, "success");
-            this.ui.render();
-            // Refresh character management
-            setTimeout(() => {
-                // Close the current modal and reopen cleanly
-                const modals = document.querySelectorAll('.modal-overlay');
-                modals.forEach(modal => modal.remove());
-                this.openCharacterManagement();
-            }, 100);
-        } else {
-            this.ui.log(`Need ${requiredXP - this.gameState.hero.fame} more XP to level up.`);
-            this.ui.showNotification("Not enough XP!", "error");
-        }
+        this.characterManager.attemptHeroLevelUp();
     }
 
     upgradeLeadership() {
-        const currentLeadership = this.gameState.hero.leadership;
-        const cost = Math.pow(currentLeadership + 1, 2) * 10; // Formula: (next_leadership_level)^2 * 10
-        
-        if (this.gameState.hero.gold < cost) {
-            this.ui.log(`Need ${cost} gold to upgrade leadership to ${currentLeadership + 1}. You have ${this.gameState.hero.gold} gold.`);
-            this.ui.showNotification("Insufficient gold for leadership upgrade!", "error");
-            return;
-        }
-
-        // Show confirmation modal
-        const confirmContent = `
-            <div style="text-align: center;">
-                <h4>Upgrade Leadership</h4>
-                <p><strong>Current Leadership:</strong> ${currentLeadership}</p>
-                <p><strong>New Leadership:</strong> ${currentLeadership + 1}</p>
-                <p><strong>Cost:</strong> ${cost} gold</p>
-                <p><strong>Your Gold:</strong> ${this.gameState.hero.gold}</p>
-                <hr style="margin: 15px 0; border-color: #444;">
-                <p>This will increase your maximum underlings from <strong>${currentLeadership}</strong> to <strong>${currentLeadership + 1}</strong>.</p>
-                <p style="color: #d4af37; font-weight: bold;">Are you sure you want to upgrade?</p>
-            </div>
-        `;
-
-        this.ui.createModal("Leadership Upgrade", confirmContent, [
-            {
-                text: "Confirm Upgrade",
-                onClick: () => this.confirmLeadershipUpgrade(cost)
-            },
-            {
-                text: "Cancel",
-                onClick: () => setTimeout(() => {
-                    // Close the current modal and reopen cleanly
-                    const modals = document.querySelectorAll('.modal-overlay');
-                    modals.forEach(modal => modal.remove());
-                    this.openCharacterManagement();
-                }, 100)
-            }
-        ]);
+        this.characterManager.upgradeLeadership();
     }
 
     confirmLeadershipUpgrade(cost) {
-        const oldLeadership = this.gameState.hero.leadership;
-        
-        this.gameState.hero.gold -= cost;
-        this.gameState.hero.leadership++;
-        
-        this.ui.log(`Leadership upgraded from ${oldLeadership} to ${this.gameState.hero.leadership}!`);
-        this.ui.log(`You can now recruit up to ${this.gameState.hero.leadership} underlings.`);
-        this.ui.showNotification(`Leadership upgraded to ${this.gameState.hero.leadership}!`, "success");
-        this.ui.render();
-        
-        // Refresh character management after a short delay
-        setTimeout(() => {
-            // Close the current modal and reopen cleanly
-            const modals = document.querySelectorAll('.modal-overlay');
-            modals.forEach(modal => modal.remove());
-            this.openCharacterManagement();
-        }, 100);
+        this.characterManager.confirmLeadershipUpgrade(cost);
     }
 
     returnToVillage() {
