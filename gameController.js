@@ -3273,13 +3273,6 @@ class GameController {
                 type: 'consumable'
             },
             { 
-                id: 'exp_scroll', 
-                name: 'Experience Scroll', 
-                cost: 100, 
-                description: 'Grants 50 XP (Consumable)',
-                type: 'consumable'
-            },
-            { 
                 id: 'rations', 
                 name: 'Rations', 
                 cost: 25, 
@@ -3358,11 +3351,6 @@ class GameController {
                     value: 30
                 });
                 this.ui.log("Bought Mana Potion!");
-                break;
-            case 'exp_scroll':
-                this.gameState.hero.fame += 50;
-                this.ui.log("Used Experience Scroll! Gained 50 XP!");
-                this.checkLevelUp();
                 break;
             case 'rations':
                 // Add or increase rations count

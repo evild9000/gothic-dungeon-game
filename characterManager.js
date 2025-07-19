@@ -301,15 +301,27 @@ class CharacterManager {
             </div>
         `;
 
-        const characterButtons = [
-            {
-                text: "Close",
-                onClick: () => {
-                    const modal = document.querySelector('.docked-modal');
-                    if (modal) modal.remove();
-                }
+        const characterButtons = [];
+        
+        // Add leadership upgrade button if possible
+        if (hero.leadership < hero.level) {
+            const nextLeadershipLevel = hero.leadership + 1;
+            const cost = nextLeadershipLevel * nextLeadershipLevel * 10;
+            const canAfford = hero.gold >= cost;
+            
+            characterButtons.push({
+                text: `${canAfford ? '💰' : '❌'} Upgrade Leadership (${hero.leadership} → ${nextLeadershipLevel}) - ${cost}g`,
+                onClick: () => this.upgradeLeadership()
+            });
+        }
+        
+        characterButtons.push({
+            text: "Close",
+            onClick: () => {
+                const modal = document.querySelector('.docked-modal');
+                if (modal) modal.remove();
             }
-        ];
+        });
 
         // Create wider modal for character management
         this.createCharacterModal("Character Management", characterContent, characterButtons);
@@ -747,6 +759,82 @@ class CharacterManager {
             const modals = document.querySelectorAll('.modal-overlay');
             modals.forEach(modal => modal.remove());
             this.manageUnderling(underlingIndex);
+        }, 100);
+    }
+
+    upgradeLeadership() {
+        const hero = this.gameState.hero;
+        const nextLeadershipLevel = hero.leadership + 1;
+        
+        // Check if leadership can exceed level
+        if (nextLeadershipLevel > hero.level) {
+            this.ui.log("Leadership cannot exceed your character level!");
+            this.ui.showNotification("Leadership limited by character level!", "error");
+            return;
+        }
+        
+        // Calculate cost: (level to increase to)^2 * 10
+        const cost = nextLeadershipLevel * nextLeadershipLevel * 10;
+        
+        if (hero.gold < cost) {
+            this.ui.log(`Not enough gold! Need ${cost} gold to upgrade leadership to ${nextLeadershipLevel}.`);
+            this.ui.showNotification("Insufficient gold for leadership upgrade!", "error");
+            return;
+        }
+        
+        // Show confirmation modal
+        const confirmContent = `
+            <div style="text-align: center; color: #e6ccff;">
+                <h3 style="color: #d4af37; margin-bottom: 15px;">💼 Leadership Upgrade 💼</h3>
+                <p style="margin-bottom: 15px;">Upgrade your leadership from <strong>${hero.leadership}</strong> to <strong>${nextLeadershipLevel}</strong>?</p>
+                <div style="background: #2a2a3a; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <p><strong>Cost:</strong> <span style="color: #ffd93d;">${cost} gold</span></p>
+                    <p><strong>Your Gold:</strong> <span style="color: #51cf66;">${hero.gold} gold</span></p>
+                    <p><strong>Benefits:</strong> <span style="color: #51cf66;">Can recruit ${nextLeadershipLevel} underlings (currently ${hero.leadership})</span></p>
+                </div>
+                <div style="background: #1a3a1a; padding: 10px; border-radius: 8px; border-left: 3px solid #51cf66;">
+                    <small style="color: #51cf66;">💡 Leadership cost formula: (target level)² × 10 gold</small>
+                </div>
+            </div>
+        `;
+        
+        this.ui.createModal("Leadership Upgrade", confirmContent, [
+            {
+                text: `Upgrade for ${cost}g`,
+                onClick: () => this.confirmLeadershipUpgrade(cost)
+            },
+            {
+                text: "Cancel",
+                onClick: () => {
+                    const modals = document.querySelectorAll('.modal-overlay');
+                    modals.forEach(modal => modal.remove());
+                }
+            }
+        ]);
+    }
+
+    confirmLeadershipUpgrade(cost) {
+        const hero = this.gameState.hero;
+        
+        if (hero.gold < cost) {
+            this.ui.log("Not enough gold!");
+            this.ui.showNotification("Insufficient gold!", "error");
+            return;
+        }
+        
+        hero.gold -= cost;
+        hero.leadership++;
+        
+        this.ui.log(`Leadership upgraded to ${hero.leadership}! You can now recruit up to ${hero.leadership} underlings.`);
+        this.ui.showNotification(`Leadership upgraded to ${hero.leadership}!`, "success");
+        this.ui.render();
+        
+        // Close modal and refresh character management
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(modal => modal.remove());
+        
+        setTimeout(() => {
+            this.openCharacterManagement();
         }, 100);
     }
 }
