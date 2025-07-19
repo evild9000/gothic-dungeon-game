@@ -25,7 +25,15 @@ class GameController {
                 underlings: [],
                 // New inventory system
                 inventorySlots: 20,
-                inventory: []
+                inventory: [],
+                // Crafting materials
+                materials: {
+                    spiderSilk: 0,
+                    animalHide: 0,
+                    scrapIron: 0,
+                    scrapWood: 0,
+                    bones: 0
+                }
             },
             dungeonLevel: 1,
             chatLog: [],
@@ -550,6 +558,8 @@ class GameController {
                 maxHealth: 100, // Base health, will be modified by stat bonuses
                 mana: 100, // Will be recalculated by applyStatBonuses
                 maxMana: 100, // Base mana, will be modified by stat bonuses
+                stamina: 100, // Will be recalculated by applyStatBonuses
+                maxStamina: 100, // Base stamina, will be modified by stat bonuses
                 leadership: 1,
                 rations: 0, // Starting rations for dungeon resting
                 // New stat system - all start at base 5
@@ -1147,6 +1157,62 @@ class GameController {
         return (character.size - 5) * 1;
     }
 
+    dropLoot(enemy) {
+        // Define loot drops based on enemy type
+        const lootTable = {
+            Spider: { 
+                material: 'spiderSilk', 
+                materialName: 'Spider Silk',
+                amount: 1,
+                chance: 100  // 100% drop rate
+            },
+            Wolf: { 
+                material: 'animalHide', 
+                materialName: 'Animal Hide',
+                amount: 1,
+                chance: 100  // 100% drop rate
+            },
+            Orc: { 
+                materials: [
+                    { material: 'scrapWood', materialName: 'Scrap Wood', amount: 1 },
+                    { material: 'scrapIron', materialName: 'Scrap Iron', amount: 1 }
+                ],
+                chance: 100  // 100% chance to drop one of the two
+            },
+            Goblin: { 
+                materials: [
+                    { material: 'scrapWood', materialName: 'Scrap Wood', amount: 1 },
+                    { material: 'scrapIron', materialName: 'Scrap Iron', amount: 1 }
+                ],
+                chance: 100  // 100% chance to drop one of the two
+            },
+            Skeleton: { 
+                material: 'bones', 
+                materialName: 'Bones',
+                amount: 1,
+                chance: 100  // 100% drop rate
+            }
+        };
+
+        const enemyType = enemy.name;
+        const drop = lootTable[enemyType];
+
+        if (drop && Math.random() * 100 < drop.chance) {
+            if (drop.materials) {
+                // Random drop from multiple materials (Orc/Goblin)
+                const randomDrop = drop.materials[Math.floor(Math.random() * drop.materials.length)];
+                this.gameState.hero.materials[randomDrop.material] = (this.gameState.hero.materials[randomDrop.material] || 0) + randomDrop.amount;
+                this.ui.log(`${enemy.name} dropped ${randomDrop.amount} ${randomDrop.materialName}!`);
+                this.ui.showNotification(`Found ${randomDrop.materialName}!`, "success");
+            } else {
+                // Single material drop (Spider/Wolf/Skeleton)
+                this.gameState.hero.materials[drop.material] = (this.gameState.hero.materials[drop.material] || 0) + drop.amount;
+                this.ui.log(`${enemy.name} dropped ${drop.amount} ${drop.materialName}!`);
+                this.ui.showNotification(`Found ${drop.materialName}!`, "success");
+            }
+        }
+    }
+
     calculateManaBonus(character) {
         // Intelligence and Willpower provide bonus mana: (INT + WIL - 10) * 2.5 mana
         if (!character || typeof character.intelligence !== 'number' || typeof character.willpower !== 'number' || 
@@ -1154,6 +1220,17 @@ class GameController {
             return 0;
         }
         return Math.max(0, (character.intelligence + character.willpower - 10) * 2.5);
+    }
+
+    calculateStaminaBonus(character) {
+        // Stamina derives from Strength, Dexterity, and Constitution (33% each)
+        // Formula: (STR + DEX + CON - 15) * 2.5 stamina
+        if (!character || typeof character.strength !== 'number' || typeof character.dexterity !== 'number' || 
+            typeof character.constitution !== 'number' || isNaN(character.strength) || 
+            isNaN(character.dexterity) || isNaN(character.constitution)) {
+            return 0;
+        }
+        return Math.max(0, (character.strength + character.dexterity + character.constitution - 15) * 2.5);
     }
 
     calculateDefenseBonus(character) {
@@ -1201,43 +1278,55 @@ class GameController {
     }
 
     applyCharacterStatBonuses(character) {
-        // Store original health/mana before applying bonuses
+        // Store original health/mana/stamina before applying bonuses
         const currentHealthPercent = character.health / character.maxHealth;
         const currentManaPercent = character.mana / character.maxMana;
+        const currentStaminaPercent = character.stamina ? character.stamina / character.maxStamina : 1;
         
         // Calculate base values without stat bonuses
         let baseHealth = character.maxHealth;
         let baseMana = character.maxMana;
+        let baseStamina = character.maxStamina || 100; // Default stamina for existing characters
         
         // Remove previous stat bonuses if they exist
         if (character.statBonusesApplied) {
             baseHealth -= character.previousHealthBonus || 0;
             baseHealth -= character.previousSizeHealthBonus || 0;
             baseMana -= character.previousManaBonus || 0;
+            baseStamina -= character.previousStaminaBonus || 0;
         }
         
         // Calculate new stat bonuses
         const healthBonus = this.calculateHealthBonus(character);
         const sizeHealthBonus = this.calculateSizeHealthBonus(character);
         const manaBonus = this.calculateManaBonus(character);
+        const staminaBonus = this.calculateStaminaBonus(character);
         
-        // Apply new bonuses with minimum 10 HP cap
+        // Apply new bonuses with minimum values
         const totalHealthBonus = healthBonus + sizeHealthBonus;
         const newMaxHealth = baseHealth + totalHealthBonus;
         const minimumHealth = 10; // Minimum 10 HP regardless of stat penalties
         
         character.maxHealth = Math.max(minimumHealth, newMaxHealth);
         character.maxMana = Math.max(1, baseMana + manaBonus);
+        character.maxStamina = Math.max(1, baseStamina + staminaBonus);
         
-        // Maintain current health/mana percentages
+        // Initialize stamina if it doesn't exist (for existing characters)
+        if (!character.stamina) {
+            character.stamina = character.maxStamina;
+        }
+        
+        // Maintain current health/mana/stamina percentages
         character.health = Math.min(character.health, Math.floor(character.maxHealth * currentHealthPercent));
         character.mana = Math.min(character.mana, Math.floor(character.maxMana * currentManaPercent));
+        character.stamina = Math.min(character.stamina, Math.floor(character.maxStamina * currentStaminaPercent));
         
         // Track that bonuses have been applied
         character.statBonusesApplied = true;
         character.previousHealthBonus = healthBonus;
         character.previousSizeHealthBonus = sizeHealthBonus;
         character.previousManaBonus = manaBonus;
+        character.previousStaminaBonus = staminaBonus;
     }
 
     showCombatInterface() {
@@ -1304,6 +1393,11 @@ class GameController {
                                 <div style="margin-top: 3px;">
                                     <span style="color: ${getHealthColor(this.gameState.hero.health, this.gameState.hero.maxHealth)}; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px;">${this.gameState.hero.health}</span>
                                     <span style="color: #888; font-size: ${this.getResponsiveFontSize(12)}px;">/${this.gameState.hero.maxHealth} HP</span>
+                                    <br>
+                                    <span style="color: #4da6ff; font-weight: bold; font-size: ${this.getResponsiveFontSize(10)}px;">${this.gameState.hero.mana}</span>
+                                    <span style="color: #888; font-size: ${this.getResponsiveFontSize(10)}px;">/${this.gameState.hero.maxMana} MP</span>
+                                    <span style="color: #ffb84d; font-weight: bold; font-size: ${this.getResponsiveFontSize(10)}px; margin-left: 8px;">${this.gameState.hero.stamina || 0}</span>
+                                    <span style="color: #888; font-size: ${this.getResponsiveFontSize(10)}px;">/${this.gameState.hero.maxStamina || 100} SP</span>
                                 </div>
                             </div>
                         </div>
@@ -1341,7 +1435,7 @@ class GameController {
                 <!-- Combat Actions -->
                 <div style="background: rgba(42, 42, 58, 0.7); padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; border: 2px solid #4a4a6a;">
                     <h4 style="color: #4ecdc4; margin-bottom: ${this.getResponsiveMargin()}; text-align: center; font-size: ${this.getResponsiveFontSize(16)}px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);">⚡ Choose Your Action</h4>
-                    <div style="display: grid; grid-template-columns: ${this.isMobile ? '1fr 1fr' : '1fr 1fr'}; gap: ${this.getResponsiveMargin()};">
+                    <div style="display: grid; grid-template-columns: ${this.isMobile ? '1fr 1fr' : '1fr 1fr 1fr'}; gap: ${this.getResponsiveMargin()};">
                         <button class="enhanced-combat-btn attack-btn" onclick="window.game.controller.playerAttack()" 
                                 style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #8b0000, #dc143c); border: 2px solid #ff6b6b; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px;">
                             ⚔️ Attack
@@ -1350,12 +1444,16 @@ class GameController {
                                 style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #2a4d3a, #4a7c59); border: 2px solid #51cf66; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px;">
                             🛡️ Defend
                         </button>
+                        <button class="enhanced-combat-btn magic-btn" onclick="window.game.controller.showHeroAbilitySelection()" 
+                                style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #4a2d7a, #6b3fa0); border: 2px solid #9966cc; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            ✨ Magic
+                        </button>
                         <button class="enhanced-combat-btn item-btn" onclick="window.game.controller.showCombatItemSelection()" 
                                 style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #4a4a2d, #7a7a3a); border: 2px solid #ffd93d; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px;">
                             🧪 Use Item
                         </button>
                         <button class="enhanced-combat-btn flee-btn" onclick="window.game.controller.playerFlee()" 
-                                style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #3a3a4a, #5a5a7a); border: 2px solid #9966cc; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #3a3a4a, #5a5a7a); border: 2px solid #9966cc; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px; ${this.isMobile ? 'grid-column: 1 / -1;' : ''}">
                             💨 Flee
                         </button>
                     </div>
@@ -1785,6 +1883,10 @@ class GameController {
                     defeatedEnemiesThisTurn.add(underlingTarget);
                     
                     this.ui.log(`${underlingTarget.name} is defeated by ${underling.name}!`);
+                    
+                    // Drop loot based on enemy type
+                    this.dropLoot(underlingTarget);
+                    
                     // Scale rewards with dungeon level
                     const baseGold = Math.floor(Math.random() * 10) + 5; // 5-14 base
                     const baseXp = Math.floor(Math.random() * 15) + 10; // 10-24 base
@@ -1818,6 +1920,10 @@ class GameController {
         // Check if main target is defeated (by hero)
         if (target.health <= 0) {
             this.ui.log(`${target.name} is defeated!`);
+            
+            // Drop loot based on enemy type
+            this.dropLoot(target);
+            
             // Scale rewards with dungeon level - Hero gets bonus rewards
             const baseGold = Math.floor(Math.random() * 15) + 10; // 10-24 base
             const baseXp = Math.floor(Math.random() * 20) + 15; // 15-34 base
@@ -2664,6 +2770,7 @@ class GameController {
         // Restore hero
         const heroHpBefore = this.gameState.hero.health;
         const heroManaBefore = this.gameState.hero.mana || 0;
+        const heroStaminaBefore = this.gameState.hero.stamina || 0;
         
         this.gameState.hero.health = Math.min(
             this.gameState.hero.health + restHpRestore, 
@@ -2677,9 +2784,30 @@ class GameController {
             );
         }
         
+        if (this.gameState.hero.maxStamina) {
+            this.gameState.hero.stamina = Math.min(
+                (this.gameState.hero.stamina || 0) + restManaRestore, // Same rate as mana
+                this.gameState.hero.maxStamina
+            );
+        }
+        
         let restoredMembers = [];
-        if (heroHpBefore < this.gameState.hero.maxHealth || (this.gameState.hero.maxMana && heroManaBefore < this.gameState.hero.maxMana)) {
-            restoredMembers.push(`${this.gameState.hero.name || 'Hero'} (+${Math.min(restHpRestore, this.gameState.hero.maxHealth - heroHpBefore)} HP${this.gameState.hero.maxMana ? `, +${Math.min(restManaRestore, this.gameState.hero.maxMana - heroManaBefore)} MP` : ''})`);
+        if (heroHpBefore < this.gameState.hero.maxHealth || 
+            (this.gameState.hero.maxMana && heroManaBefore < this.gameState.hero.maxMana) ||
+            (this.gameState.hero.maxStamina && heroStaminaBefore < this.gameState.hero.maxStamina)) {
+            
+            let restoreText = `${this.gameState.hero.name || 'Hero'} (+${Math.min(restHpRestore, this.gameState.hero.maxHealth - heroHpBefore)} HP`;
+            
+            if (this.gameState.hero.maxMana) {
+                restoreText += `, +${Math.min(restManaRestore, this.gameState.hero.maxMana - heroManaBefore)} MP`;
+            }
+            
+            if (this.gameState.hero.maxStamina) {
+                restoreText += `, +${Math.min(restManaRestore, this.gameState.hero.maxStamina - heroStaminaBefore)} SP`;
+            }
+            
+            restoreText += ')';
+            restoredMembers.push(restoreText);
         }
         
         // Restore underlings
@@ -2687,16 +2815,35 @@ class GameController {
             if (underling.isAlive) {
                 const underlingHpBefore = underling.health;
                 const underlingManaBefore = underling.mana || 0;
+                const underlingStaminaBefore = underling.stamina || 0;
                 const underlingHpRestore = Math.floor(underling.maxHealth * 0.25);
                 const underlingManaRestore = Math.floor((underling.maxMana || 50) * 0.25);
+                const underlingStaminaRestore = Math.floor((underling.maxStamina || 100) * 0.25);
                 
                 underling.health = Math.min(underling.health + underlingHpRestore, underling.maxHealth);
                 if (underling.maxMana) {
                     underling.mana = Math.min(underling.mana + underlingManaRestore, underling.maxMana);
                 }
+                if (underling.maxStamina) {
+                    underling.stamina = Math.min((underling.stamina || 0) + underlingStaminaRestore, underling.maxStamina);
+                }
                 
-                if (underlingHpBefore < underling.maxHealth || (underling.maxMana && underlingManaBefore < underling.maxMana)) {
-                    restoredMembers.push(`${underling.name} (+${Math.min(underlingHpRestore, underling.maxHealth - underlingHpBefore)} HP${underling.maxMana ? `, +${Math.min(underlingManaRestore, underling.maxMana - underlingManaBefore)} MP` : ''})`);
+                if (underlingHpBefore < underling.maxHealth || 
+                    (underling.maxMana && underlingManaBefore < underling.maxMana) ||
+                    (underling.maxStamina && underlingStaminaBefore < underling.maxStamina)) {
+                    
+                    let restoreText = `${underling.name} (+${Math.min(underlingHpRestore, underling.maxHealth - underlingHpBefore)} HP`;
+                    
+                    if (underling.maxMana) {
+                        restoreText += `, +${Math.min(underlingManaRestore, underling.maxMana - underlingManaBefore)} MP`;
+                    }
+                    
+                    if (underling.maxStamina) {
+                        restoreText += `, +${Math.min(underlingStaminaRestore, underling.maxStamina - underlingStaminaBefore)} SP`;
+                    }
+                    
+                    restoreText += ')';
+                    restoredMembers.push(restoreText);
                 }
             }
         });
@@ -2815,12 +2962,14 @@ class GameController {
     restorePartyAfterDungeon() {
         let restoredMembers = [];
         
-        // Restore hero's HP and mana
+        // Restore hero's HP, mana, and stamina
         const heroHpBefore = this.gameState.hero.health;
         const heroManaBefore = this.gameState.hero.mana || 0;
+        const heroStaminaBefore = this.gameState.hero.stamina || 0;
         
         const heroHpRestore = Math.floor(this.gameState.hero.maxHealth * 0.15);
         const heroManaRestore = Math.floor((this.gameState.hero.maxMana || 100) * 0.15);
+        const heroStaminaRestore = Math.floor((this.gameState.hero.maxStamina || 100) * 0.15);
         
         this.gameState.hero.health = Math.min(
             this.gameState.hero.health + heroHpRestore, 
@@ -2834,26 +2983,40 @@ class GameController {
             );
         }
         
+        if (this.gameState.hero.maxStamina) {
+            this.gameState.hero.stamina = Math.min(
+                (this.gameState.hero.stamina || 0) + heroStaminaRestore, 
+                this.gameState.hero.maxStamina
+            );
+        }
+        
         // Track if hero was actually healed
-        if (heroHpBefore < this.gameState.hero.maxHealth || (this.gameState.hero.maxMana && heroManaBefore < this.gameState.hero.maxMana)) {
+        if (heroHpBefore < this.gameState.hero.maxHealth || 
+            (this.gameState.hero.maxMana && heroManaBefore < this.gameState.hero.maxMana) ||
+            (this.gameState.hero.maxStamina && heroStaminaBefore < this.gameState.hero.maxStamina)) {
+            
             const heroHpGained = this.gameState.hero.health - heroHpBefore;
             const heroManaGained = (this.gameState.hero.mana || 0) - heroManaBefore;
+            const heroStaminaGained = (this.gameState.hero.stamina || 0) - heroStaminaBefore;
             
             let restoreText = `${this.gameState.hero.name || 'Hero'}`;
             if (heroHpGained > 0) restoreText += ` +${heroHpGained} HP`;
             if (heroManaGained > 0) restoreText += ` +${heroManaGained} MP`;
+            if (heroStaminaGained > 0) restoreText += ` +${heroStaminaGained} SP`;
             
             restoredMembers.push(restoreText);
         }
         
-        // Restore underlings' HP and mana
+        // Restore underlings' HP, mana, and stamina
         this.gameState.hero.underlings.forEach(underling => {
             if (underling.isAlive) {
                 const underlingHpBefore = underling.health;
                 const underlingManaBefore = underling.mana || 0;
+                const underlingStaminaBefore = underling.stamina || 0;
                 
                 const underlingHpRestore = Math.floor(underling.maxHealth * 0.15);
                 const underlingManaRestore = Math.floor((underling.maxMana || 50) * 0.15);
+                const underlingStaminaRestore = Math.floor((underling.maxStamina || 100) * 0.15);
                 
                 underling.health = Math.min(
                     underling.health + underlingHpRestore, 
@@ -2867,14 +3030,26 @@ class GameController {
                     );
                 }
                 
+                if (underling.maxStamina) {
+                    underling.stamina = Math.min(
+                        (underling.stamina || 0) + underlingStaminaRestore, 
+                        underling.maxStamina
+                    );
+                }
+                
                 // Track if underling was actually healed
-                if (underlingHpBefore < underling.maxHealth || (underling.maxMana && underlingManaBefore < underling.maxMana)) {
+                if (underlingHpBefore < underling.maxHealth || 
+                    (underling.maxMana && underlingManaBefore < underling.maxMana) ||
+                    (underling.maxStamina && underlingStaminaBefore < underling.maxStamina)) {
+                    
                     const underlingHpGained = underling.health - underlingHpBefore;
                     const underlingManaGained = (underling.mana || 0) - underlingManaBefore;
+                    const underlingStaminaGained = (underling.stamina || 0) - underlingStaminaBefore;
                     
                     let restoreText = `${underling.name}`;
                     if (underlingHpGained > 0) restoreText += ` +${underlingHpGained} HP`;
                     if (underlingManaGained > 0) restoreText += ` +${underlingManaGained} MP`;
+                    if (underlingStaminaGained > 0) restoreText += ` +${underlingStaminaGained} SP`;
                     
                     restoredMembers.push(restoreText);
                 }
@@ -2908,88 +3083,314 @@ class GameController {
 
         this.ui.log("Opening crafting interface...");
         
-        // Define all craftable items in one place for easier management
+        // Define all craftable items with material requirements
         const craftableItems = [
+            // Weapons
             { 
                 id: 'iron_sword', 
                 name: 'Iron Sword', 
-                cost: 50, 
+                cost: 50,
+                materials: { scrapIron: 1 },
                 description: '+5 Attack (Melee Weapon)',
                 type: 'weapon'
             },
             { 
                 id: 'elven_bow', 
                 name: 'Elven Bow', 
-                cost: 60, 
+                cost: 60,
+                materials: { scrapWood: 1 },
                 description: '+6 Attack (Ranged Weapon)',
                 type: 'weapon'
             },
             { 
                 id: 'arcane_wand', 
                 name: 'Arcane Wand', 
-                cost: 80, 
+                cost: 80,
+                materials: { bones: 1 },
                 description: '+7 Attack (Arcane Weapon)',
                 type: 'weapon'
             },
             { 
                 id: 'divine_staff', 
                 name: 'Divine Staff', 
-                cost: 90, 
+                cost: 90,
+                materials: { scrapWood: 1 },
                 description: '+8 Attack (Divine Weapon)',
                 type: 'weapon'
+            },
+            
+            // Silk Armor Set
+            { 
+                id: 'silk_hood', 
+                name: 'Silk Hood', 
+                cost: 40,
+                materials: { spiderSilk: 1 },
+                description: '+1 Defense (Head Armor)',
+                type: 'armor',
+                slot: 'head'
+            },
+            { 
+                id: 'silk_sleeves', 
+                name: 'Silk Sleeves', 
+                cost: 35,
+                materials: { spiderSilk: 1 },
+                description: '+1 Defense (Arm Armor)',
+                type: 'armor',
+                slot: 'arms'
+            },
+            { 
+                id: 'silk_gloves', 
+                name: 'Silk Gloves', 
+                cost: 30,
+                materials: { spiderSilk: 1 },
+                description: '+1 Defense (Hand Armor)',
+                type: 'armor',
+                slot: 'hands'
+            },
+            { 
+                id: 'silk_robe', 
+                name: 'Silk Robe', 
+                cost: 50,
+                materials: { spiderSilk: 1 },
+                description: '+2 Defense (Chest Armor)',
+                type: 'armor',
+                slot: 'chest'
+            },
+            { 
+                id: 'silk_pants', 
+                name: 'Silk Pants', 
+                cost: 40,
+                materials: { spiderSilk: 1 },
+                description: '+1 Defense (Leg Armor)',
+                type: 'armor',
+                slot: 'legs'
+            },
+            { 
+                id: 'silk_shoes', 
+                name: 'Silk Shoes', 
+                cost: 25,
+                materials: { spiderSilk: 1 },
+                description: '+1 Defense (Foot Armor)',
+                type: 'armor',
+                slot: 'feet'
+            },
+            
+            // Leather Armor Set
+            { 
+                id: 'leather_helm', 
+                name: 'Leather Helm', 
+                cost: 60,
+                materials: { animalHide: 1 },
+                description: '+2 Defense (Head Armor)',
+                type: 'armor',
+                slot: 'head'
+            },
+            { 
+                id: 'leather_bracers', 
+                name: 'Leather Bracers', 
+                cost: 50,
+                materials: { animalHide: 1 },
+                description: '+2 Defense (Arm Armor)',
+                type: 'armor',
+                slot: 'arms'
+            },
+            { 
+                id: 'leather_gauntlets', 
+                name: 'Leather Gauntlets', 
+                cost: 45,
+                materials: { animalHide: 1 },
+                description: '+2 Defense (Hand Armor)',
+                type: 'armor',
+                slot: 'hands'
             },
             { 
                 id: 'leather_armor', 
                 name: 'Leather Armor', 
-                cost: 75, 
-                description: '+3 Defense (Body Armor)',
-                type: 'armor'
+                cost: 75,
+                materials: { animalHide: 1 },
+                description: '+3 Defense (Chest Armor)',
+                type: 'armor',
+                slot: 'chest'
             },
+            { 
+                id: 'leather_leggings', 
+                name: 'Leather Leggings', 
+                cost: 55,
+                materials: { animalHide: 1 },
+                description: '+2 Defense (Leg Armor)',
+                type: 'armor',
+                slot: 'legs'
+            },
+            { 
+                id: 'leather_boots', 
+                name: 'Leather Boots', 
+                cost: 40,
+                materials: { animalHide: 1 },
+                description: '+2 Defense (Foot Armor)',
+                type: 'armor',
+                slot: 'feet'
+            },
+            
+            // Iron Armor Set
+            { 
+                id: 'iron_helmet', 
+                name: 'Iron Helmet', 
+                cost: 80,
+                materials: { scrapIron: 1 },
+                description: '+3 Defense (Head Armor)',
+                type: 'armor',
+                slot: 'head'
+            },
+            { 
+                id: 'iron_vambraces', 
+                name: 'Iron Vambraces', 
+                cost: 70,
+                materials: { scrapIron: 1 },
+                description: '+3 Defense (Arm Armor)',
+                type: 'armor',
+                slot: 'arms'
+            },
+            { 
+                id: 'iron_gauntlets', 
+                name: 'Iron Gauntlets', 
+                cost: 65,
+                materials: { scrapIron: 1 },
+                description: '+3 Defense (Hand Armor)',
+                type: 'armor',
+                slot: 'hands'
+            },
+            { 
+                id: 'iron_chestplate', 
+                name: 'Iron Chestplate', 
+                cost: 100,
+                materials: { scrapIron: 1 },
+                description: '+4 Defense (Chest Armor)',
+                type: 'armor',
+                slot: 'chest'
+            },
+            { 
+                id: 'iron_greaves', 
+                name: 'Iron Greaves', 
+                cost: 75,
+                materials: { scrapIron: 1 },
+                description: '+3 Defense (Leg Armor)',
+                type: 'armor',
+                slot: 'legs'
+            },
+            { 
+                id: 'iron_boots', 
+                name: 'Iron Boots', 
+                cost: 60,
+                materials: { scrapIron: 1 },
+                description: '+3 Defense (Foot Armor)',
+                type: 'armor',
+                slot: 'feet'
+            },
+            
+            // Consumables
             { 
                 id: 'health_potion', 
                 name: 'Health Potion', 
                 cost: 25, 
+                materials: {},
                 description: 'Restores 50 HP (Consumable)',
                 type: 'consumable'
             }
         ];
         
+        // Helper function to check if item can be crafted
+        const canCraft = (item) => {
+            if (this.gameState.hero.gold < item.cost) return false;
+            for (const [material, required] of Object.entries(item.materials)) {
+                if ((this.gameState.hero.materials[material] || 0) < required) return false;
+            }
+            return true;
+        };
+        
+        // Helper function to format material requirements
+        const formatMaterials = (materials) => {
+            if (Object.keys(materials).length === 0) return '';
+            return Object.entries(materials).map(([material, amount]) => {
+                const materialNames = {
+                    spiderSilk: 'Spider Silk',
+                    animalHide: 'Animal Hide',
+                    scrapIron: 'Scrap Iron',
+                    scrapWood: 'Scrap Wood',
+                    bones: 'Bones'
+                };
+                const current = this.gameState.hero.materials[material] || 0;
+                const color = current >= amount ? '#51cf66' : '#ff6b6b';
+                return `<span style="color: ${color};">${amount} ${materialNames[material]}</span>`;
+            }).join(', ');
+        };
+        
         const craftingContent = `
-            <div style="text-align: center; margin-bottom: ${this.getResponsiveMargin()};">
-                <h3 style="color: #d4af37; margin-bottom: ${this.getResponsiveMargin()}; font-size: ${this.getResponsiveFontSize(18)}px;">🔨 Crafting Workshop 🔨</h3>
-                <p style="color: #51cf66; font-weight: bold; font-size: ${this.getResponsiveFontSize(14)}px;">Your Gold: ${this.gameState.hero.gold}</p>
+            <div style="text-align: center; margin-bottom: 15px;">
+                <h3 style="color: #d4af37; margin-bottom: 10px;">🔨 Crafting Workshop 🔨</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                    <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
+                        <div style="color: #ffd93d; font-weight: bold;">💰 Gold</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.gold}</div>
+                    </div>
+                    <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
+                        <div style="color: #ffd93d; font-weight: bold;">🕸️ Spider Silk</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials.spiderSilk || 0}</div>
+                    </div>
+                    <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
+                        <div style="color: #ffd93d; font-weight: bold;">🦴 Animal Hide</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials.animalHide || 0}</div>
+                    </div>
+                    <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
+                        <div style="color: #ffd93d; font-weight: bold;">⚙️ Scrap Iron</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials.scrapIron || 0}</div>
+                    </div>
+                    <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
+                        <div style="color: #ffd93d; font-weight: bold;">🪵 Scrap Wood</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials.scrapWood || 0}</div>
+                    </div>
+                    <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
+                        <div style="color: #ffd93d; font-weight: bold;">🦴 Bones</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials.bones || 0}</div>
+                    </div>
+                </div>
             </div>
             
-            <div style="max-height: ${this.getResponsiveModalHeight()}; overflow-y: auto; border: 1px solid #444; border-radius: ${this.getResponsiveBorderRadius()}; padding: ${this.getResponsivePadding()}; background: #1a1a2a;">
-                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: ${this.getResponsiveMargin()}; margin-bottom: ${this.getResponsiveMargin()}; padding: ${this.getResponsivePadding()}; background: #2a2a3a; border-radius: ${this.getResponsiveBorderRadius()}; font-weight: bold; color: #d4af37; font-size: ${this.getResponsiveFontSize(12)}px;">
-                    <div>Item Name & Description</div>
+            <div style="max-height: 500px; overflow-y: auto; border: 1px solid #444; border-radius: 8px; padding: 10px; background: #1a1a2a;">
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 10px; padding: 8px; background: #2a2a3a; border-radius: 5px; font-weight: bold; color: #d4af37;">
+                    <div>Item Name & Requirements</div>
                     <div style="text-align: center;">Cost</div>
                     <div style="text-align: center;">Action</div>
                 </div>
                 
-                ${craftableItems.map(item => `
-                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: ${this.getResponsiveMargin()}; align-items: center; padding: ${this.getResponsivePadding()}; margin: ${this.getResponsiveMargin()} 0; background: ${this.gameState.hero.gold >= item.cost ? '#0a2a0a' : '#2a0a0a'}; border-radius: ${this.getResponsiveBorderRadius()}; border-left: 3px solid ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'};">
+                ${craftableItems.map(item => {
+                    const craftable = canCraft(item);
+                    const materialsText = formatMaterials(item.materials);
+                    
+                    return `
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; align-items: center; padding: 12px; margin: 5px 0; background: ${craftable ? '#0a2a0a' : '#2a0a0a'}; border-radius: 5px; border-left: 3px solid ${craftable ? '#51cf66' : '#ff6b6b'};">
                         <div>
-                            <div style="font-weight: bold; color: ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'}; font-size: ${this.getResponsiveFontSize(14)}px;">${item.name}</div>
-                            <div style="font-size: ${this.getResponsiveFontSize(12)}px; color: #ccc; margin-top: 3px;">${item.description}</div>
+                            <div style="font-weight: bold; color: ${craftable ? '#51cf66' : '#ff6b6b'};">${item.name}</div>
+                            <div style="font-size: 12px; color: #ccc; margin-top: 3px;">${item.description}</div>
+                            ${materialsText ? `<div style="font-size: 11px; margin-top: 2px;">Requires: ${materialsText}</div>` : ''}
                         </div>
-                        <div style="text-align: center; font-weight: bold; color: #ffd93d; font-size: ${this.getResponsiveFontSize(14)}px;">${item.cost}g</div>
+                        <div style="text-align: center; font-weight: bold; color: #ffd93d;">💰${item.cost}g</div>
                         <div style="text-align: center;">
-                            <button onclick="window.game.controller.craftItem('${item.id}', ${item.cost})" 
-                                    style="padding: ${this.getResponsiveButtonPadding()}; background: ${this.gameState.hero.gold >= item.cost ? 'linear-gradient(45deg, #2a4d3a, #4a7c59)' : 'linear-gradient(45deg, #4a2a2a, #6a3a3a)'}; 
-                                           border: 1px solid ${this.gameState.hero.gold >= item.cost ? '#51cf66' : '#ff6b6b'}; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: ${this.gameState.hero.gold >= item.cost ? 'pointer' : 'not-allowed'}; 
-                                           font-size: ${this.getResponsiveFontSize(12)}px; font-weight: bold;"
-                                    ${this.gameState.hero.gold < item.cost ? 'disabled' : ''}>
+                            <button onclick="window.game.controller.craftItem('${item.id}', ${item.cost}, ${JSON.stringify(item.materials).replace(/"/g, '&quot;')})" 
+                                    style="padding: 6px 12px; background: ${craftable ? 'linear-gradient(45deg, #2a4d3a, #4a7c59)' : 'linear-gradient(45deg, #4a2a2a, #6a3a3a)'}; 
+                                           border: 1px solid ${craftable ? '#51cf66' : '#ff6b6b'}; color: white; border-radius: 4px; cursor: ${craftable ? 'pointer' : 'not-allowed'}; 
+                                           font-size: 12px; font-weight: bold;"
+                                    ${!craftable ? 'disabled' : ''}>
                                 🔨 Craft
                             </button>
                         </div>
                     </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
             
-            <div style="margin-top: ${this.getResponsiveMargin()}; padding: ${this.getResponsivePadding()}; background: #2a2a3a; border-radius: ${this.getResponsiveBorderRadius()}; text-align: center;">
-                <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #888; font-style: italic;">
-                    💡 Tip: Different weapon types benefit from different stats - STR (melee), DEX (ranged), INT (arcane), WIL (divine)
+            <div style="margin-top: 15px; padding: 10px; background: #2a2a3a; border-radius: 5px; text-align: center;">
+                <div style="font-size: 12px; color: #888; font-style: italic;">
+                    💡 Tip: Defeat monsters to collect crafting materials. Different armor types offer different benefits and protection levels.
                 </div>
             </div>
         `;
@@ -3005,16 +3406,31 @@ class GameController {
         ]);
     }
 
-    craftItem(itemType, cost) {
+    craftItem(itemType, cost, materials = {}) {
+        // Check gold requirement
         if (this.gameState.hero.gold < cost) {
             this.ui.log("Not enough gold to craft this item!");
             this.ui.showNotification("Insufficient gold!", "error");
             return;
         }
 
+        // Check material requirements
+        for (const [material, required] of Object.entries(materials)) {
+            if ((this.gameState.hero.materials[material] || 0) < required) {
+                this.ui.log(`Not enough ${material} to craft this item! Need ${required}, have ${this.gameState.hero.materials[material] || 0}`);
+                this.ui.showNotification(`Insufficient ${material}!`, "error");
+                return;
+            }
+        }
+
+        // Deduct costs
         this.gameState.hero.gold -= cost;
+        for (const [material, required] of Object.entries(materials)) {
+            this.gameState.hero.materials[material] = (this.gameState.hero.materials[material] || 0) - required;
+        }
         
         const items = {
+            // Weapons
             iron_sword: { 
                 name: "Iron Sword", 
                 type: "weapon", 
@@ -3043,12 +3459,140 @@ class GameController {
                 stats: { attack: 8 }, 
                 equipped: false 
             },
+            
+            // Silk Armor Set
+            silk_hood: { 
+                name: "Silk Hood", 
+                type: "armor",
+                slot: "head",
+                stats: { defense: 1 }, 
+                equipped: false 
+            },
+            silk_sleeves: { 
+                name: "Silk Sleeves", 
+                type: "armor",
+                slot: "arms",
+                stats: { defense: 1 }, 
+                equipped: false 
+            },
+            silk_gloves: { 
+                name: "Silk Gloves", 
+                type: "armor",
+                slot: "hands",
+                stats: { defense: 1 }, 
+                equipped: false 
+            },
+            silk_robe: { 
+                name: "Silk Robe", 
+                type: "armor",
+                slot: "chest",
+                stats: { defense: 2 }, 
+                equipped: false 
+            },
+            silk_pants: { 
+                name: "Silk Pants", 
+                type: "armor",
+                slot: "legs",
+                stats: { defense: 1 }, 
+                equipped: false 
+            },
+            silk_shoes: { 
+                name: "Silk Shoes", 
+                type: "armor",
+                slot: "feet",
+                stats: { defense: 1 }, 
+                equipped: false 
+            },
+            
+            // Leather Armor Set
+            leather_helm: { 
+                name: "Leather Helm", 
+                type: "armor",
+                slot: "head",
+                stats: { defense: 2 }, 
+                equipped: false 
+            },
+            leather_bracers: { 
+                name: "Leather Bracers", 
+                type: "armor",
+                slot: "arms",
+                stats: { defense: 2 }, 
+                equipped: false 
+            },
+            leather_gauntlets: { 
+                name: "Leather Gauntlets", 
+                type: "armor",
+                slot: "hands",
+                stats: { defense: 2 }, 
+                equipped: false 
+            },
             leather_armor: { 
                 name: "Leather Armor", 
-                type: "armor", 
+                type: "armor",
+                slot: "chest",
                 stats: { defense: 3 }, 
                 equipped: false 
             },
+            leather_leggings: { 
+                name: "Leather Leggings", 
+                type: "armor",
+                slot: "legs",
+                stats: { defense: 2 }, 
+                equipped: false 
+            },
+            leather_boots: { 
+                name: "Leather Boots", 
+                type: "armor",
+                slot: "feet",
+                stats: { defense: 2 }, 
+                equipped: false 
+            },
+            
+            // Iron Armor Set
+            iron_helmet: { 
+                name: "Iron Helmet", 
+                type: "armor",
+                slot: "head",
+                stats: { defense: 3 }, 
+                equipped: false 
+            },
+            iron_vambraces: { 
+                name: "Iron Vambraces", 
+                type: "armor",
+                slot: "arms",
+                stats: { defense: 3 }, 
+                equipped: false 
+            },
+            iron_gauntlets: { 
+                name: "Iron Gauntlets", 
+                type: "armor",
+                slot: "hands",
+                stats: { defense: 3 }, 
+                equipped: false 
+            },
+            iron_chestplate: { 
+                name: "Iron Chestplate", 
+                type: "armor",
+                slot: "chest",
+                stats: { defense: 4 }, 
+                equipped: false 
+            },
+            iron_greaves: { 
+                name: "Iron Greaves", 
+                type: "armor",
+                slot: "legs",
+                stats: { defense: 3 }, 
+                equipped: false 
+            },
+            iron_boots: { 
+                name: "Iron Boots", 
+                type: "armor",
+                slot: "feet",
+                stats: { defense: 3 }, 
+                equipped: false 
+            },
+            
+            // Consumables
             health_potion: { 
                 name: "Health Potion", 
                 type: "consumable", 
@@ -3208,6 +3752,7 @@ class GameController {
                 level: 1, 
                 health: 75, 
                 mana: 40, 
+                stamina: 80,
                 attack: 15, 
                 defense: 5,
                 // Archer stats - focused on dexterity and intelligence 
@@ -3224,6 +3769,7 @@ class GameController {
                 level: 1, 
                 health: 120, 
                 mana: 30, 
+                stamina: 100,
                 attack: 12, 
                 defense: 10,
                 // Warrior stats - focused on strength and constitution
@@ -3240,6 +3786,7 @@ class GameController {
                 level: 1, 
                 health: 60, 
                 mana: 80, 
+                stamina: 60,
                 attack: 20, 
                 defense: 3,
                 // Mage stats - focused on intelligence and willpower
@@ -3256,6 +3803,7 @@ class GameController {
                 level: 1, 
                 health: 80, 
                 mana: 60, 
+                stamina: 70, 
                 attack: 8, 
                 defense: 6,
                 // Healer stats - focused on willpower and intelligence
@@ -3273,6 +3821,7 @@ class GameController {
             id: Date.now(),
             maxHealth: underlings[type].health,
             maxMana: underlings[type].mana,
+            maxStamina: underlings[type].stamina,
             equipment: [],
             isAlive: true
         };
@@ -3280,6 +3829,11 @@ class GameController {
         
         // Apply stat bonuses to the new underling
         this.applyCharacterStatBonuses(underling);
+        
+        // Ensure newly recruited underlings start at full health/mana/stamina
+        underling.health = underling.maxHealth;
+        underling.mana = underling.maxMana;
+        underling.stamina = underling.maxStamina;
         
         this.ui.log(`Recruited ${underling.name}!`);
         this.ui.showNotification(`Recruited ${underling.name}!`, "success");
@@ -3630,204 +4184,6 @@ class GameController {
         }, 500);
     }
 
-    manageUnderlingEquipment() {
-        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
-        
-        if (aliveUnderlings.length === 0) {
-            this.ui.log("No living underlings to manage equipment for!");
-            this.ui.showNotification("No living underlings!", "error");
-            return;
-        }
-
-        const equipmentContent = `
-            <div style="text-align: center; color: #e6ccff; margin-bottom: 15px;">
-                <h3 style="color: #b18cf2;">⚔️ Underling Equipment Management ⚔️</h3>
-                <p style="font-style: italic;">"Arm your followers for the battles ahead"</p>
-            </div>
-            <div style="max-height: 400px; overflow-y: auto;">
-                ${aliveUnderlings.map(underling => `
-                    <div style="background: #2a1a3a; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #6b4c93;">
-                        <h4 style="color: #d4af37; margin-bottom: 8px;">${underling.name} (${underling.type})</h4>
-                        <p style="margin-bottom: 8px;">Health: ${underling.health}/${underling.maxHealth} | Level: ${underling.level}</p>
-                        
-                        <div style="display: flex; gap: 15px;">
-                            <div style="flex: 1;">
-                                <h5 style="color: #4ecdc4; margin-bottom: 5px;">Equipped Items:</h5>
-                                ${underling.equipment && underling.equipment.filter(item => item.equipped).length > 0 ?
-                                    underling.equipment.filter(item => item.equipped).map(item => `
-                                        <div style="background: #1a1a2e; padding: 6px; margin: 3px 0; border-radius: 4px; font-size: 12px;">
-                                            <strong>${item.name}</strong> (${item.type})
-                                            ${item.stats ? Object.entries(item.stats).map(([stat, value]) => 
-                                                `<br><small>+${value} ${stat}</small>`).join('') : ''}
-                                            <br><button onclick="window.game.controller.unequipUnderlingItem('${underling.id}', '${item.name}')" 
-                                                      style="margin-top: 3px; padding: 2px 6px; background: #8b4513; border: 1px solid #d4af37; color: white; border-radius: 2px; cursor: pointer; font-size: 10px;">
-                                                Unequip
-                                            </button>
-                                        </div>
-                                    `).join('') :
-                                    '<p style="color: #888; font-size: 12px;">No equipped items</p>'
-                                }
-                            </div>
-                            
-                            <div style="flex: 1;">
-                                <h5 style="color: #4ecdc4; margin-bottom: 5px;">Available Items:</h5>
-                                ${this.getUnderlingCompatibleItems(underling).length > 0 ?
-                                    this.getUnderlingCompatibleItems(underling).map((item, itemIndex) => `
-                                        <div style="background: #1a1a2e; padding: 6px; margin: 3px 0; border-radius: 4px; font-size: 12px;">
-                                            <strong>${item.name}</strong> (${item.type})
-                                            ${item.stats ? Object.entries(item.stats).map(([stat, value]) => 
-                                                `<br><small>+${value} ${stat}</small>`).join('') : ''}
-                                            <br><button onclick="window.game.controller.equipUnderlingItem('${underling.id}', ${itemIndex})" 
-                                                      style="margin-top: 3px; padding: 2px 6px; background: #2a6b2a; border: 1px solid #51cf66; color: white; border-radius: 2px; cursor: pointer; font-size: 10px;">
-                                                Equip
-                                            </button>
-                                        </div>
-                                    `).join('') :
-                                    '<p style="color: #888; font-size: 12px;">No compatible items in inventory</p>'
-                                }
-                            </div>
-                        </div>
-                        
-                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444; font-size: 11px;">
-                            <strong>Stats with Equipment:</strong>
-                            Attack: ${this.calculateUnderlingStats(underling).attack} | 
-                            Defense: ${this.calculateUnderlingStats(underling).defense} | 
-                            Health: ${this.calculateUnderlingStats(underling).maxHealth}
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-
-        this.ui.createModal("Underling Equipment", equipmentContent, [
-            {
-                text: "Back to Inventory",
-                onClick: () => this.openInventory()
-            }
-        ]);
-    }
-
-    getUnderlingCompatibleItems(underling) {
-        // Get hero's inventory items that could be given to underlings
-        const heroItems = this.gameState.hero.equipment.filter(item => 
-            !item.equipped && 
-            (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory' || item.type === 'consumable')
-        );
-        
-        // All items can be given to underlings (equipment and consumables)
-        return heroItems;
-    }
-
-    calculateUnderlingStats(underling) {
-        let baseStats = {
-            attack: underling.attack,
-            defense: underling.defense,
-            maxHealth: underling.maxHealth
-        };
-
-        if (underling.equipment) {
-            underling.equipment.filter(item => item.equipped).forEach(item => {
-                if (item.stats) {
-                    Object.entries(item.stats).forEach(([stat, value]) => {
-                        if (baseStats[stat] !== undefined) {
-                            baseStats[stat] += value;
-                        }
-                    });
-                }
-            });
-        }
-
-        return baseStats;
-    }
-
-    equipUnderlingItem(underlingId, itemIndex) {
-        const underling = this.gameState.hero.underlings.find(u => u.id.toString() === underlingId.toString());
-        if (!underling || !underling.isAlive) {
-            this.ui.log("Cannot find living underling!");
-            return;
-        }
-
-        const availableItems = this.getUnderlingCompatibleItems(underling);
-        const item = availableItems[itemIndex];
-        if (!item) {
-            this.ui.log("Item not found!");
-            return;
-        }
-
-        // Remove from hero's equipment and add to underling's equipment
-        const heroItemIndex = this.gameState.hero.equipment.findIndex(heroItem => heroItem === item);
-        if (heroItemIndex > -1) {
-            this.gameState.hero.equipment.splice(heroItemIndex, 1);
-            
-            // Ensure underling has equipment array
-            if (!underling.equipment) {
-                underling.equipment = [];
-            }
-            
-            // Unequip same type items first
-            underling.equipment.forEach(equippedItem => {
-                if (equippedItem.type === item.type && equippedItem.equipped) {
-                    equippedItem.equipped = false;
-                    // Return to hero's inventory
-                    this.gameState.hero.equipment.push({...equippedItem, equipped: false});
-                }
-            });
-            underling.equipment = underling.equipment.filter(equippedItem => 
-                !(equippedItem.type === item.type && !equippedItem.equipped)
-            );
-            
-            // Equip new item
-            item.equipped = true;
-            underling.equipment.push(item);
-            
-            this.ui.log(`${underling.name} equipped ${item.name}!`);
-            this.ui.showNotification(`${underling.name} equipped ${item.name}!`, "success");
-            this.ui.render();
-            
-            // Refresh equipment modal
-            setTimeout(() => {
-                // Close the current modal and reopen cleanly
-                const modals = document.querySelectorAll('.modal-overlay');
-                modals.forEach(modal => modal.remove());
-                this.manageUnderlingEquipment();
-            }, 100);
-        }
-    }
-
-    unequipUnderlingItem(underlingId, itemName) {
-        const underling = this.gameState.hero.underlings.find(u => u.id.toString() === underlingId.toString());
-        if (!underling || !underling.isAlive) {
-            this.ui.log("Cannot find living underling!");
-            return;
-        }
-
-        const item = underling.equipment ? underling.equipment.find(item => item.name === itemName && item.equipped) : null;
-        if (!item) {
-            this.ui.log("Item not found on underling!");
-            return;
-        }
-
-        // Remove from underling and return to hero's inventory
-        const itemIndex = underling.equipment.findIndex(equippedItem => equippedItem === item);
-        if (itemIndex > -1) {
-            underling.equipment.splice(itemIndex, 1);
-            item.equipped = false;
-            this.gameState.hero.equipment.push(item);
-            
-            this.ui.log(`${underling.name} unequipped ${item.name}!`);
-            this.ui.showNotification(`${item.name} returned to inventory!`, "info");
-            this.ui.render();
-            
-            // Refresh equipment modal
-            setTimeout(() => {
-                // Close the current modal and reopen cleanly
-                const modals = document.querySelectorAll('.modal-overlay');
-                modals.forEach(modal => modal.remove());
-                this.manageUnderlingEquipment();
-            }, 100);
-        }
-    }
-
     // Debug function to check and reinitialize managers
     debugManagers() {
         console.log('=== Manager Debug Information ===');
@@ -4071,6 +4427,350 @@ class GameController {
             this.ui.log(`Level up! You are now level ${this.gameState.hero.level}!`);
             this.ui.showNotification(`Level up! Now level ${this.gameState.hero.level}!`, "success");
         }
+    }
+
+    /**
+     * Hero Abilities System
+     */
+    getHeroAbilities() {
+        // Define hero abilities that scale with level and stats
+        return {
+            'heal': new Ability({
+                id: 'hero_heal',
+                name: 'Healing Light',
+                description: 'Restore health to yourself or an ally',
+                icon: '💚',
+                type: 'spell',
+                targeting: { type: 'single', validTargets: 'allies', count: 1 },
+                costs: { mana: 8 },
+                effects: [{
+                    type: 'heal',
+                    baseValue: 20,
+                    scaling: { willpower: 2, intelligence: 1 },
+                    variance: 5
+                }]
+            }),
+            
+            'fireball': new Ability({
+                id: 'hero_fireball',
+                name: 'Fireball',
+                description: 'Launch a ball of fire at an enemy',
+                icon: '🔥',
+                type: 'spell',
+                targeting: { type: 'single', validTargets: 'enemies', count: 1, range: 'ranged' },
+                costs: { mana: 12 },
+                effects: [{
+                    type: 'damage',
+                    baseValue: 18,
+                    scaling: { intelligence: 2.5 },
+                    variance: 4
+                }]
+            }),
+            
+            'lightning_bolt': new Ability({
+                id: 'hero_lightning',
+                name: 'Lightning Bolt',
+                description: 'Strike an enemy with lightning',
+                icon: '⚡',
+                type: 'spell',
+                targeting: { type: 'single', validTargets: 'enemies', count: 1, range: 'ranged' },
+                costs: { mana: 10 },
+                effects: [{
+                    type: 'damage',
+                    baseValue: 15,
+                    scaling: { intelligence: 2 },
+                    variance: 3
+                }]
+            }),
+            
+            'shield': new Ability({
+                id: 'hero_shield',
+                name: 'Protective Shield',
+                description: 'Grant magical protection to an ally',
+                icon: '🛡️',
+                type: 'spell',
+                targeting: { type: 'single', validTargets: 'allies', count: 1 },
+                costs: { mana: 6 },
+                effects: [{
+                    type: 'buff_defense',
+                    baseValue: 5,
+                    duration: 4
+                }]
+            }),
+            
+            'group_heal': new Ability({
+                id: 'hero_group_heal',
+                name: 'Healing Circle',
+                description: 'Heal all party members',
+                icon: '💞',
+                type: 'spell',
+                targeting: { type: 'all', validTargets: 'allies', count: 'all' },
+                costs: { mana: 20 },
+                effects: [{
+                    type: 'heal',
+                    baseValue: 12,
+                    scaling: { willpower: 1.5, intelligence: 0.8 },
+                    variance: 3
+                }]
+            }),
+            
+            'power_strike': new Ability({
+                id: 'hero_power_strike',
+                name: 'Power Strike',
+                description: 'A devastating melee attack',
+                icon: '💥',
+                type: 'skill',
+                targeting: { type: 'single', validTargets: 'enemies', count: 1, range: 'melee' },
+                costs: { stamina: 8 },
+                effects: [{
+                    type: 'damage',
+                    baseValue: 20,
+                    scaling: { strength: 2 },
+                    variance: 5
+                }]
+            }),
+            
+            'ice_shard': new Ability({
+                id: 'hero_ice_shard',
+                name: 'Ice Shard',
+                description: 'Launch sharp ice that may slow enemies',
+                icon: '❄️',
+                type: 'spell',
+                targeting: { type: 'single', validTargets: 'enemies', count: 1, range: 'ranged' },
+                costs: { mana: 8 },
+                effects: [
+                    {
+                        type: 'damage',
+                        baseValue: 12,
+                        scaling: { intelligence: 1.8 }
+                    },
+                    {
+                        type: 'debuff_attack',
+                        baseValue: 3,
+                        duration: 2
+                    }
+                ]
+            }),
+            
+            'rage': new Ability({
+                id: 'hero_rage',
+                name: 'Berserker Rage',
+                description: 'Increase your attack power temporarily',
+                icon: '😡',
+                type: 'skill',
+                targeting: { type: 'self', validTargets: 'self', count: 1 },
+                costs: { stamina: 12 },
+                effects: [{
+                    type: 'buff_attack',
+                    baseValue: 8,
+                    duration: 4
+                }]
+            })
+        };
+    }
+
+    showHeroAbilitySelection() {
+        if (!this.gameState.inCombat) {
+            this.ui.showNotification("Can only use abilities in combat!", "error");
+            return;
+        }
+
+        const heroAbilities = this.getHeroAbilities();
+        const availableAbilities = Object.values(heroAbilities).filter(ability => {
+            const canUseResult = ability.canUse(this.gameState.hero, this.gameState);
+            return canUseResult.canUse;
+        });
+
+        if (availableAbilities.length === 0) {
+            this.ui.showNotification("No usable abilities available!", "error");
+            return;
+        }
+
+        const abilityContent = `
+            <div style="background: rgba(20, 20, 40, 0.9); padding: 20px; border-radius: 12px; border: 2px solid #9966cc;">
+                <h3 style="color: #d4af37; margin-bottom: 15px; text-align: center;">✨ Hero Abilities ✨</h3>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="color: #4ecdc4; font-weight: bold; margin-bottom: 8px; display: block;">Choose Ability:</label>
+                    <select id="abilitySelect" style="width: 100%; padding: 8px; background: #2a2a4a; color: white; border: 1px solid #666; border-radius: 6px; font-size: 14px;">
+                        <option value="">-- Select an Ability --</option>
+                        ${availableAbilities.map(ability => 
+                            `<option value="${ability.id}">${ability.icon} ${ability.name} (${ability.costs.mana || 0} MP, ${ability.costs.stamina || 0} SP)</option>`
+                        ).join('')}
+                    </select>
+                </div>
+                
+                <div id="abilityDescription" style="margin-bottom: 15px; padding: 10px; background: rgba(42, 42, 58, 0.6); border-radius: 6px; min-height: 40px; color: #ccc; font-style: italic;">
+                    Select an ability to see its description...
+                </div>
+                
+                <div id="targetSelection" style="display: none; margin-bottom: 15px;">
+                    <label style="color: #4ecdc4; font-weight: bold; margin-bottom: 8px; display: block;">Choose Target:</label>
+                    <select id="targetSelect" style="width: 100%; padding: 8px; background: #2a2a4a; color: white; border: 1px solid #666; border-radius: 6px; font-size: 14px;">
+                        <option value="">-- Select Target --</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="window.game.controller.castHeroAbility()" 
+                            style="padding: 10px 20px; background: linear-gradient(45deg, #4a2d7a, #6b3fa0); border: 2px solid #9966cc; color: white; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                        ✨ Cast Ability
+                    </button>
+                    <button onclick="window.game.controller.closeModal()" 
+                            style="padding: 10px 20px; background: linear-gradient(45deg, #666, #888); border: 2px solid #aaa; color: white; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                        ❌ Cancel
+                    </button>
+                </div>
+            </div>
+        `;
+
+        this.createDockedModal("Hero Abilities", abilityContent, []);
+
+        // Set up ability selection change handler
+        setTimeout(() => {
+            const abilitySelect = document.getElementById('abilitySelect');
+            const abilityDescription = document.getElementById('abilityDescription');
+            const targetSelection = document.getElementById('targetSelection');
+            const targetSelect = document.getElementById('targetSelect');
+
+            if (abilitySelect) {
+                abilitySelect.addEventListener('change', () => {
+                    const selectedAbilityId = abilitySelect.value;
+                    if (selectedAbilityId) {
+                        const ability = availableAbilities.find(a => a.id === selectedAbilityId);
+                        if (ability) {
+                            abilityDescription.innerHTML = `
+                                <strong>${ability.name}</strong><br>
+                                ${ability.description}<br>
+                                <span style="color: #ffd93d;">Costs: ${ability.costs.mana || 0} MP${ability.costs.stamina ? `, ${ability.costs.stamina} SP` : ''}</span>
+                            `;
+
+                            // Show target selection based on ability targeting
+                            this.updateTargetSelection(ability, targetSelection, targetSelect);
+                        }
+                    } else {
+                        abilityDescription.innerHTML = 'Select an ability to see its description...';
+                        targetSelection.style.display = 'none';
+                    }
+                });
+            }
+        }, 100);
+    }
+
+    updateTargetSelection(ability, targetSelection, targetSelect) {
+        const allCharacters = this.getAllCombatCharacters();
+        const validTargets = ability.getValidTargets(this.gameState.hero, allCharacters, this.gameState);
+        
+        targetSelect.innerHTML = '<option value="">-- Select Target --</option>';
+        
+        if (ability.targeting.type === 'self') {
+            targetSelect.innerHTML += `<option value="${this.gameState.hero.id || 'hero'}">${this.gameState.hero.name || 'Hero'} (You)</option>`;
+        } else if (ability.targeting.type === 'all') {
+            targetSelect.innerHTML += `<option value="all">All ${ability.targeting.validTargets}</option>`;
+        } else {
+            validTargets.forEach(target => {
+                const targetId = target.id || target.name || 'unknown';
+                const targetName = target.name || 'Unknown';
+                const healthInfo = target.health ? `(${target.health}/${target.maxHealth} HP)` : '';
+                targetSelect.innerHTML += `<option value="${targetId}">${targetName} ${healthInfo}</option>`;
+            });
+        }
+        
+        targetSelection.style.display = validTargets.length > 0 ? 'block' : 'none';
+    }
+
+    getAllCombatCharacters() {
+        const characters = [this.gameState.hero];
+        
+        // Add alive underlings
+        if (this.gameState.hero.underlings) {
+            characters.push(...this.gameState.hero.underlings.filter(u => u.isAlive));
+        }
+        
+        // Add enemies
+        if (this.gameState.currentEnemies) {
+            characters.push(...this.gameState.currentEnemies);
+        }
+        
+        return characters;
+    }
+
+    castHeroAbility() {
+        const abilitySelect = document.getElementById('abilitySelect');
+        const targetSelect = document.getElementById('targetSelect');
+        
+        if (!abilitySelect || !abilitySelect.value) {
+            this.ui.showNotification("Please select an ability!", "error");
+            return;
+        }
+        
+        const selectedAbilityId = abilitySelect.value;
+        const heroAbilities = this.getHeroAbilities();
+        const ability = heroAbilities[selectedAbilityId];
+        
+        if (!ability) {
+            this.ui.showNotification("Invalid ability selected!", "error");
+            return;
+        }
+        
+        // Determine targets
+        let targets = [];
+        const allCharacters = this.getAllCombatCharacters();
+        
+        if (ability.targeting.type === 'self') {
+            targets = [this.gameState.hero];
+        } else if (ability.targeting.type === 'all') {
+            targets = ability.getValidTargets(this.gameState.hero, allCharacters, this.gameState);
+        } else {
+            const selectedTargetId = targetSelect ? targetSelect.value : '';
+            if (!selectedTargetId) {
+                this.ui.showNotification("Please select a target!", "error");
+                return;
+            }
+            
+            const target = allCharacters.find(char => 
+                (char.id && char.id.toString() === selectedTargetId) || 
+                char.name === selectedTargetId ||
+                (selectedTargetId === 'hero' && char === this.gameState.hero)
+            );
+            
+            if (!target) {
+                this.ui.showNotification("Invalid target selected!", "error");
+                return;
+            }
+            
+            targets = [target];
+        }
+        
+        // Use the ability
+        const result = ability.use(this.gameState.hero, targets, this.gameState, this);
+        
+        if (result.success) {
+            this.ui.log(result.message);
+            if (result.results) {
+                result.results.forEach(r => {
+                    if (r.message) {
+                        this.ui.log(`  ${r.message}`);
+                    }
+                });
+            }
+            this.ui.showNotification("Ability cast successfully!", "success");
+            
+            // Close modal and continue combat
+            this.closeModal();
+            
+            // Trigger enemy turn
+            setTimeout(() => {
+                this.processEnemyTurns();
+            }, 1000);
+            
+        } else {
+            this.ui.log(result.message || "Failed to cast ability!");
+            this.ui.showNotification(result.message || "Failed to cast ability!", "error");
+        }
+        
+        // Update UI
+        this.ui.render();
     }
 }
 

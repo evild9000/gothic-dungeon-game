@@ -250,6 +250,7 @@ class CharacterManager {
                         <p><strong>Fame:</strong> ${hero.fame}</p>
                         <p><strong>Health:</strong> ${hero.health}/${hero.maxHealth}</p>
                         <p><strong>Mana:</strong> ${hero.mana}/${hero.maxMana}</p>
+                        <p><strong>Stamina:</strong> ${hero.stamina || 0}/${hero.maxStamina || 100}</p>
                         <p><strong>Leadership:</strong> ${hero.leadership}</p>
                     </div>
                     
@@ -284,6 +285,7 @@ class CharacterManager {
                                     <p><strong>Level:</strong> ${underling.level}</p>
                                     <p><strong>Health:</strong> ${underling.health}/${underling.maxHealth}</p>
                                     <p><strong>Mana:</strong> ${underling.mana}/${underling.maxMana}</p>
+                                    <p><strong>Stamina:</strong> ${underling.stamina || 0}/${underling.maxStamina || 100}</p>
                                     <p><strong>Attack:</strong> ${underling.attack} | <strong>Defense:</strong> ${underling.defense}</p>
                                     <div style="font-size: 11px; color: #bbb; margin-top: 8px;">
                                         <strong>Stats:</strong> STR: ${underling.strength || 5}, DEX: ${underling.dexterity || 5}, CON: ${underling.constitution || 5}, INT: ${underling.intelligence || 5}, WIL: ${underling.willpower || 5}, SIZ: ${underling.size || 5}
@@ -493,6 +495,7 @@ class CharacterManager {
                         <p><strong>Level:</strong> ${underling.level}</p>
                         <p><strong>Health:</strong> ${underling.health}/${underling.maxHealth}</p>
                         <p><strong>Mana:</strong> ${underling.mana}/${underling.maxMana}</p>
+                        <p><strong>Stamina:</strong> ${underling.stamina || 0}/${underling.maxStamina || 100}</p>
                         <p><strong>Attack:</strong> ${underling.attack} | <strong>Defense:</strong> ${underling.defense}</p>
                         ${!underling.isAlive ? '<p style="color: #ff6b6b; font-weight: bold;">⚰️ FALLEN - Needs Resurrection</p>' : ''}
                     </div>
