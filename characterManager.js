@@ -288,7 +288,7 @@ class CharacterManager {
                                     <div style="font-size: 11px; color: #bbb; margin-top: 8px;">
                                         <strong>Stats:</strong> STR: ${underling.strength || 5}, DEX: ${underling.dexterity || 5}, CON: ${underling.constitution || 5}, INT: ${underling.intelligence || 5}, WIL: ${underling.willpower || 5}, SIZ: ${underling.size || 5}
                                     </div>
-                                    <button onclick="window.game.characterManager.manageUnderling(${index})" 
+                                    <button onclick="window.game.controller.manageUnderling(${index})" 
                                             style="margin-top: 8px; padding: 4px 12px; background: #2a2a2a; border: 1px solid #555; color: white; border-radius: 4px; cursor: pointer;">
                                         Manage
                                     </button>

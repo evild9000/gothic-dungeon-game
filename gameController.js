@@ -199,12 +199,13 @@ class GameController {
             this.characterManager.applyStatBonuses();
             console.log('Managers initialization complete');
             
-        // Make managers globally accessible for debugging
-        window.inventoryManager = this.inventoryManager;
-        window.characterManager = this.characterManager;
-        
-        // Add debug helper to window
-        window.debugGameManagers = () => this.debugManagers();        } catch (error) {
+            // Make managers globally accessible for debugging
+            window.inventoryManager = this.inventoryManager;
+            window.characterManager = this.characterManager;
+            
+            // Add debug helper to window
+            window.debugGameManagers = () => this.debugManagers();
+        } catch (error) {
             console.error('Error initializing managers:', error);
             this.ui.log("Error initializing game systems: " + error.message);
             
@@ -3792,20 +3793,34 @@ class GameController {
         }
     }
 
+    // Ensure managers are available, try to initialize if not
+    ensureManagersAvailable() {
+        if (!this.inventoryManager || !this.characterManager) {
+            console.log('Managers not available, attempting to initialize...');
+            this.initializeManagers();
+            
+            // If still not available after initialization, try again after a short delay
+            if (!this.inventoryManager || !this.characterManager) {
+                console.warn('Managers still not available after initialization attempt');
+                return false;
+            }
+        }
+        return true;
+    }
+
     openInventory() {
         console.log('openInventory called, checking managers...');
         console.log('InventoryManager:', this.inventoryManager);
         
-        if (!this.inventoryManager) {
-            console.log('InventoryManager not initialized, creating new instance...');
-            try {
-                this.inventoryManager = new InventoryManager(this);
-                console.log('InventoryManager created successfully');
-            } catch (error) {
-                console.error('Failed to create InventoryManager:', error);
-                this.ui.log("Error: Failed to initialize inventory system.");
-                return;
-            }
+        if (!this.ensureManagersAvailable()) {
+            this.ui.log("Game systems are still loading, please try again in a moment.");
+            this.ui.showNotification("Systems loading, please wait...", "info");
+            
+            // Retry after a short delay
+            setTimeout(() => {
+                this.openInventory();
+            }, 1000);
+            return;
         }
         
         try {
@@ -3873,16 +3888,15 @@ class GameController {
         console.log('openCharacterManagement called, checking managers...');
         console.log('CharacterManager:', this.characterManager);
         
-        if (!this.characterManager) {
-            console.log('CharacterManager not initialized, creating new instance...');
-            try {
-                this.characterManager = new CharacterManager(this);
-                console.log('CharacterManager created successfully');
-            } catch (error) {
-                console.error('Failed to create CharacterManager:', error);
-                this.ui.log("Error: Failed to initialize character management system.");
-                return;
-            }
+        if (!this.ensureManagersAvailable()) {
+            this.ui.log("Game systems are still loading, please try again in a moment.");
+            this.ui.showNotification("Systems loading, please wait...", "info");
+            
+            // Retry after a short delay
+            setTimeout(() => {
+                this.openCharacterManagement();
+            }, 1000);
+            return;
         }
         
         try {
@@ -3933,7 +3947,18 @@ class GameController {
     }
 
     manageUnderling(index) {
-        this.characterManager.manageUnderling(index);
+        if (!this.ensureManagersAvailable()) {
+            this.ui.log("Game systems are still loading, please try again in a moment.");
+            this.ui.showNotification("Systems loading, please wait...", "info");
+            return;
+        }
+        
+        try {
+            this.characterManager.manageUnderling(index);
+        } catch (error) {
+            console.error('Error managing underling:', error);
+            this.ui.log("Error managing underling: " + error.message);
+        }
     }
 
     levelUpUnderling(index) {
