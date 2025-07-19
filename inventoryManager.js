@@ -395,7 +395,7 @@ class InventoryManager {
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <h4 style="color: #d4af37; margin: 0;">🎒 Inventory</h4>
                         <div style="color: #51cf66; font-size: 14px; font-weight: bold;">
-                            ${this.getInventoryUsage()} items (infinite capacity)
+                            ${this.getInventoryUsage()} items
                         </div>
                     </div>
                     ${this.generateInventoryHTML()}
@@ -496,12 +496,12 @@ class InventoryManager {
                 </div>
                 <div style="display: flex; gap: 5px;">
                     ${item.type !== 'consumable' ? `
-                        <button onclick="window.game.inventoryManager.equipItemByReference(this.itemRef)" 
+                        <button onclick="window.game.inventoryManager.equipItemByIndex(${index})" 
                                 style="padding: 2px 8px; background: #2a4d3a; border: 1px solid #51cf66; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
                             Equip
                         </button>
                     ` : `
-                        <button onclick="window.game.inventoryManager.useConsumableByReference(this.itemRef)" 
+                        <button onclick="window.game.inventoryManager.useConsumableByIndex(${index})" 
                                 style="padding: 2px 8px; background: #4a4a2d; border: 1px solid #ffd93d; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
                             Use
                         </button>
@@ -631,6 +631,55 @@ class InventoryManager {
             return item;
         }
         return null;
+    }
+
+    equipItemByIndex(itemIndex) {
+        const allItems = [...this.gameState.hero.inventory, ...this.gameState.hero.equipment.filter(item => !item.equipped)];
+        const item = allItems[itemIndex];
+        
+        if (!item) {
+            this.ui.log("Item not found!");
+            return;
+        }
+        
+        // Initialize equipment slots if not done yet
+        this.gameController.characterManager.initializeCharacterEquipment(this.gameState.hero);
+        
+        // Use new slot-based equipment system
+        if (this.equipItemToSlot(item, this.gameState.hero)) {
+            this.ui.render();
+            
+            // Refresh inventory modal
+            setTimeout(() => {
+                const modal = document.querySelector('.docked-modal');
+                if (modal) {
+                    modal.remove();
+                    this.openInventory();
+                }
+            }, 100);
+        }
+    }
+    
+    useConsumableByIndex(itemIndex) {
+        const allItems = [...this.gameState.hero.inventory, ...this.gameState.hero.equipment.filter(item => !item.equipped)];
+        const item = allItems[itemIndex];
+        
+        if (!item) {
+            this.ui.log("Item not found!");
+            return;
+        }
+        
+        this.gameController.useConsumable(item);
+        this.removeItem(item, 1);
+        
+        // Refresh inventory
+        setTimeout(() => {
+            const modal = document.querySelector('.docked-modal');
+            if (modal) {
+                modal.remove();
+                this.openInventory();
+            }
+        }, 100);
     }
 
     equipItemByReference(item) {

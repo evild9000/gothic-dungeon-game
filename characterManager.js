@@ -34,16 +34,13 @@ class CharacterManager {
         
         // Stat configuration
         this.statConfig = {
-            baseCost: 100,          // Base cost for first stat upgrade
-            costMultiplier: 1.3,    // Cost multiplier for each upgrade
-            maxStatValue: 20,       // Maximum stat value
             statDescriptions: {
-                strength: "Increases melee weapon damage and carrying capacity",
+                strength: "Increases melee weapon damage",
                 dexterity: "Increases critical hit chance, critical damage, and defense",
-                constitution: "Increases health points and resistance to effects", 
+                constitution: "Increases health points", 
                 intelligence: "Increases mana and arcane spell damage",
                 willpower: "Increases mana, divine spell damage, and magic resistance",
-                size: "Affects health, melee damage, defense, and hit chance"
+                size: "Affects health, melee damage, and defense"
             }
         };
     }
@@ -232,139 +229,6 @@ class CharacterManager {
         hero.size = Math.max(1, hero.size || 5);
     }
     
-    getStatUpgradeCost(currentValue) {
-        const upgradeLevel = currentValue - 5; // Starting from 5
-        return Math.floor(this.statConfig.baseCost * Math.pow(this.statConfig.costMultiplier, upgradeLevel));
-    }
-    
-    canUpgradeStat(statName) {
-        const hero = this.gameState.hero;
-        const currentValue = hero[statName];
-        
-        if (currentValue >= this.statConfig.maxStatValue) {
-            return { canUpgrade: false, reason: "Maximum stat value reached" };
-        }
-        
-        const cost = this.getStatUpgradeCost(currentValue);
-        if (hero.gold < cost) {
-            return { canUpgrade: false, reason: `Insufficient gold (need ${cost})` };
-        }
-        
-        return { canUpgrade: true, cost: cost };
-    }
-    
-    upgradeStat(statName) {
-        const hero = this.gameState.hero;
-        const upgradeCheck = this.canUpgradeStat(statName);
-        
-        if (!upgradeCheck.canUpgrade) {
-            this.ui.log(upgradeCheck.reason);
-            this.ui.showNotification("Cannot upgrade stat!", "error");
-            return false;
-        }
-        
-        const cost = upgradeCheck.cost;
-        const oldValue = hero[statName];
-        
-        // Confirm upgrade
-        const confirmContent = `
-            <div style="text-align: center;">
-                <h4>Upgrade ${statName.charAt(0).toUpperCase() + statName.slice(1)}</h4>
-                <p>Cost: <span style="color: #ffd93d;">${cost} gold</span></p>
-                <p>Current value: <span style="color: #51cf66;">${oldValue}</span></p>
-                <p>New value: <span style="color: #51cf66;">${oldValue + 1}</span></p>
-                <div style="margin: 15px 0; padding: 10px; background: #2a2a3a; border-radius: 5px;">
-                    <p style="color: #d4af37; font-size: 12px; margin: 0;">${this.statConfig.statDescriptions[statName]}</p>
-                </div>
-                <p style="color: #d4af37; font-weight: bold;">Upgrade this stat?</p>
-            </div>
-        `;
-        
-        this.ui.createModal("Stat Upgrade", confirmContent, [
-            {
-                text: "Confirm Upgrade",
-                onClick: () => this.confirmStatUpgrade(statName, cost)
-            },
-            {
-                text: "Cancel",
-                onClick: () => {}
-            }
-        ]);
-        
-        return true;
-    }
-    
-    confirmStatUpgrade(statName, cost) {
-        const hero = this.gameState.hero;
-        const oldValue = hero[statName];
-        
-        hero.gold -= cost;
-        hero[statName] += 1;
-        
-        // Apply new stat bonuses
-        this.applyStatBonuses();
-        
-        this.ui.log(`${statName.charAt(0).toUpperCase() + statName.slice(1)} upgraded from ${oldValue} to ${hero[statName]}!`);
-        this.ui.showNotification(`${statName} upgraded to ${hero[statName]}!`, "success");
-        
-        // Refresh character management if open
-        setTimeout(() => {
-            const modals = document.querySelectorAll('.modal-overlay');
-            modals.forEach(modal => modal.remove());
-            this.openCharacterManagement();
-        }, 100);
-    }
-    
-    // Leadership management
-    upgradeLeadership() {
-        const currentLeadership = this.gameState.hero.leadership;
-        const cost = Math.pow(currentLeadership + 1, 2) * 10;
-        
-        if (this.gameState.hero.gold < cost) {
-            this.ui.log(`Need ${cost} gold to upgrade leadership to ${currentLeadership + 1}. You have ${this.gameState.hero.gold} gold.`);
-            this.ui.showNotification("Insufficient gold for leadership upgrade!", "error");
-            return;
-        }
-        
-        const confirmContent = `
-            <div style="text-align: center;">
-                <h4>Upgrade Leadership</h4>
-                <p>Cost: <span style="color: #ffd93d;">${cost} gold</span></p>
-                <p>Current leadership: <span style="color: #51cf66;">${currentLeadership}</span></p>
-                <p>New leadership: <span style="color: #51cf66;">${currentLeadership + 1}</span></p>
-                <p>This will allow you to recruit more underlings.</p>
-                <p style="color: #d4af37; font-weight: bold;">Are you sure you want to upgrade?</p>
-            </div>
-        `;
-        
-        this.ui.createModal("Leadership Upgrade", confirmContent, [
-            {
-                text: "Confirm Upgrade",
-                onClick: () => this.confirmLeadershipUpgrade(cost)
-            },
-            {
-                text: "Cancel",
-                onClick: () => {}
-            }
-        ]);
-    }
-    
-    confirmLeadershipUpgrade(cost) {
-        const oldLeadership = this.gameState.hero.leadership;
-        this.gameState.hero.gold -= cost;
-        this.gameState.hero.leadership += 1;
-        
-        this.ui.log(`Leadership upgraded from ${oldLeadership} to ${this.gameState.hero.leadership}!`);
-        this.ui.showNotification(`Leadership upgraded to ${this.gameState.hero.leadership}!`, "success");
-        
-        // Refresh character management
-        setTimeout(() => {
-            const modals = document.querySelectorAll('.modal-overlay');
-            modals.forEach(modal => modal.remove());
-            this.openCharacterManagement();
-        }, 100);
-    }
-    
     // Character management UI
     openCharacterManagement() {
         this.ensureHeroStatsInitialized();
@@ -372,7 +236,7 @@ class CharacterManager {
         const hero = this.gameState.hero;
         const equippedStats = this.gameController.inventoryManager ? 
             this.gameController.inventoryManager.calculateEquippedStats() : 
-            this.gameController.calculateEquippedStats();
+            { attack: 0, defense: 0 };
         
         let characterContent = `
             <div style="display: flex; gap: 25px; max-width: 1200px; margin: 0 auto; align-items: flex-start; justify-content: center; padding-top: 10px;">
@@ -387,7 +251,6 @@ class CharacterManager {
                         <p><strong>Health:</strong> ${hero.health}/${hero.maxHealth}</p>
                         <p><strong>Mana:</strong> ${hero.mana}/${hero.maxMana}</p>
                         <p><strong>Leadership:</strong> ${hero.leadership}</p>
-                        <p style="font-size: 12px; color: #aaa; margin-left: 20px;">Next upgrade cost: ${Math.pow(hero.leadership + 1, 2) * 10} gold</p>
                     </div>
                     
                     <!-- Combat Stats -->
@@ -401,12 +264,12 @@ class CharacterManager {
                     <!-- Character Stats -->
                     <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 10px 0;">
                         <h5 style="color: #4ecdc4; text-align: center; margin-bottom: 15px;">Character Stats</h5>
-                        ${this.generateStatUpgradeHTML('strength', hero.strength)}
-                        ${this.generateStatUpgradeHTML('dexterity', hero.dexterity)}
-                        ${this.generateStatUpgradeHTML('constitution', hero.constitution)}
-                        ${this.generateStatUpgradeHTML('intelligence', hero.intelligence)}
-                        ${this.generateStatUpgradeHTML('willpower', hero.willpower)}
-                        ${this.generateStatUpgradeHTML('size', hero.size)}
+                        ${this.generateStatDisplayHTML('strength', hero.strength)}
+                        ${this.generateStatDisplayHTML('dexterity', hero.dexterity)}
+                        ${this.generateStatDisplayHTML('constitution', hero.constitution)}
+                        ${this.generateStatDisplayHTML('intelligence', hero.intelligence)}
+                        ${this.generateStatDisplayHTML('willpower', hero.willpower)}
+                        ${this.generateStatDisplayHTML('size', hero.size)}
                     </div>
                 </div>
                 
@@ -439,10 +302,6 @@ class CharacterManager {
         `;
 
         const characterButtons = [
-            {
-                text: "Upgrade Leadership",
-                onClick: () => this.upgradeLeadership()
-            },
             {
                 text: "Close",
                 onClick: () => {
@@ -585,8 +444,7 @@ class CharacterManager {
         return modal;
     }
     
-    generateStatUpgradeHTML(statName, currentValue) {
-        const upgradeCheck = this.canUpgradeStat(statName);
+    generateStatDisplayHTML(statName, currentValue) {
         const displayName = statName.charAt(0).toUpperCase() + statName.slice(1);
         
         return `
@@ -598,16 +456,6 @@ class CharacterManager {
                         ${this.statConfig.statDescriptions[statName]}
                     </div>
                 </div>
-                <div>
-                    ${upgradeCheck.canUpgrade ? `
-                        <button onclick="window.game.characterManager.upgradeStat('${statName}')" 
-                                style="padding: 4px 8px; background: #2a4d3a; border: 1px solid #51cf66; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
-                            +1 (${upgradeCheck.cost}g)
-                        </button>
-                    ` : `
-                        <span style="color: #888; font-size: 10px;">${upgradeCheck.reason}</span>
-                    `}
-                </div>
             </div>
         `;
     }
@@ -617,43 +465,264 @@ class CharacterManager {
         const underling = this.gameState.hero.underlings[underlingIndex];
         if (!underling) return;
         
+        // Initialize equipment slots for underling
+        this.initializeCharacterEquipment(underling);
+        
+        const isMobile = window.innerWidth <= 768;
+        
         const underlingContent = `
-            <div style="text-align: center;">
-                <h4 style="color: #4ecdc4;">${underling.name}</h4>
-                <p><strong>Type:</strong> ${underling.type}</p>
-                <p><strong>Level:</strong> ${underling.level}</p>
-                <p><strong>Health:</strong> ${underling.health}/${underling.maxHealth}</p>
-                <p><strong>Mana:</strong> ${underling.mana}/${underling.maxMana}</p>
-                <p><strong>Attack:</strong> ${underling.attack} | <strong>Defense:</strong> ${underling.defense}</p>
-                <hr style="margin: 15px 0; border-color: #444;">
-                <p><strong>Stats:</strong></p>
-                <p>STR: ${underling.strength || 5} | DEX: ${underling.dexterity || 5} | CON: ${underling.constitution || 5}</p>
-                <p>INT: ${underling.intelligence || 5} | WIL: ${underling.willpower || 5} | SIZ: ${underling.size || 5}</p>
-                ${!underling.isAlive ? '<p style="color: #ff6b6b; font-weight: bold;">⚰️ FALLEN - Needs Resurrection</p>' : ''}
+            <div style="display: ${isMobile ? 'block' : 'flex'}; gap: ${isMobile ? '15px' : '25px'}; max-width: 1200px; margin: 0 auto; align-items: flex-start; justify-content: center; padding-top: 10px;">
+                <!-- Underling Info and Stats -->
+                <div style="flex: 1; min-width: ${isMobile ? 'auto' : '400px'}; margin-bottom: ${isMobile ? '20px' : '0'};">
+                    <h4 style="text-align: center; color: #4ecdc4; margin-bottom: 15px;">${underling.name} (${underling.type})</h4>
+                    
+                    <!-- Basic Info -->
+                    <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                        <p><strong>Level:</strong> ${underling.level}</p>
+                        <p><strong>Health:</strong> ${underling.health}/${underling.maxHealth}</p>
+                        <p><strong>Mana:</strong> ${underling.mana}/${underling.maxMana}</p>
+                        <p><strong>Attack:</strong> ${underling.attack} | <strong>Defense:</strong> ${underling.defense}</p>
+                        ${!underling.isAlive ? '<p style="color: #ff6b6b; font-weight: bold;">⚰️ FALLEN - Needs Resurrection</p>' : ''}
+                    </div>
+                    
+                    <!-- Character Stats -->
+                    <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                        <h5 style="color: #4ecdc4; text-align: center; margin-bottom: 15px;">Character Stats</h5>
+                        ${this.generateStatDisplayHTML('strength', underling.strength || 5)}
+                        ${this.generateStatDisplayHTML('dexterity', underling.dexterity || 5)}
+                        ${this.generateStatDisplayHTML('constitution', underling.constitution || 5)}
+                        ${this.generateStatDisplayHTML('intelligence', underling.intelligence || 5)}
+                        ${this.generateStatDisplayHTML('willpower', underling.willpower || 5)}
+                        ${this.generateStatDisplayHTML('size', underling.size || 5)}
+                    </div>
+                </div>
+                
+                <!-- Equipment Management -->
+                <div style="flex: 1; min-width: ${isMobile ? 'auto' : '450px'};">
+                    <h4 style="text-align: center; color: #d4af37; margin-bottom: 15px;">🎒 Equipment & Gear</h4>
+                    
+                    <!-- Equipment Slots -->
+                    <div style="margin-bottom: 20px;">
+                        <h5 style="color: #4ecdc4; margin-bottom: 10px;">🛡️ Equipment Slots</h5>
+                        ${this.generateUnderlingEquipmentSlotsHTML(underling)}
+                    </div>
+                    
+                    <!-- Available Equipment -->
+                    <div>
+                        <h5 style="color: #4ecdc4; margin-bottom: 10px;">📦 Available Equipment</h5>
+                        ${this.generateAvailableEquipmentHTML(underling, underlingIndex)}
+                    </div>
+                </div>
             </div>
         `;
         
-        const underlingButtons = [
-            {
-                text: "Equipment",
-                onClick: () => this.gameController.manageUnderlingEquipment ? 
-                    this.gameController.manageUnderlingEquipment() : 
-                    this.ui.log("Equipment management not available")
-            },
-            {
-                text: "Close",
-                onClick: () => {}
-            }
-        ];
+        const underlingButtons = [];
         
         if (!underling.isAlive) {
-            underlingButtons.unshift({
+            underlingButtons.push({
                 text: "Resurrect (500 gold)",
                 onClick: () => this.resurrectUnderling(underlingIndex)
             });
         }
         
-        this.ui.createModal(`${underling.name} - Details`, underlingContent, underlingButtons);
+        underlingButtons.push({
+            text: "Back to Character Management", 
+            onClick: () => {
+                const modal = document.querySelector('.docked-modal');
+                if (modal) modal.remove();
+                this.openCharacterManagement();
+            }
+        });
+        
+        underlingButtons.push({
+            text: "Close",
+            onClick: () => {
+                const modal = document.querySelector('.docked-modal');
+                if (modal) modal.remove();
+            }
+        });
+        
+        this.createCharacterModal(`${underling.name} - Management`, underlingContent, underlingButtons);
+    }
+    
+    generateUnderlingEquipmentSlotsHTML(underling) {
+        const slots = this.getCharacterEquipmentSlots(underling);
+        const isMobile = window.innerWidth <= 768;
+        
+        let html = `<div style="display: grid; grid-template-columns: ${isMobile ? '1fr 1fr' : '1fr 1fr 1fr'}; gap: 8px; background: #1a1a2e; padding: 12px; border-radius: 8px; border: 1px solid #4a5568;">`;
+        
+        Object.entries(slots).forEach(([slotId, slotInfo]) => {
+            const equippedItem = underling.equipmentSlots[slotId];
+            const isEmpty = !equippedItem;
+            
+            html += `
+                <div style="
+                    background: ${isEmpty ? '#2a2a3a' : '#0a3a0a'};
+                    border: 2px solid ${isEmpty ? '#4a5568' : '#51cf66'};
+                    border-radius: 6px;
+                    padding: 8px;
+                    text-align: center;
+                    cursor: ${isEmpty ? 'default' : 'pointer'};
+                    transition: all 0.2s;
+                    min-height: 60px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                " onclick="${!isEmpty ? `window.game.characterManager.unequipUnderlingItem('${underling.id}', '${slotId}')` : ''}" onmouseover="this.style.background='${isEmpty ? '#3a3a4a' : '#1a4a1a'}'" onmouseout="this.style.background='${isEmpty ? '#2a2a3a' : '#0a3a0a'}'">
+                    <div style="font-size: 16px; margin-bottom: 2px;">${slotInfo.icon}</div>
+                    <div style="font-size: 10px; color: #d4af37; font-weight: bold; margin-bottom: 2px;">${slotInfo.name}</div>
+                    ${isEmpty ? 
+                        `<div style="font-size: 8px; color: #888; font-style: italic;">Empty</div>` :
+                        `<div style="font-size: 9px; color: #51cf66; font-weight: bold; text-align: center; line-height: 1.2;">
+                            ${equippedItem.name}
+                            ${equippedItem.stats ? Object.entries(equippedItem.stats).map(([stat, value]) => 
+                                `<br><span style="color: #ffd93d;">+${value} ${stat}</span>`).join('') : ''}
+                            <br><span style="color: #ff6b6b; font-size: 8px; cursor: pointer;">Click to unequip</span>
+                        </div>`
+                    }
+                </div>
+            `;
+        });
+        
+        html += `</div>`;
+        return html;
+    }
+    
+    generateAvailableEquipmentHTML(underling, underlingIndex) {
+        // Get all unequipped items from hero's inventory and equipment
+        const availableItems = [...this.gameState.hero.inventory, ...this.gameState.hero.equipment.filter(item => !item.equipped)];
+        const compatibleItems = availableItems.filter(item => 
+            item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory' || item.type === 'consumable'
+        );
+        
+        if (compatibleItems.length === 0) {
+            return '<p style="color: #888; text-align: center; padding: 20px;">No equipment available to give to this underling</p>';
+        }
+        
+        return `
+            <div style="max-height: 300px; overflow-y: auto; background: #1a1a2e; padding: 10px; border-radius: 8px; border: 1px solid #4a5568;">
+                ${compatibleItems.map((item, itemIndex) => `
+                    <div style="background: #1a1a1a; padding: 8px; margin: 5px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="flex: 1;">
+                            <strong style="color: #d4af37;">${item.name}</strong>
+                            <div style="font-size: 11px; color: #aaa;">${item.type || 'Item'}</div>
+                            ${item.stats ? Object.entries(item.stats).map(([stat, value]) => 
+                                `<small style="color: #51cf66;">+${value} ${stat}</small>`).join(' | ') : ''}
+                            ${item.effects ? Object.entries(item.effects).map(([effect, value]) => 
+                                `<small style="color: #ffd93d;">${effect}: ${value}</small>`).join(' | ') : ''}
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            ${item.type !== 'consumable' ? `
+                                <button onclick="window.game.characterManager.equipItemToUnderling(${underlingIndex}, ${availableItems.indexOf(item)})" 
+                                        style="padding: 2px 8px; background: #2a4d3a; border: 1px solid #51cf66; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
+                                    Equip
+                                </button>
+                            ` : `
+                                <button onclick="window.game.characterManager.giveConsumableToUnderling(${underlingIndex}, ${availableItems.indexOf(item)})" 
+                                        style="padding: 2px 8px; background: #4a4a2d; border: 1px solid #ffd93d; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
+                                    Give
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
+    // Equipment management methods for underlings
+    equipItemToUnderling(underlingIndex, itemIndex) {
+        const underling = this.gameState.hero.underlings[underlingIndex];
+        if (!underling) return;
+        
+        const availableItems = [...this.gameState.hero.inventory, ...this.gameState.hero.equipment.filter(item => !item.equipped)];
+        const item = availableItems[itemIndex];
+        if (!item) return;
+        
+        // Use inventory manager's equipment system
+        if (this.gameController.inventoryManager.equipItemToSlot(item, underling)) {
+            // Remove from hero's inventory/equipment
+            const heroInventoryIndex = this.gameState.hero.inventory.indexOf(item);
+            const heroEquipmentIndex = this.gameState.hero.equipment.indexOf(item);
+            
+            if (heroInventoryIndex > -1) {
+                this.gameState.hero.inventory.splice(heroInventoryIndex, 1);
+            } else if (heroEquipmentIndex > -1) {
+                this.gameState.hero.equipment.splice(heroEquipmentIndex, 1);
+            }
+            
+            this.ui.log(`${underling.name} equipped ${item.name}!`);
+            this.ui.showNotification(`${underling.name} equipped ${item.name}!`, "success");
+            
+            // Refresh the underling management screen
+            setTimeout(() => {
+                this.manageUnderling(underlingIndex);
+            }, 100);
+        }
+    }
+    
+    unequipUnderlingItem(underlingId, slotId) {
+        const underling = this.gameState.hero.underlings.find(u => u.id.toString() === underlingId.toString());
+        if (!underling || !underling.equipmentSlots[slotId]) return;
+        
+        const item = underling.equipmentSlots[slotId];
+        
+        // Unequip the item
+        underling.equipmentSlots[slotId] = null;
+        item.equipped = false;
+        item.equippedSlot = null;
+        
+        // Return to hero's inventory
+        this.gameState.hero.inventory.push(item);
+        
+        this.ui.log(`${underling.name} unequipped ${item.name}!`);
+        this.ui.showNotification(`${item.name} returned to inventory!`, "info");
+        
+        // Refresh the underling management screen
+        const underlingIndex = this.gameState.hero.underlings.indexOf(underling);
+        setTimeout(() => {
+            this.manageUnderling(underlingIndex);
+        }, 100);
+    }
+    
+    giveConsumableToUnderling(underlingIndex, itemIndex) {
+        const underling = this.gameState.hero.underlings[underlingIndex];
+        if (!underling) return;
+        
+        const availableItems = [...this.gameState.hero.inventory, ...this.gameState.hero.equipment.filter(item => !item.equipped)];
+        const item = availableItems[itemIndex];
+        if (!item || item.type !== 'consumable') return;
+        
+        // Use the consumable on the underling
+        if (item.effect === 'heal') {
+            const healAmount = Math.min(item.value, underling.maxHealth - underling.health);
+            underling.health = Math.min(underling.health + item.value, underling.maxHealth);
+            this.ui.log(`${underling.name} used ${item.name}! Restored ${healAmount} health.`);
+        } else if (item.effect === 'mana') {
+            const manaAmount = Math.min(item.value, underling.maxMana - underling.mana);
+            underling.mana = Math.min(underling.mana + item.value, underling.maxMana);
+            this.ui.log(`${underling.name} used ${item.name}! Restored ${manaAmount} mana.`);
+        } else {
+            this.ui.log(`${underling.name} used ${item.name}!`);
+        }
+        
+        // Remove the consumable from inventory
+        const heroInventoryIndex = this.gameState.hero.inventory.indexOf(item);
+        const heroEquipmentIndex = this.gameState.hero.equipment.indexOf(item);
+        
+        if (heroInventoryIndex > -1) {
+            this.gameState.hero.inventory.splice(heroInventoryIndex, 1);
+        } else if (heroEquipmentIndex > -1) {
+            this.gameState.hero.equipment.splice(heroEquipmentIndex, 1);
+        }
+        
+        this.ui.showNotification(`${underling.name} used ${item.name}!`, "success");
+        
+        // Refresh the underling management screen
+        setTimeout(() => {
+            this.manageUnderling(underlingIndex);
+        }, 100);
     }
     
     resurrectUnderling(underlingIndex) {
