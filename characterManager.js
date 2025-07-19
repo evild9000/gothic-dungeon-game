@@ -35,9 +35,9 @@ class CharacterManager {
         // Stat configuration
         this.statConfig = {
             statDescriptions: {
-                strength: "Increases melee weapon damage",
-                dexterity: "Increases critical hit chance, critical damage, and defense",
-                constitution: "Increases health points", 
+                strength: "Increases melee weapon damage and stamina",
+                dexterity: "Increases critical hit chance, critical damage, defense, and stamina",
+                constitution: "Increases health points and stamina", 
                 intelligence: "Increases mana and arcane spell damage",
                 willpower: "Increases mana, divine spell damage, and magic resistance",
                 size: "Affects health, melee damage, and defense"

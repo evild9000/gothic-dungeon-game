@@ -1213,6 +1213,46 @@ class GameController {
         }
     }
 
+    // Centralized enemy defeat handler to prevent double rewards
+    handleEnemyDefeat(enemy, defeatedBy = 'Hero') {
+        this.ui.log(`${enemy.name} is defeated by ${defeatedBy}!`);
+        
+        // Drop loot based on enemy type
+        this.dropLoot(enemy);
+        
+        // Calculate rewards based on who defeated the enemy
+        let baseGold, baseXp, goldMultiplier, xpMultiplier, dungeonGoldBonus, dungeonXpBonus;
+        
+        if (defeatedBy === 'Hero') {
+            // Hero gets bonus rewards
+            baseGold = Math.floor(Math.random() * 15) + 10; // 10-24 base
+            baseXp = Math.floor(Math.random() * 20) + 15; // 15-34 base
+            goldMultiplier = 1.5; // Hero bonus
+            xpMultiplier = 1.5; // Hero bonus
+            dungeonGoldBonus = this.gameState.dungeonLevel * Math.floor(Math.random() * 4 + 3); // +3-6 per level
+            dungeonXpBonus = this.gameState.dungeonLevel * Math.floor(Math.random() * 6 + 4); // +4-9 per level
+        } else {
+            // Underling kills get standard rewards
+            baseGold = Math.floor(Math.random() * 10) + 5; // 5-14 base
+            baseXp = Math.floor(Math.random() * 15) + 10; // 10-24 base
+            goldMultiplier = 1.0; // No bonus
+            xpMultiplier = 1.0; // No bonus
+            dungeonGoldBonus = this.gameState.dungeonLevel * Math.floor(Math.random() * 3 + 2); // +2-4 per level
+            dungeonXpBonus = this.gameState.dungeonLevel * Math.floor(Math.random() * 5 + 3); // +3-7 per level
+        }
+        
+        // Calculate final rewards
+        const goldReward = Math.floor((baseGold + dungeonGoldBonus) * goldMultiplier);
+        const xpReward = Math.floor((baseXp + dungeonXpBonus) * xpMultiplier);
+        
+        this.gameState.hero.gold += goldReward;
+        this.gameState.hero.fame += xpReward;
+        
+        const bonusText = defeatedBy === 'Hero' ? ' (Hero bonus + ' : ' (';
+        this.ui.log(`You gained ${goldReward} gold and ${xpReward} experience!${bonusText}Dungeon Lv.${this.gameState.dungeonLevel})`);
+        this.ui.showNotification(`${defeatedBy} defeated ${enemy.name}! +${goldReward} gold, +${xpReward} XP`, "success");
+    }
+
     calculateManaBonus(character) {
         // Intelligence and Willpower provide bonus mana: (INT + WIL - 10) * 2.5 mana
         if (!character || typeof character.intelligence !== 'number' || typeof character.willpower !== 'number' || 
@@ -1726,102 +1766,8 @@ class GameController {
         
         aliveUnderlings.forEach((underling, index) => {
             if (this.gameState.currentEnemies.length > 0) {
-                // Special abilities for specific underling types
-                
-                // Warrior: Taunt when any ally is under 50% health and has mana
-                if (underling.type === 'tank' && underling.mana >= 8) {
-                    const allPartyMembers = [this.gameState.hero, ...this.gameState.hero.underlings.filter(u => u.isAlive)];
-                    const injuredMembers = allPartyMembers.filter(member => {
-                        const healthPercent = member.health / member.maxHealth;
-                        return healthPercent < 0.5;
-                    });
-                    
-                    if (injuredMembers.length > 0) {
-                        // Activate taunt ability
-                        underling.mana -= 8;
-                        
-                        // Set taunt state on game state
-                        this.gameState.warriorTauntActive = true;
-                        this.gameState.tauntingWarrior = underling;
-                        
-                        this.ui.log(`${underling.name} uses Protective Taunt! All enemies will focus on the warrior next turn. (Cost: 8 MP)`);
-                        this.ui.log(`${underling.name} gains +25% defense while taunting!`);
-                        
-                        // Update combat interface
-                        setTimeout(() => this.showCombatInterface(), (index + 1) * 300);
-                        return; // Skip normal attack
-                    }
-                }
-                
-                // Healer: Heal most wounded ally if under 50% health and has mana
-                if (underling.type === 'support' && underling.mana >= 10) {
-                    const allPartyMembers = [this.gameState.hero, ...this.gameState.hero.underlings.filter(u => u.isAlive)];
-                    const woundedMembers = allPartyMembers.filter(member => {
-                        const healthPercent = member.health / member.maxHealth;
-                        return healthPercent < 0.5;
-                    });
-                    
-                    if (woundedMembers.length > 0) {
-                        // Find most wounded member (lowest health percentage)
-                        const mostWounded = woundedMembers.reduce((worst, current) => {
-                            const currentPercent = current.health / current.maxHealth;
-                            const worstPercent = worst.health / worst.maxHealth;
-                            return currentPercent < worstPercent ? current : worst;
-                        });
-                        
-                        // Heal for 25% of max health
-                        const healAmount = Math.floor(mostWounded.maxHealth * 0.25);
-                        const actualHealing = Math.min(healAmount, mostWounded.maxHealth - mostWounded.health);
-                        mostWounded.health = Math.min(mostWounded.health + healAmount, mostWounded.maxHealth);
-                        underling.mana -= 10;
-                        
-                        const targetName = mostWounded === this.gameState.hero ? 'Hero' : mostWounded.name;
-                        this.ui.log(`${underling.name} casts Healing Light on ${targetName} for ${actualHealing} HP! (Cost: 10 MP) (${targetName}: ${mostWounded.health}/${mostWounded.maxHealth} HP)`);
-                        
-                        // Update combat interface
-                        setTimeout(() => this.showCombatInterface(), (index + 1) * 300);
-                        return; // Skip normal attack
-                    }
-                }
-                
-                // Mage: Area effect spell if 3+ enemies and has mana
-                if (underling.type === 'magic' && underling.mana >= 15 && this.gameState.currentEnemies.length >= 3) {
-                    // Calculate spell damage
-                    let baseSpellDamage = 6 + (underling.level * 1.5);
-                    const statBonus = this.calculateAttackBonus(underling, 'arcane');
-                    const totalSpellDamage = Math.floor(baseSpellDamage + statBonus);
-                    
-                    underling.mana -= 15;
-                    
-                    this.ui.log(`${underling.name} casts Arcane Blast! (Cost: 15 MP)`);
-                    
-                    // Damage all enemies
-                    this.gameState.currentEnemies.forEach(enemy => {
-                        // Apply damage variance (80-100% of spell damage)
-                        const variance = 0.8 + Math.random() * 0.2;
-                        const finalDamage = Math.floor(totalSpellDamage * variance);
-                        enemy.health -= finalDamage;
-                        
-                        this.ui.log(`  ${enemy.name} takes ${finalDamage} arcane damage! (${Math.max(0, enemy.health)}/${enemy.maxHealth} HP)`);
-                        
-                        // Check if enemy is defeated
-                        if (enemy.health <= 0) {
-                            defeatedEnemiesThisTurn.add(enemy);
-                            this.ui.log(`  ${enemy.name} is defeated by the arcane blast!`);
-                            
-                            // Give rewards for defeated enemies
-                            const baseGold = Math.floor(Math.random() * 10) + 5;
-                            const baseXp = Math.floor(Math.random() * 15) + 10;
-                            const goldReward = baseGold + (this.gameState.dungeonLevel * Math.floor(Math.random() * 3 + 2));
-                            const xpReward = baseXp + (this.gameState.dungeonLevel * Math.floor(Math.random() * 5 + 3));
-                            
-                            this.gameState.hero.gold += goldReward;
-                            this.gameState.hero.fame += xpReward;
-                            
-                            this.ui.log(`You gained ${goldReward} gold and ${xpReward} experience! (Dungeon Lv.${this.gameState.dungeonLevel})`);
-                        }
-                    });
-                    
+                // Try to use an ability first (30% chance)
+                if (this.tryUnderlingAbility(underling)) {
                     // Update combat interface
                     setTimeout(() => this.showCombatInterface(), (index + 1) * 300);
                     return; // Skip normal attack
@@ -1882,22 +1828,8 @@ class GameController {
                     // Mark this enemy as defeated to prevent double-processing
                     defeatedEnemiesThisTurn.add(underlingTarget);
                     
-                    this.ui.log(`${underlingTarget.name} is defeated by ${underling.name}!`);
-                    
-                    // Drop loot based on enemy type
-                    this.dropLoot(underlingTarget);
-                    
-                    // Scale rewards with dungeon level
-                    const baseGold = Math.floor(Math.random() * 10) + 5; // 5-14 base
-                    const baseXp = Math.floor(Math.random() * 15) + 10; // 10-24 base
-                    const goldReward = baseGold + (this.gameState.dungeonLevel * Math.floor(Math.random() * 3 + 2)); // +2-4 per level
-                    const xpReward = baseXp + (this.gameState.dungeonLevel * Math.floor(Math.random() * 5 + 3)); // +3-7 per level
-                    
-                    this.gameState.hero.gold += goldReward;
-                    this.gameState.hero.fame += xpReward;
-                    
-                    this.ui.log(`You gained ${goldReward} gold and ${xpReward} experience! (Dungeon Lv.${this.gameState.dungeonLevel})`);
-                    this.ui.showNotification(`${underling.name} defeated ${underlingTarget.name}! +${goldReward} gold, +${xpReward} XP`, "success");
+                    // Use centralized defeat handler
+                    this.handleEnemyDefeat(underlingTarget, underling.name);
                 }
             }
         });
@@ -1919,22 +1851,8 @@ class GameController {
 
         // Check if main target is defeated (by hero)
         if (target.health <= 0) {
-            this.ui.log(`${target.name} is defeated!`);
-            
-            // Drop loot based on enemy type
-            this.dropLoot(target);
-            
-            // Scale rewards with dungeon level - Hero gets bonus rewards
-            const baseGold = Math.floor(Math.random() * 15) + 10; // 10-24 base
-            const baseXp = Math.floor(Math.random() * 20) + 15; // 15-34 base
-            const goldReward = Math.floor((baseGold + (this.gameState.dungeonLevel * Math.floor(Math.random() * 4 + 3))) * 1.5); // +3-6 per level, 1.5x hero bonus
-            const xpReward = Math.floor((baseXp + (this.gameState.dungeonLevel * Math.floor(Math.random() * 6 + 4))) * 1.5); // +4-9 per level, 1.5x hero bonus
-            
-            this.gameState.hero.gold += goldReward;
-            this.gameState.hero.fame += xpReward;
-            
-            this.ui.log(`You gained ${goldReward} gold and ${xpReward} experience! (Hero bonus + Dungeon Lv.${this.gameState.dungeonLevel})`);
-            this.ui.showNotification(`Defeated ${target.name}! +${goldReward} gold, +${xpReward} XP`, "success");
+            // Use centralized defeat handler
+            this.handleEnemyDefeat(target, 'Hero');
             
             // Remove the specific defeated enemy by ID, not by position
             this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.id !== target.id);
@@ -4664,13 +4582,25 @@ class GameController {
         targetSelect.innerHTML = '<option value="">-- Select Target --</option>';
         
         if (ability.targeting.type === 'self') {
-            targetSelect.innerHTML += `<option value="${this.gameState.hero.id || 'hero'}">${this.gameState.hero.name || 'Hero'} (You)</option>`;
+            targetSelect.innerHTML += `<option value="hero">${this.gameState.hero.name || 'Hero'} (You)</option>`;
         } else if (ability.targeting.type === 'all') {
             targetSelect.innerHTML += `<option value="all">All ${ability.targeting.validTargets}</option>`;
         } else {
-            validTargets.forEach(target => {
-                const targetId = target.id || target.name || 'unknown';
-                const targetName = target.name || 'Unknown';
+            validTargets.forEach((target, index) => {
+                let targetId, targetName;
+                
+                if (target === this.gameState.hero) {
+                    targetId = 'hero';
+                    targetName = target.name || 'Hero';
+                } else if (target.id) {
+                    targetId = target.id.toString();
+                    targetName = target.name || 'Unknown';
+                } else {
+                    // For enemies and underlings without IDs, use their index in the array
+                    targetId = `${target.name || 'unknown'}_${index}`;
+                    targetName = target.name || 'Unknown';
+                }
+                
                 const healthInfo = target.health ? `(${target.health}/${target.maxHealth} HP)` : '';
                 targetSelect.innerHTML += `<option value="${targetId}">${targetName} ${healthInfo}</option>`;
             });
@@ -4728,11 +4658,27 @@ class GameController {
                 return;
             }
             
-            const target = allCharacters.find(char => 
-                (char.id && char.id.toString() === selectedTargetId) || 
-                char.name === selectedTargetId ||
-                (selectedTargetId === 'hero' && char === this.gameState.hero)
-            );
+            let target = null;
+            
+            if (selectedTargetId === 'hero') {
+                target = this.gameState.hero;
+            } else {
+                // Try to find by ID first
+                target = allCharacters.find(char => 
+                    char.id && char.id.toString() === selectedTargetId
+                );
+                
+                // If not found by ID, try by name_index pattern or name
+                if (!target) {
+                    if (selectedTargetId.includes('_')) {
+                        const [targetName, targetIndex] = selectedTargetId.split('_');
+                        const charactersWithName = allCharacters.filter(char => char.name === targetName);
+                        target = charactersWithName[parseInt(targetIndex)] || charactersWithName[0];
+                    } else {
+                        target = allCharacters.find(char => char.name === selectedTargetId);
+                    }
+                }
+            }
             
             if (!target) {
                 this.ui.showNotification("Invalid target selected!", "error");
@@ -4771,6 +4717,114 @@ class GameController {
         
         // Update UI
         this.ui.render();
+    }
+
+    processEnemyTurns() {
+        // This function should handle enemy turns after hero abilities
+        // For now, we'll just delay a bit and continue with normal combat flow
+        setTimeout(() => {
+            this.showCombatInterface();
+        }, 500);
+    }
+
+    // Enhanced underling ability usage
+    tryUnderlingAbility(underling) {
+        if (!underling || !underling.isAlive || !underling.type) {
+            return false;
+        }
+
+        // Map underling types to ability classes
+        const typeMapping = {
+            'ranged': 'archer',
+            'tank': 'warrior', 
+            'magic': 'mage',
+            'support': 'healer'
+        };
+        
+        const abilityClass = typeMapping[underling.type];
+        if (!abilityClass) {
+            return false;
+        }
+
+        const abilities = UnderlingAbilities.getAbilitiesForClass(abilityClass, underling.level);
+        if (!abilities || abilities.length === 0) {
+            return false;
+        }
+
+        // 30% chance to use an ability instead of normal attack
+        if (Math.random() > 0.3) {
+            return false;
+        }
+
+        // Find a usable ability
+        const usableAbilities = abilities.filter(ability => {
+            const canUseResult = ability.canUse(underling, this.gameState);
+            return canUseResult.canUse;
+        });
+
+        if (usableAbilities.length === 0) {
+            return false;
+        }
+
+        // Pick a random usable ability
+        const selectedAbility = usableAbilities[Math.floor(Math.random() * usableAbilities.length)];
+        
+        // Get valid targets
+        const allCharacters = this.getAllCombatCharacters();
+        const validTargets = selectedAbility.getValidTargets(underling, allCharacters, this.gameState);
+        
+        if (validTargets.length === 0) {
+            return false;
+        }
+
+        // Select targets based on ability type
+        let targets = [];
+        if (selectedAbility.targeting.type === 'self') {
+            targets = [underling];
+        } else if (selectedAbility.targeting.type === 'all') {
+            targets = validTargets;
+        } else {
+            // For single target abilities, pick intelligently
+            if (selectedAbility.targeting.validTargets === 'enemies') {
+                // Pick a random enemy, preferring those with higher health
+                const sortedEnemies = validTargets.sort((a, b) => b.health - a.health);
+                targets = [sortedEnemies[0]];
+            } else if (selectedAbility.targeting.validTargets === 'allies') {
+                // For healing/buff abilities, pick most wounded ally
+                const woundedAllies = validTargets.filter(ally => ally.health < ally.maxHealth);
+                if (woundedAllies.length > 0) {
+                    const mostWounded = woundedAllies.reduce((worst, current) => {
+                        const currentPercent = current.health / current.maxHealth;
+                        const worstPercent = worst.health / worst.maxHealth;
+                        return currentPercent < worstPercent ? current : worst;
+                    });
+                    targets = [mostWounded];
+                } else {
+                    targets = [validTargets[0]];
+                }
+            }
+        }
+
+        if (targets.length === 0) {
+            return false;
+        }
+
+        // Use the ability
+        const result = selectedAbility.use(underling, targets, this.gameState, this);
+        
+        if (result.success) {
+            this.ui.log(`${underling.name} uses ${selectedAbility.name}!`);
+            if (result.results) {
+                result.results.forEach(r => {
+                    if (r.message) {
+                        this.ui.log(`  ${r.message}`);
+                    }
+                });
+            }
+            return true;
+        }
+
+        return false;
     }
 }
 
