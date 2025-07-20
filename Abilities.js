@@ -175,6 +175,12 @@ class Ability {
         if (this.targeting.count === 'all') {
             return validTargets;
         } else if (typeof this.targeting.count === 'number') {
+            // For single target abilities, return all valid targets so player can choose
+            // The count is enforced during ability usage, not during target selection
+            if (this.targeting.type === 'single') {
+                return validTargets;
+            }
+            // For multiple target abilities, limit to the specified count
             return validTargets.slice(0, this.targeting.count);
         }
         

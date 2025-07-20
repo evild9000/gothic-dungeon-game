@@ -841,6 +841,7 @@ class CharacterManager {
         const levelUpCost = this.calculateLevelUpCost(underling.level);
         const canAfford = this.gameState.hero.gold >= levelUpCost;
         const isMaxLevel = underling.level >= 10; // Assuming max level 10
+        const isLevelCapReached = underling.level >= this.gameState.hero.level; // Cannot exceed hero level
         
         if (isMaxLevel) {
             return `
@@ -851,6 +852,18 @@ class CharacterManager {
             `;
         }
         
+        if (isLevelCapReached) {
+            return `
+                <div style="text-align: center; color: #ff6b6b;">
+                    <p><strong>Level Cap Reached!</strong></p>
+                    <p>🚫 Underlings cannot exceed the Hero's level (${this.gameState.hero.level}).</p>
+                    <p>Level up your Hero first to unlock further advancement.</p>
+                </div>
+            `;
+        }
+        
+        const canLevelUp = canAfford && !isLevelCapReached && !isMaxLevel;
+        
         return `
             <div style="text-align: center;">
                 <p><strong>Current Level:</strong> ${underling.level}</p>
@@ -859,19 +872,19 @@ class CharacterManager {
                     <strong>Available Gold:</strong> ${this.gameState.hero.gold}
                 </p>
                 <button 
-                    onclick="window.game.characterManager.levelUpUnderling(${underlingIndex})" 
+                    onclick="window.game.controller.characterManager.levelUpUnderling(${underlingIndex})" 
                     style="
                         padding: 8px 16px;
-                        background: ${canAfford ? 'linear-gradient(135deg, #d4af37, #f1c40f)' : '#666'};
-                        color: ${canAfford ? '#000' : '#ccc'};
+                        background: ${canLevelUp ? 'linear-gradient(135deg, #d4af37, #f1c40f)' : '#666'};
+                        color: ${canLevelUp ? '#000' : '#ccc'};
                         border: none;
                         border-radius: 5px;
-                        cursor: ${canAfford ? 'pointer' : 'not-allowed'};
+                        cursor: ${canLevelUp ? 'pointer' : 'not-allowed'};
                         font-weight: bold;
                         font-size: 14px;
                         margin-top: 10px;
                     "
-                    ${!canAfford ? 'disabled' : ''}
+                    ${!canLevelUp ? 'disabled' : ''}
                 >
                     ⭐ Level Up (${levelUpCost}g)
                 </button>
@@ -894,9 +907,15 @@ class CharacterManager {
         
         const levelUpCost = this.calculateLevelUpCost(underling.level);
         const isMaxLevel = underling.level >= 10;
+        const isLevelCapReached = underling.level >= this.gameState.hero.level;
         
         if (isMaxLevel) {
             this.ui.showNotification(`${underling.name} is already at maximum level!`, "error");
+            return;
+        }
+        
+        if (isLevelCapReached) {
+            this.ui.showNotification(`${underling.name} cannot exceed Hero's level (${this.gameState.hero.level})!`, "error");
             return;
         }
         

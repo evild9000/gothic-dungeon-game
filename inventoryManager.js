@@ -844,7 +844,7 @@ class InventoryManager {
                             <h5 style="color: #d4af37; margin: 0;">${underling.name} (${underling.type})</h5>
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <small style="color: #4ecdc4;">Level ${underling.level} | ${underling.health}/${underling.maxHealth} HP</small>
-                                <button onclick="window.game.inventoryManager.openUnderlingEquipmentManager(${this.gameState.hero.underlings.indexOf(underling)})" 
+                                <button onclick="window.game.controller.inventoryManager.openUnderlingEquipmentManager(${this.gameState.hero.underlings.indexOf(underling)})" 
                                         style="padding: 4px 8px; background: linear-gradient(135deg, #d4af37, #f1c40f); color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">
                                     🛡️ Manage Equipment
                                 </button>

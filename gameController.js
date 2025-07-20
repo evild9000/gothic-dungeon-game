@@ -2204,6 +2204,34 @@ class GameController {
         this.updateCombatChatDisplay();
     }
 
+    // Check for defeated enemies and process XP/gold/loot (used after spells)
+    checkAndProcessDefeatedEnemies() {
+        if (!this.gameState.currentEnemies) return;
+        
+        // Find defeated enemies (health <= 0)
+        const defeatedEnemies = this.gameState.currentEnemies.filter(enemy => enemy.health <= 0);
+        
+        // Process each defeated enemy
+        defeatedEnemies.forEach(enemy => {
+            this.handleEnemyDefeat(enemy, 'Hero');
+        });
+        
+        // Remove defeated enemies from the current enemies list
+        this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.health > 0);
+    }
+
+    // Helper function to apply status effects (used by special ability handlers)
+    applyStatusEffect(target, effectType, value, duration) {
+        if (!target.statusEffects) {
+            target.statusEffects = {};
+        }
+        
+        target.statusEffects[effectType] = {
+            value: value,
+            duration: duration
+        };
+    }
+
     enemiesAttack() {
         // Ensure all underlings have maxHealth (for backward compatibility)
         this.gameState.hero.underlings.forEach(underling => {
@@ -3127,7 +3155,7 @@ class GameController {
                 name: 'Leather Helm', 
                 cost: 60,
                 materials: { animalHide: 1 },
-                description: '+2 Defense (Head Armor)',
+                description: '+2 Defense, +3 Stamina (Head Armor)',
                 type: 'armor',
                 slot: 'head'
             },
@@ -3136,7 +3164,7 @@ class GameController {
                 name: 'Leather Bracers', 
                 cost: 50,
                 materials: { animalHide: 1 },
-                description: '+2 Defense (Arm Armor)',
+                description: '+2 Defense, +3 Stamina (Arm Armor)',
                 type: 'armor',
                 slot: 'arms'
             },
@@ -3145,7 +3173,7 @@ class GameController {
                 name: 'Leather Gauntlets', 
                 cost: 45,
                 materials: { animalHide: 1 },
-                description: '+2 Defense (Hand Armor)',
+                description: '+2 Defense, +3 Stamina (Hand Armor)',
                 type: 'armor',
                 slot: 'hands'
             },
@@ -3154,7 +3182,7 @@ class GameController {
                 name: 'Leather Armor', 
                 cost: 75,
                 materials: { animalHide: 1 },
-                description: '+3 Defense (Chest Armor)',
+                description: '+3 Defense, +5 Stamina (Chest Armor)',
                 type: 'armor',
                 slot: 'chest'
             },
@@ -3163,7 +3191,7 @@ class GameController {
                 name: 'Leather Leggings', 
                 cost: 55,
                 materials: { animalHide: 1 },
-                description: '+2 Defense (Leg Armor)',
+                description: '+2 Defense, +3 Stamina (Leg Armor)',
                 type: 'armor',
                 slot: 'legs'
             },
@@ -3183,7 +3211,7 @@ class GameController {
                 name: 'Iron Helmet', 
                 cost: 80,
                 materials: { scrapIron: 1 },
-                description: '+3 Defense (Head Armor)',
+                description: '+4 Defense (Head Armor)',
                 type: 'armor',
                 slot: 'head'
             },
@@ -3192,7 +3220,7 @@ class GameController {
                 name: 'Iron Vambraces', 
                 cost: 70,
                 materials: { scrapIron: 1 },
-                description: '+3 Defense (Arm Armor)',
+                description: '+4 Defense (Arm Armor)',
                 type: 'armor',
                 slot: 'arms'
             },
@@ -3201,7 +3229,7 @@ class GameController {
                 name: 'Iron Gauntlets', 
                 cost: 65,
                 materials: { scrapIron: 1 },
-                description: '+3 Defense (Hand Armor)',
+                description: '+4 Defense (Hand Armor)',
                 type: 'armor',
                 slot: 'hands'
             },
@@ -3210,7 +3238,7 @@ class GameController {
                 name: 'Iron Chestplate', 
                 cost: 100,
                 materials: { scrapIron: 1 },
-                description: '+4 Defense (Chest Armor)',
+                description: '+6 Defense (Chest Armor)',
                 type: 'armor',
                 slot: 'chest'
             },
@@ -3219,7 +3247,7 @@ class GameController {
                 name: 'Iron Greaves', 
                 cost: 75,
                 materials: { scrapIron: 1 },
-                description: '+3 Defense (Leg Armor)',
+                description: '+4 Defense (Leg Armor)',
                 type: 'armor',
                 slot: 'legs'
             },
@@ -3228,7 +3256,7 @@ class GameController {
                 name: 'Iron Boots', 
                 cost: 60,
                 materials: { scrapIron: 1 },
-                description: '+3 Defense (Foot Armor)',
+                description: '+4 Defense (Foot Armor)',
                 type: 'armor',
                 slot: 'feet'
             },
@@ -3455,35 +3483,35 @@ class GameController {
                 name: "Leather Helm", 
                 type: "armor",
                 slot: "head",
-                stats: { defense: 2 }, 
+                stats: { defense: 2, stamina: 3 }, 
                 equipped: false 
             },
             leather_bracers: { 
                 name: "Leather Bracers", 
                 type: "armor",
                 slot: "arms",
-                stats: { defense: 2 }, 
+                stats: { defense: 2, stamina: 3 }, 
                 equipped: false 
             },
             leather_gauntlets: { 
                 name: "Leather Gauntlets", 
                 type: "armor",
                 slot: "hands",
-                stats: { defense: 2 }, 
+                stats: { defense: 2, stamina: 3 }, 
                 equipped: false 
             },
             leather_armor: { 
                 name: "Leather Armor", 
                 type: "armor",
                 slot: "chest",
-                stats: { defense: 3 }, 
+                stats: { defense: 3, stamina: 5 }, 
                 equipped: false 
             },
             leather_leggings: { 
                 name: "Leather Leggings", 
                 type: "armor",
                 slot: "legs",
-                stats: { defense: 2 }, 
+                stats: { defense: 2, stamina: 3 }, 
                 equipped: false 
             },
             leather_boots: { 
@@ -3499,42 +3527,42 @@ class GameController {
                 name: "Iron Helmet", 
                 type: "armor",
                 slot: "head",
-                stats: { defense: 3 }, 
+                stats: { defense: 4 }, 
                 equipped: false 
             },
             iron_vambraces: { 
                 name: "Iron Vambraces", 
                 type: "armor",
                 slot: "arms",
-                stats: { defense: 3 }, 
+                stats: { defense: 4 }, 
                 equipped: false 
             },
             iron_gauntlets: { 
                 name: "Iron Gauntlets", 
                 type: "armor",
                 slot: "hands",
-                stats: { defense: 3 }, 
+                stats: { defense: 4 }, 
                 equipped: false 
             },
             iron_chestplate: { 
                 name: "Iron Chestplate", 
                 type: "armor",
                 slot: "chest",
-                stats: { defense: 4 }, 
+                stats: { defense: 6 }, 
                 equipped: false 
             },
             iron_greaves: { 
                 name: "Iron Greaves", 
                 type: "armor",
                 slot: "legs",
-                stats: { defense: 3 }, 
+                stats: { defense: 4 }, 
                 equipped: false 
             },
             iron_boots: { 
                 name: "Iron Boots", 
                 type: "armor",
                 slot: "feet",
-                stats: { defense: 3 }, 
+                stats: { defense: 4 }, 
                 equipped: false 
             },
             
@@ -4576,33 +4604,94 @@ class GameController {
             'hero_fireball': new Ability({
                 id: 'hero_fireball',
                 name: 'Fireball',
-                description: 'Launch a ball of fire at enemies',
+                description: 'Launch a ball of fire at enemies, chance to cause burning',
                 icon: '🔥',
                 type: 'spell',
                 targeting: { type: 'multiple', validTargets: 'enemies', count: 3, range: 'ranged' },
                 costs: { mana: 12 },
-                effects: [{
-                    type: 'damage',
-                    baseValue: 18,
-                    scaling: { intelligence: 2.5 },
-                    variance: 4
-                }]
+                hasSpecialCode: true,
+                specialHandler: (caster, targets, gameState, gameController) => {
+                    const results = [];
+                    
+                    targets.forEach(target => {
+                        // Calculate damage
+                        const baseDamage = 18 + (caster.intelligence * 2.5) + (Math.random() * 8 - 4);
+                        const finalDamage = Math.max(1, Math.floor(baseDamage) - (target.defense || 0));
+                        target.health = Math.max(0, target.health - finalDamage);
+                        
+                        let message = `${target.name} takes ${finalDamage} fire damage`;
+                        
+                        // 30% chance to apply burning DOT
+                        if (Math.random() < 0.3) {
+                            gameController.applyStatusEffect(target, 'burn', 4, 3); // 4 damage per turn for 3 turns
+                            message += ' and catches fire! 🔥';
+                        }
+                        
+                        results.push({ message: message });
+                    });
+                    
+                    return {
+                        success: true,
+                        message: `${caster.name} casts Fireball!`,
+                        results: results
+                    };
+                }
             }),
             
             'hero_lightning': new Ability({
                 id: 'hero_lightning',
                 name: 'Lightning Bolt',
-                description: 'Chain lightning that arcs between enemies',
+                description: 'Chain lightning with a chance to arc between all enemies',
                 icon: '⚡',
                 type: 'spell',
                 targeting: { type: 'multiple', validTargets: 'enemies', count: 2, range: 'ranged' },
                 costs: { mana: 10 },
-                effects: [{
-                    type: 'damage',
-                    baseValue: 15,
-                    scaling: { intelligence: 2 },
-                    variance: 3
-                }]
+                hasSpecialCode: true,
+                specialHandler: (caster, targets, gameState, gameController) => {
+                    const results = [];
+                    const hitTargets = new Set();
+                    const allEnemies = gameState.currentEnemies.filter(e => e.health > 0);
+                    
+                    // Initial targets
+                    let currentTargets = [...targets];
+                    let arcLevel = 0;
+                    const maxArcs = 5; // Prevent infinite loops
+                    
+                    while (currentTargets.length > 0 && arcLevel < maxArcs) {
+                        const newTargets = [];
+                        
+                        currentTargets.forEach(target => {
+                            if (target.health <= 0) return; // Skip dead targets
+                            
+                            // Calculate damage (reduced by 10% per arc level)
+                            const baseDamage = (15 + (caster.intelligence * 2) + (Math.random() * 6 - 3)) * Math.pow(0.9, arcLevel);
+                            const finalDamage = Math.max(1, Math.floor(baseDamage) - (target.defense || 0));
+                            target.health = Math.max(0, target.health - finalDamage);
+                            
+                            const arcText = arcLevel > 0 ? ` (Arc ${arcLevel})` : '';
+                            results.push({ message: `${target.name} takes ${finalDamage} lightning damage${arcText} ⚡` });
+                            hitTargets.add(target);
+                            
+                            // 20% chance to arc to other enemies
+                            if (Math.random() < 0.2) {
+                                const unhitEnemies = allEnemies.filter(e => !hitTargets.has(e) && e.health > 0);
+                                if (unhitEnemies.length > 0) {
+                                    newTargets.push(...unhitEnemies);
+                                    results.push({ message: `Lightning arcs to other enemies!` });
+                                }
+                            }
+                        });
+                        
+                        currentTargets = newTargets;
+                        arcLevel++;
+                    }
+                    
+                    return {
+                        success: true,
+                        message: `${caster.name} casts Lightning Bolt!`,
+                        results: results
+                    };
+                }
             }),
             
             'hero_shield': new Ability({
@@ -4928,6 +5017,9 @@ class GameController {
             }
             this.ui.showNotification("Ability cast successfully!", "success");
             
+            // Check for defeated enemies after spell casting and process XP/gold/loot
+            this.checkAndProcessDefeatedEnemies();
+            
             // Close the docked modal
             const modal = document.querySelector('.docked-modal');
             if (modal) {
@@ -4936,6 +5028,15 @@ class GameController {
             
             // Update UI first
             this.ui.render();
+            
+            // Check if all enemies are defeated before continuing
+            if (this.gameState.currentEnemies.length === 0) {
+                this.ui.log("All enemies defeated! You can continue deeper or exit the dungeon.");
+                this.checkLevelUp();
+                this.ui.render();
+                this.showVictoryConfirmation();
+                return;
+            }
             
             // Hero's turn is over after casting, process underling turns then enemy turns
             setTimeout(() => {
