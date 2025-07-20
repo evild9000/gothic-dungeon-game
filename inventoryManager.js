@@ -542,11 +542,18 @@ class InventoryManager {
             // Armor pieces
             'armor': ['chest'],
             'helmet': ['head'],
+            'hood': ['head'],
+            'helm': ['head'],
             'boots': ['feet'],
             'gloves': ['hands'],
             'pants': ['legs'],
             'leggings': ['legs'],
             'bracers': ['arms'],
+            'vambraces': ['arms'],
+            'gauntlets': ['hands'],
+            'robe': ['chest'],
+            'chestplate': ['chest'],
+            'greaves': ['legs'],
             
             // Accessories
             'ring': ['ring1', 'ring2'],

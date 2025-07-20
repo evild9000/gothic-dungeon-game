@@ -2211,6 +2211,11 @@ class GameController {
         // Find defeated enemies (health <= 0)
         const defeatedEnemies = this.gameState.currentEnemies.filter(enemy => enemy.health <= 0);
         
+        // Debug logging
+        if (defeatedEnemies.length > 0) {
+            console.log('Processing defeated enemies from spell/ability:', defeatedEnemies.map(e => e.name));
+        }
+        
         // Process each defeated enemy
         defeatedEnemies.forEach(enemy => {
             this.handleEnemyDefeat(enemy, 'Hero');

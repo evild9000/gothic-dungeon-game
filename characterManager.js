@@ -650,6 +650,9 @@ class CharacterManager {
         const item = availableItems[itemIndex];
         if (!item) return;
         
+        // Initialize underling equipment slots if not done
+        this.initializeCharacterEquipment(underling);
+        
         // Use inventory manager's equipment system
         if (this.gameController.inventoryManager.equipItemToSlot(item, underling)) {
             // Remove from hero's inventory/equipment

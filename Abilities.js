@@ -215,6 +215,12 @@ class Ability {
             }
         }
         
+        // Check for defeated enemies and process rewards
+        if (gameController && gameController.checkAndProcessDefeatedEnemies) {
+            console.log(`[Abilities] Checking for defeated enemies after ${this.name}`);
+            gameController.checkAndProcessDefeatedEnemies();
+        }
+        
         // Set cooldown
         if (this.costs.cooldown > 0) {
             if (!gameState.abilityCooldowns) gameState.abilityCooldowns = {};
