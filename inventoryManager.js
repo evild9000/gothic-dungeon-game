@@ -837,31 +837,121 @@ class InventoryManager {
         }
         
         return `
-            <div style="max-height: 300px; overflow-y: auto; background: #1a1a2e; padding: 10px; border-radius: 8px; border: 1px solid #4a5568;">
-                ${aliveUnderlings.map(underling => `
-                    <div style="background: #2a1a3a; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid #6b4c93;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="max-height: 400px; overflow-y: auto;">
+                ${aliveUnderlings.map((underling, index) => `
+                    <div style="background: #1a1a2e; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #4a5568;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                             <h5 style="color: #d4af37; margin: 0;">${underling.name} (${underling.type})</h5>
-                            <small style="color: #4ecdc4;">Level ${underling.level} | ${underling.health}/${underling.maxHealth} HP</small>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <small style="color: #4ecdc4;">Level ${underling.level} | ${underling.health}/${underling.maxHealth} HP</small>
+                                <button onclick="window.game.inventoryManager.openUnderlingEquipmentManager(${this.gameState.hero.underlings.indexOf(underling)})" 
+                                        style="padding: 4px 8px; background: linear-gradient(135deg, #d4af37, #f1c40f); color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">
+                                    🛡️ Manage Equipment
+                                </button>
+                            </div>
                         </div>
                         
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <!-- Equipped Items -->
-                            <div style="flex: 1; min-width: 200px;">
-                                <h6 style="color: #51cf66; margin: 0 0 5px 0; font-size: 11px;">Equipped:</h6>
-                                ${this.getUnderlingEquippedItems(underling)}
+                        <!-- Quick Equipment Summary -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px;">
+                            <div>
+                                <strong style="color: #51cf66;">Equipped Items:</strong>
+                                ${this.getUnderlingEquippedItemsSummary(underling)}
                             </div>
-                            
-                            <!-- Available Items -->
-                            <div style="flex: 1; min-width: 200px;">
-                                <h6 style="color: #ffd93d; margin: 0 0 5px 0; font-size: 11px;">Available:</h6>
-                                ${this.getUnderlingAvailableItems(underling)}
+                            <div>
+                                <strong style="color: #ffd93d;">Quick Stats:</strong>
+                                <div style="color: #ccc; margin-top: 3px;">
+                                    Attack: ${underling.attack || 0} | Defense: ${underling.defense || 0}<br>
+                                    Mana: ${underling.mana || 0}/${underling.maxMana || 0} | Stamina: ${underling.stamina || 0}/${underling.maxStamina || 0}
+                                </div>
                             </div>
                         </div>
                     </div>
                 `).join('')}
             </div>
         `;
+    }
+    
+    getUnderlingEquippedItemsSummary(underling) {
+        if (!underling.equipment || underling.equipment.filter(item => item.equipped).length === 0) {
+            return '<div style="color: #888; margin-top: 3px;">No equipped items</div>';
+        }
+        
+        const equippedItems = underling.equipment.filter(item => item.equipped);
+        const itemCount = equippedItems.length;
+        const totalDefense = equippedItems.reduce((total, item) => total + (item.stats?.defense || 0), 0);
+        const totalAttack = equippedItems.reduce((total, item) => total + (item.stats?.attack || 0), 0);
+        
+        return `
+            <div style="color: #ccc; margin-top: 3px;">
+                ${itemCount} items equipped<br>
+                ${totalAttack > 0 ? `+${totalAttack} Attack ` : ''}
+                ${totalDefense > 0 ? `+${totalDefense} Defense` : ''}
+            </div>
+        `;
+    }
+    
+    // Open detailed equipment manager for a specific underling
+    openUnderlingEquipmentManager(underlingIndex) {
+        const underling = this.gameState.hero.underlings[underlingIndex];
+        if (!underling) {
+            this.ui.showNotification("Underling not found!", "error");
+            return;
+        }
+        
+        // Initialize equipment slots for underling
+        this.gameController.characterManager.initializeCharacterEquipment(underling);
+        
+        const isMobile = window.innerWidth <= 768;
+        
+        const equipmentContent = `
+            <div style="display: ${isMobile ? 'block' : 'flex'}; gap: ${isMobile ? '15px' : '25px'}; max-width: 1200px; margin: 0 auto;">
+                <!-- Underling Info -->
+                <div style="flex: 1; min-width: ${isMobile ? 'auto' : '300px'}; margin-bottom: ${isMobile ? '20px' : '0'};">
+                    <h4 style="text-align: center; color: #4ecdc4; margin-bottom: 15px;">${underling.name} (${underling.type})</h4>
+                    
+                    <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                        <p><strong>Level:</strong> ${underling.level}</p>
+                        <p><strong>Health:</strong> ${underling.health}/${underling.maxHealth}</p>
+                        <p><strong>Mana:</strong> ${underling.mana}/${underling.maxMana}</p>
+                        <p><strong>Stamina:</strong> ${underling.stamina || 0}/${underling.maxStamina || 100}</p>
+                        <p><strong>Attack:</strong> ${underling.attack} | <strong>Defense:</strong> ${underling.defense}</p>
+                    </div>
+                    
+                    <!-- Equipment Slots -->
+                    <div style="background: #1a1a1a; padding: 15px; border-radius: 8px;">
+                        <h5 style="color: #4ecdc4; margin-bottom: 10px;">🛡️ Equipment Slots</h5>
+                        ${this.gameController.characterManager.generateUnderlingEquipmentSlotsHTML(underling)}
+                    </div>
+                </div>
+                
+                <!-- Available Equipment -->
+                <div style="flex: 1; min-width: ${isMobile ? 'auto' : '450px'};">
+                    <h4 style="text-align: center; color: #d4af37; margin-bottom: 15px;">📦 Available Equipment</h4>
+                    <div style="background: #1a1a1a; padding: 15px; border-radius: 8px;">
+                        ${this.gameController.characterManager.generateAvailableEquipmentHTML(underling, underlingIndex)}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.createDockedModal(`Equipment Manager - ${underling.name}`, equipmentContent, [
+            {
+                text: "Back to Inventory",
+                onClick: () => {
+                    const modal = document.querySelector('.docked-modal');
+                    if (modal) modal.remove();
+                    // Reopen inventory after a short delay
+                    setTimeout(() => this.openInventory(), 100);
+                }
+            },
+            {
+                text: "Close",
+                onClick: () => {
+                    const modal = document.querySelector('.docked-modal');
+                    if (modal) modal.remove();
+                }
+            }
+        ]);
     }
     
     getUnderlingEquippedItems(underling) {

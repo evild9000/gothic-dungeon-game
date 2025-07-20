@@ -1773,71 +1773,8 @@ class GameController {
         // Update combat interface instead of sprite animation
         setTimeout(() => this.showCombatInterface(), 200);
 
-        // Living underlings also attack!
-        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
-        
-        aliveUnderlings.forEach((underling, index) => {
-            if (this.gameState.currentEnemies.length > 0) {
-                // Try to use an ability first (30% chance)
-                if (this.tryUnderlingAbility(underling)) {
-                    // Update combat interface
-                    setTimeout(() => this.showCombatInterface(), (index + 1) * 300);
-                    return; // Skip normal attack
-                }
-                
-                // Normal attack for all other cases
-                // Each underling targets a random enemy that's still alive
-                const underlingTarget = this.gameState.currentEnemies[Math.floor(Math.random() * this.gameState.currentEnemies.length)];
-                
-                // Skip if no valid target found
-                if (!underlingTarget || underlingTarget.health <= 0) {
-                    return;
-                }
-                
-                // Calculate base attack with level progression
-                let baseAttack = 8 + (underling.level * 2);
-                
-                // Equipment attack bonuses
-                const equippedWeapons = underling.equipment ? underling.equipment.filter(item => item.equipped && item.stats && item.stats.attack) : [];
-                const equipmentBonus = equippedWeapons.reduce((total, weapon) => total + weapon.stats.attack, 0);
-                
-                // Get weapon type and calculate stat-based attack bonus
-                const weaponType = this.getWeaponType(underling);
-                const statBonus = this.calculateAttackBonus(underling, weaponType);
-                
-                // Calculate critical hit
-                const critResult = this.calculateCriticalHit(underling);
-                
-                // Total attack value with all bonuses
-                const totalAttack = baseAttack + equipmentBonus + statBonus;
-                
-                // Apply damage variance (70-100% of attack value) and critical multiplier
-                const baseDamage = Math.floor(totalAttack * (0.7 + Math.random() * 0.3));
-                const finalDamage = Math.floor(baseDamage * critResult.multiplier);
-                
-                underlingTarget.health -= finalDamage;
-                
-                // Enhanced attack log with weapon type and critical hit info
-                const weaponText = weaponType !== 'melee' ? ` (${weaponType})` : '';
-                const critText = critResult.isCritical ? ` CRITICAL HIT! (${critResult.multiplier.toFixed(1)}x)` : '';
-                const equipmentText = equipmentBonus > 0 ? ` (+${equipmentBonus} equipment)` : '';
-                const statText = statBonus > 0 ? ` (+${statBonus} stat)` : '';
-                
-                this.ui.log(`${underling.name} attacks ${underlingTarget.name}${weaponText} for ${finalDamage} damage!${critText}${equipmentText}${statText} (${underlingTarget.name}: ${Math.max(0, underlingTarget.health)}/${underlingTarget.maxHealth} HP)`);
-                
-                // Update combat interface after a short delay instead of sprite animation
-                setTimeout(() => this.showCombatInterface(), (index + 1) * 300);
-                
-                // Check if enemy is defeated by underling
-                if (underlingTarget.health <= 0) {
-                    // Use centralized defeat handler
-                    this.handleEnemyDefeat(underlingTarget, underling.name);
-                    
-                    // Remove defeated enemy immediately
-                    this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.id !== underlingTarget.id);
-                }
-            }
-        });
+        // Process underling turns
+        this.processUnderlingTurns();
         
         // Check if main target is defeated (by hero) BEFORE filtering
         if (target.health <= 0) {
@@ -1848,20 +1785,10 @@ class GameController {
             this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.id !== target.id);
         }
 
-        // Remove any other enemies with health <= 0 (safety cleanup after underling attacks already processed)
-        this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.health > 0);
-
-        // Check if all enemies defeated
+        // Check if all enemies defeated (already handled in processUnderlingTurns if needed)
         if (this.gameState.currentEnemies.length === 0) {
-            this.ui.log("All enemies defeated! You can continue deeper or exit the dungeon.");
-            this.checkLevelUp();
-            this.ui.render();
-            this.showVictoryConfirmation();
             return;
         }
-
-        // Update combat chat display immediately to show combat results
-        this.updateCombatChatDisplay();
         
         // Enemies counterattack
         this.enemiesAttack();
@@ -2194,10 +2121,90 @@ class GameController {
         }
     }
 
-    enemiesAttack() {
-        // Process status effects at the start of the enemy turn
-        this.processAllStatusEffects();
+    processUnderlingTurns() {
+        // Living underlings also attack/use abilities!
+        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
         
+        aliveUnderlings.forEach((underling, index) => {
+            if (this.gameState.currentEnemies.length > 0) {
+                // Try to use an ability first (30% chance)
+                if (this.tryUnderlingAbility(underling)) {
+                    // Update combat interface
+                    setTimeout(() => this.showCombatInterface(), (index + 1) * 300);
+                    return; // Skip normal attack
+                }
+                
+                // Normal attack for all other cases
+                // Each underling targets a random enemy that's still alive
+                const underlingTarget = this.gameState.currentEnemies[Math.floor(Math.random() * this.gameState.currentEnemies.length)];
+                
+                // Skip if no valid target found
+                if (!underlingTarget || underlingTarget.health <= 0) {
+                    return;
+                }
+                
+                // Calculate base attack with level progression
+                let baseAttack = 8 + (underling.level * 2);
+                
+                // Equipment attack bonuses
+                const equippedWeapons = underling.equipment ? underling.equipment.filter(item => item.equipped && item.stats && item.stats.attack) : [];
+                const equipmentBonus = equippedWeapons.reduce((total, weapon) => total + weapon.stats.attack, 0);
+                
+                // Get weapon type and calculate stat-based attack bonus
+                const weaponType = this.getWeaponType(underling);
+                const statBonus = this.calculateAttackBonus(underling, weaponType);
+                
+                // Calculate critical hit
+                const critResult = this.calculateCriticalHit(underling);
+                
+                // Total attack value with all bonuses
+                const totalAttack = baseAttack + equipmentBonus + statBonus;
+                
+                // Apply damage variance (70-100% of attack value) and critical multiplier
+                const baseDamage = Math.floor(totalAttack * (0.7 + Math.random() * 0.3));
+                const finalDamage = Math.floor(baseDamage * critResult.multiplier);
+                
+                underlingTarget.health -= finalDamage;
+                
+                // Enhanced attack log with weapon type and critical hit info
+                const weaponText = weaponType !== 'melee' ? ` (${weaponType})` : '';
+                const critText = critResult.isCritical ? ` CRITICAL HIT! (${critResult.multiplier.toFixed(1)}x)` : '';
+                const equipmentText = equipmentBonus > 0 ? ` (+${equipmentBonus} equipment)` : '';
+                const statText = statBonus > 0 ? ` (+${statBonus} stat)` : '';
+                
+                this.ui.log(`${underling.name} attacks ${underlingTarget.name}${weaponText} for ${finalDamage} damage!${critText}${equipmentText}${statText} (${underlingTarget.name}: ${Math.max(0, underlingTarget.health)}/${underlingTarget.maxHealth} HP)`);
+                
+                // Update combat interface after a short delay instead of sprite animation
+                setTimeout(() => this.showCombatInterface(), (index + 1) * 300);
+                
+                // Check if enemy is defeated by underling
+                if (underlingTarget.health <= 0) {
+                    // Use centralized defeat handler
+                    this.handleEnemyDefeat(underlingTarget, underling.name);
+                    
+                    // Remove defeated enemy immediately
+                    this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.id !== underlingTarget.id);
+                }
+            }
+        });
+
+        // Remove any other enemies with health <= 0 (safety cleanup after underling attacks already processed)
+        this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.health > 0);
+
+        // Check if all enemies defeated
+        if (this.gameState.currentEnemies.length === 0) {
+            this.ui.log("All enemies defeated! You can continue deeper or exit the dungeon.");
+            this.checkLevelUp();
+            this.ui.render();
+            this.showVictoryConfirmation();
+            return;
+        }
+
+        // Update combat chat display immediately to show combat results
+        this.updateCombatChatDisplay();
+    }
+
+    enemiesAttack() {
         // Ensure all underlings have maxHealth (for backward compatibility)
         this.gameState.hero.underlings.forEach(underling => {
             if (!underling.maxHealth) {
@@ -2216,7 +2223,7 @@ class GameController {
         const allTargets = [this.gameState.hero, ...aliveUnderlings];
         
         this.gameState.currentEnemies.forEach(enemy => {
-            // Check if enemy is stunned or paralyzed
+            // Check if enemy is stunned or paralyzed BEFORE processing status effects
             if (enemy.statusEffects && (enemy.statusEffects.stunned || enemy.statusEffects.paralyzed)) {
                 const effectName = enemy.statusEffects.stunned ? 'stunned' : 'paralyzed';
                 const effectIcon = this.getStatusEffectInfo()[effectName].icon;
@@ -2329,6 +2336,9 @@ class GameController {
             }
             this.gameState.tauntingWarrior = null;
         }
+        
+        // Process status effects at the END of the enemy turn (after all actions)
+        this.processAllStatusEffects();
         
         // Update UI to reflect health changes and fallen underlings
         this.ui.render();
@@ -3061,7 +3071,7 @@ class GameController {
                 name: 'Silk Hood', 
                 cost: 40,
                 materials: { spiderSilk: 1 },
-                description: '+1 Defense (Head Armor)',
+                description: '+1 Defense, +2 Mana (Head Armor)',
                 type: 'armor',
                 slot: 'head'
             },
@@ -3070,7 +3080,7 @@ class GameController {
                 name: 'Silk Sleeves', 
                 cost: 35,
                 materials: { spiderSilk: 1 },
-                description: '+1 Defense (Arm Armor)',
+                description: '+1 Defense, +2 Mana (Arm Armor)',
                 type: 'armor',
                 slot: 'arms'
             },
@@ -3079,7 +3089,7 @@ class GameController {
                 name: 'Silk Gloves', 
                 cost: 30,
                 materials: { spiderSilk: 1 },
-                description: '+1 Defense (Hand Armor)',
+                description: '+1 Defense, +2 Mana (Hand Armor)',
                 type: 'armor',
                 slot: 'hands'
             },
@@ -3088,7 +3098,7 @@ class GameController {
                 name: 'Silk Robe', 
                 cost: 50,
                 materials: { spiderSilk: 1 },
-                description: '+2 Defense (Chest Armor)',
+                description: '+2 Defense, +3 Mana (Chest Armor)',
                 type: 'armor',
                 slot: 'chest'
             },
@@ -3097,7 +3107,7 @@ class GameController {
                 name: 'Silk Pants', 
                 cost: 40,
                 materials: { spiderSilk: 1 },
-                description: '+1 Defense (Leg Armor)',
+                description: '+1 Defense, +2 Mana (Leg Armor)',
                 type: 'armor',
                 slot: 'legs'
             },
@@ -3106,7 +3116,7 @@ class GameController {
                 name: 'Silk Shoes', 
                 cost: 25,
                 materials: { spiderSilk: 1 },
-                description: '+1 Defense (Foot Armor)',
+                description: '+1 Defense, +2 Mana (Foot Armor)',
                 type: 'armor',
                 slot: 'feet'
             },
@@ -4927,15 +4937,21 @@ class GameController {
             // Update UI first
             this.ui.render();
             
-            // Hero's turn is over after casting, start enemy turns
+            // Hero's turn is over after casting, process underling turns then enemy turns
             setTimeout(() => {
-                this.enemiesAttack();
+                // Process underling turns first (similar to playerAttack)
+                this.processUnderlingTurns();
                 
-                // Update combat interface after enemy attacks
+                // Then enemy turns
                 setTimeout(() => {
-                    this.showCombatInterface();
-                    this.updateCombatChatDisplay();
-                }, 1000);
+                    this.enemiesAttack();
+                    
+                    // Update combat interface after enemy attacks
+                    setTimeout(() => {
+                        this.showCombatInterface();
+                        this.updateCombatChatDisplay();
+                    }, 1000);
+                }, 500);
             }, 500);
             
         } else {

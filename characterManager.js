@@ -510,24 +510,19 @@ class CharacterManager {
                         ${this.generateStatDisplayHTML('willpower', underling.willpower || 5)}
                         ${this.generateStatDisplayHTML('size', underling.size || 5)}
                     </div>
-                </div>
-                
-                <!-- Equipment Management -->
-                <div style="flex: 1; min-width: ${isMobile ? 'auto' : '450px'};">
-                    <h4 style="text-align: center; color: #d4af37; margin-bottom: 15px;">🎒 Equipment & Gear</h4>
                     
-                    <!-- Equipment Slots -->
-                    <div style="margin-bottom: 20px;">
-                        <h5 style="color: #4ecdc4; margin-bottom: 10px;">🛡️ Equipment Slots</h5>
-                        ${this.generateUnderlingEquipmentSlotsHTML(underling)}
-                    </div>
-                    
-                    <!-- Available Equipment -->
-                    <div>
-                        <h5 style="color: #4ecdc4; margin-bottom: 10px;">📦 Available Equipment</h5>
-                        ${this.generateAvailableEquipmentHTML(underling, underlingIndex)}
+                    <!-- Level Up Section -->
+                    <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                        <h5 style="color: #d4af37; text-align: center; margin-bottom: 15px;">⭐ Character Advancement</h5>
+                        ${this.generateLevelUpHTML(underling, underlingIndex)}
                     </div>
                 </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <p style="color: #aaa; font-size: 12px;">
+                    💡 Equipment and gear management is available in the Inventory area.
+                </p>
             </div>
         `;
         
@@ -839,6 +834,131 @@ class CharacterManager {
         setTimeout(() => {
             this.openCharacterManagement();
         }, 100);
+    }
+    
+    // Generate level up HTML for underlings
+    generateLevelUpHTML(underling, underlingIndex) {
+        const levelUpCost = this.calculateLevelUpCost(underling.level);
+        const canAfford = this.gameState.hero.gold >= levelUpCost;
+        const isMaxLevel = underling.level >= 10; // Assuming max level 10
+        
+        if (isMaxLevel) {
+            return `
+                <div style="text-align: center; color: #d4af37;">
+                    <p><strong>Maximum Level Reached!</strong></p>
+                    <p>🏆 This underling has reached their full potential.</p>
+                </div>
+            `;
+        }
+        
+        return `
+            <div style="text-align: center;">
+                <p><strong>Current Level:</strong> ${underling.level}</p>
+                <p><strong>Level Up Cost:</strong> ${levelUpCost} gold</p>
+                <p style="color: ${canAfford ? '#4ecdc4' : '#ff6b6b'};">
+                    <strong>Available Gold:</strong> ${this.gameState.hero.gold}
+                </p>
+                <button 
+                    onclick="window.game.characterManager.levelUpUnderling(${underlingIndex})" 
+                    style="
+                        padding: 8px 16px;
+                        background: ${canAfford ? 'linear-gradient(135deg, #d4af37, #f1c40f)' : '#666'};
+                        color: ${canAfford ? '#000' : '#ccc'};
+                        border: none;
+                        border-radius: 5px;
+                        cursor: ${canAfford ? 'pointer' : 'not-allowed'};
+                        font-weight: bold;
+                        font-size: 14px;
+                        margin-top: 10px;
+                    "
+                    ${!canAfford ? 'disabled' : ''}
+                >
+                    ⭐ Level Up (${levelUpCost}g)
+                </button>
+            </div>
+        `;
+    }
+    
+    // Calculate level up cost
+    calculateLevelUpCost(currentLevel) {
+        return Math.floor(100 * Math.pow(1.5, currentLevel - 1));
+    }
+    
+    // Level up an underling
+    levelUpUnderling(underlingIndex) {
+        const underling = this.gameState.hero.underlings[underlingIndex];
+        if (!underling) {
+            this.ui.showNotification("Underling not found!", "error");
+            return;
+        }
+        
+        const levelUpCost = this.calculateLevelUpCost(underling.level);
+        const isMaxLevel = underling.level >= 10;
+        
+        if (isMaxLevel) {
+            this.ui.showNotification(`${underling.name} is already at maximum level!`, "error");
+            return;
+        }
+        
+        if (this.gameState.hero.gold < levelUpCost) {
+            this.ui.showNotification(`Not enough gold! Need ${levelUpCost} gold.`, "error");
+            return;
+        }
+        
+        // Deduct gold
+        this.gameState.hero.gold -= levelUpCost;
+        
+        // Level up the underling
+        underling.level++;
+        
+        // Increase stats based on underling type
+        const statIncreases = this.getStatIncreases(underling.type);
+        
+        underling.maxHealth += statIncreases.health;
+        underling.health = underling.maxHealth; // Full heal on level up
+        underling.maxMana += statIncreases.mana;
+        underling.mana = underling.maxMana;
+        underling.maxStamina += statIncreases.stamina;
+        underling.stamina = underling.maxStamina;
+        underling.attack += statIncreases.attack;
+        underling.defense += statIncreases.defense;
+        
+        // Increase character stats
+        underling.strength = (underling.strength || 5) + statIncreases.strength;
+        underling.dexterity = (underling.dexterity || 5) + statIncreases.dexterity;
+        underling.constitution = (underling.constitution || 5) + statIncreases.constitution;
+        underling.intelligence = (underling.intelligence || 5) + statIncreases.intelligence;
+        underling.willpower = (underling.willpower || 5) + statIncreases.willpower;
+        
+        this.ui.log(`${underling.name} gained a level! Now level ${underling.level}.`);
+        this.ui.showNotification(`${underling.name} leveled up!`, "success");
+        
+        // Refresh the display
+        this.manageUnderling(underlingIndex);
+    }
+    
+    // Get stat increases per level based on underling type
+    getStatIncreases(type) {
+        const increases = {
+            'ranged': { // Archer
+                health: 8, mana: 4, stamina: 6, attack: 2, defense: 1,
+                strength: 1, dexterity: 2, constitution: 1, intelligence: 1, willpower: 1
+            },
+            'tank': { // Warrior
+                health: 12, mana: 2, stamina: 8, attack: 2, defense: 2,
+                strength: 2, dexterity: 1, constitution: 2, intelligence: 0, willpower: 1
+            },
+            'magic': { // Mage
+                health: 6, mana: 8, stamina: 4, attack: 1, defense: 1,
+                strength: 0, dexterity: 1, constitution: 1, intelligence: 2, willpower: 2
+            },
+            'support': { // Healer
+                health: 8, mana: 6, stamina: 5, attack: 1, defense: 1,
+                strength: 0, dexterity: 1, constitution: 1, intelligence: 1, willpower: 2
+            }
+        };
+        
+        return increases[type] || increases['ranged']; // Default to ranged if type not found
     }
 }
 
