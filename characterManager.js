@@ -579,7 +579,7 @@ class CharacterManager {
                     flex-direction: column;
                     justify-content: center;
                     align-items: center;
-                " onclick="${!isEmpty ? `window.game.characterManager.unequipUnderlingItem('${underling.id}', '${slotId}')` : ''}" onmouseover="this.style.background='${isEmpty ? '#3a3a4a' : '#1a4a1a'}'" onmouseout="this.style.background='${isEmpty ? '#2a2a3a' : '#0a3a0a'}'">
+                " onclick="${!isEmpty ? `window.game.controller.characterManager.unequipUnderlingItem('${underling.id}', '${slotId}')` : ''}" onmouseover="this.style.background='${isEmpty ? '#3a3a4a' : '#1a4a1a'}'" onmouseout="this.style.background='${isEmpty ? '#2a2a3a' : '#0a3a0a'}'">
                     <div style="font-size: 16px; margin-bottom: 2px;">${slotInfo.icon}</div>
                     <div style="font-size: 10px; color: #d4af37; font-weight: bold; margin-bottom: 2px;">${slotInfo.name}</div>
                     ${isEmpty ? 
@@ -626,13 +626,13 @@ class CharacterManager {
                         </div>
                         <div style="display: flex; gap: 5px;">
                             ${item.type !== 'consumable' ? `
-                                <button onclick="window.game.characterManager.equipItemToUnderling(${underlingIndex}, ${actualItemIndex})" 
+                                <button onclick="window.game.controller.characterManager.equipItemToUnderling(${underlingIndex}, ${actualItemIndex})" 
                                         style="padding: 2px 8px; background: #2a4d3a; border: 1px solid #51cf66; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;"
                                         title="Equip ${item.name} to ${underling.name}">
                                     Equip
                                 </button>
                             ` : `
-                                <button onclick="window.game.characterManager.giveConsumableToUnderling(${underlingIndex}, ${actualItemIndex})" 
+                                <button onclick="window.game.controller.characterManager.giveConsumableToUnderling(${underlingIndex}, ${actualItemIndex})" 
                                         style="padding: 2px 8px; background: #4a4a2d; border: 1px solid #ffd93d; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;"
                                         title="Give ${item.name} to ${underling.name}">
                                     Give

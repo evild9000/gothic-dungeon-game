@@ -458,7 +458,7 @@ class InventoryManager {
                     flex-direction: column;
                     justify-content: center;
                     align-items: center;
-                " onclick="${!isEmpty ? `window.game.inventoryManager.unequipFromSlot(window.game.gameState.hero, '${slotId}'); window.game.inventoryManager.showInventory();` : ''}" onmouseover="this.style.background='${isEmpty ? '#3a3a4a' : '#1a4a1a'}'" onmouseout="this.style.background='${isEmpty ? '#2a2a3a' : '#0a3a0a'}'">
+                " onclick="${!isEmpty ? `window.game.controller.inventoryManager.unequipFromSlot(window.game.controller.gameState.hero, '${slotId}'); window.game.controller.inventoryManager.openInventory();` : ''}" onmouseover="this.style.background='${isEmpty ? '#3a3a4a' : '#1a4a1a'}'" onmouseout="this.style.background='${isEmpty ? '#2a2a3a' : '#0a3a0a'}'">
                     <div style="font-size: 16px; margin-bottom: 2px;">${slotInfo.icon}</div>
                     <div style="font-size: 10px; color: #d4af37; font-weight: bold; margin-bottom: 2px;">${slotInfo.name}</div>
                     ${isEmpty ? 
@@ -509,12 +509,12 @@ class InventoryManager {
                 </div>
                 <div style="display: flex; gap: 5px;">
                     ${item.type !== 'consumable' ? `
-                        <button onclick="window.inventoryManager.equipItemByIndex(${index})" 
+                        <button onclick="window.game.controller.inventoryManager.equipItemByIndex(${index})" 
                                 style="padding: 2px 8px; background: #2a4d3a; border: 1px solid #51cf66; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
                             Equip
                         </button>
                     ` : `
-                        <button onclick="window.inventoryManager.useConsumableByIndex(${index})" 
+                        <button onclick="window.game.controller.inventoryManager.useConsumableByIndex(${index})" 
                                 style="padding: 2px 8px; background: #4a4a2d; border: 1px solid #ffd93d; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
                             Use
                         </button>
@@ -530,8 +530,14 @@ class InventoryManager {
         const itemType = item.type ? item.type.toLowerCase() : '';
         const itemName = item.name ? item.name.toLowerCase() : '';
         
-        console.log(`[Equipment] Checking compatibility for: "${item.name}" (type: "${item.type}")`);
+        console.log(`[Equipment] Checking compatibility for: "${item.name}" (type: "${item.type}", slot: "${item.slot}")`);
         console.log(`[Equipment] Lowercase name: "${itemName}", type: "${itemType}"`);
+        
+        // FIRST: Check if item has a specific slot property (highest priority)
+        if (item.slot) {
+            console.log(`[Equipment] Found specific slot property: ${item.slot} -> [${item.slot}]`);
+            return [item.slot];
+        }
         
         // Map item types to equipment slots (order matters - more specific first)
         const slotMap = {
@@ -618,7 +624,7 @@ class InventoryManager {
         }
         
         // If no matches found, log for debugging
-        console.warn(`[Equipment] No slot compatibility found for "${item.name}" (type: "${item.type}")`);
+        console.warn(`[Equipment] No slot compatibility found for "${item.name}" (type: "${item.type}", slot: "${item.slot}")`);
         return [];
         
         // Default slots for generic items
