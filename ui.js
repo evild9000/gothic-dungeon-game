@@ -43,6 +43,7 @@ class UIManager {
             gui: document.getElementById('gui'),
             spritesArea: document.getElementById('sprites-area'),
             chatLog: document.getElementById('chat-log'),
+            versionDisplay: document.getElementById('version-display'),
             
             // Buttons
             newGameBtn: document.getElementById('new-game-btn'),
@@ -56,6 +57,9 @@ class UIManager {
             inventoryBtn: document.getElementById('inventory-btn'),
             characterBtn: document.getElementById('character-btn')
         };
+        
+        // Initialize version display
+        this.initializeVersionDisplay();
     }
 
     bindEvents() {
@@ -643,6 +647,41 @@ class UIManager {
     getRandomDungeonBackground() {
         const randomIndex = Math.floor(Math.random() * this.dungeonBackgrounds.length);
         return randomIndex;
+    }
+    
+    initializeVersionDisplay() {
+        if (this.elements.versionDisplay) {
+            // Add click handler to show more detailed version info
+            this.elements.versionDisplay.onclick = () => {
+                const versionInfo = `
+                    <div style="text-align: center; color: #d4af37;">
+                        <h3 style="color: #d4af37; margin-bottom: 15px;">🎮 Game Version Info 🎮</h3>
+                        <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <p><strong>Commit:</strong> <span style="color: #51cf66;">9082730</span></p>
+                            <p><strong>Date:</strong> <span style="color: #4ecdc4;">${new Date().toLocaleDateString()}</span></p>
+                            <p><strong>Features:</strong> <span style="color: #ffd93d;">Spell damage fixes, Fame progression</span></p>
+                            <p><strong>Build:</strong> <span style="color: #ff6b6b;">Latest stable release</span></p>
+                        </div>
+                        <div style="background: #1a3a1a; padding: 10px; border-radius: 8px; border-left: 3px solid #51cf66;">
+                            <small style="color: #51cf66;">💡 This version includes comprehensive spell damage validation and fame ratio display improvements.</small>
+                        </div>
+                    </div>
+                `;
+                
+                this.createModal("Version Information", versionInfo, [
+                    {
+                        text: "Close",
+                        onClick: () => {
+                            const modals = document.querySelectorAll('.modal-overlay');
+                            modals.forEach(modal => modal.remove());
+                        }
+                    }
+                ]);
+            };
+            
+            // Add tooltip on hover
+            this.elements.versionDisplay.title = "Click for detailed version information";
+        }
     }
 }
 
