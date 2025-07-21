@@ -4619,8 +4619,9 @@ class GameController {
                     const results = [];
                     
                     targets.forEach(target => {
-                        // Calculate damage
-                        const baseDamage = 18 + (caster.intelligence * 2.5) + (Math.random() * 8 - 4);
+                        // Calculate damage - ensure intelligence is valid
+                        const intelligence = (typeof caster.intelligence === 'number' && !isNaN(caster.intelligence)) ? caster.intelligence : 5;
+                        const baseDamage = 18 + (intelligence * 2.5) + (Math.random() * 8 - 4);
                         const finalDamage = Math.max(1, Math.floor(baseDamage) - (target.defense || 0));
                         target.health = Math.max(0, target.health - finalDamage);
                         
@@ -4668,8 +4669,9 @@ class GameController {
                         currentTargets.forEach(target => {
                             if (target.health <= 0) return; // Skip dead targets
                             
-                            // Calculate damage (reduced by 10% per arc level)
-                            const baseDamage = (15 + (caster.intelligence * 2) + (Math.random() * 6 - 3)) * Math.pow(0.9, arcLevel);
+                            // Calculate damage (reduced by 10% per arc level) - ensure intelligence is valid
+                            const intelligence = (typeof caster.intelligence === 'number' && !isNaN(caster.intelligence)) ? caster.intelligence : 5;
+                            const baseDamage = (15 + (intelligence * 2) + (Math.random() * 6 - 3)) * Math.pow(0.9, arcLevel);
                             const finalDamage = Math.max(1, Math.floor(baseDamage) - (target.defense || 0));
                             target.health = Math.max(0, target.health - finalDamage);
                             
