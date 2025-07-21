@@ -1721,53 +1721,52 @@ class GameController {
                     special: 'Monster command, all creature immunities' 
                 }
             },
-            
             // Offhand Slot Items - Crafted from monster materials
             offhands: {
                 'Goblin Buckler': { 
                     slot: 'offhand', tier: 'common', level: 1,
-                    stats: { constitution: 1, dexterity: 1 }, materials: { 'Crude Armor': 1, 'Tattered Cloth': 2 },
+                    stats: { constitution: 1, dexterity: 1, defense: 1 }, materials: { 'Crude Armor': 1, 'Tattered Cloth': 2 },
                     description: 'A makeshift shield crafted from goblin scrap.' 
                 },
                 'Spider Web Shield': { 
                     slot: 'offhand', tier: 'common', level: 2,
-                    stats: { dexterity: 2, willpower: 1 }, materials: { 'Spider Silk': 5, 'Chitin': 2 },
+                    stats: { dexterity: 2, willpower: 1, defense: 2 }, materials: { 'Spider Silk': 5, 'Chitin': 2 },
                     description: 'Flexible shield that can entangle enemies.',
                     special: 'Web entangle on block' 
                 },
                 'Wolf Hide Buckler': { 
                     slot: 'offhand', tier: 'uncommon', level: 3,
-                    stats: { constitution: 2, strength: 2 }, materials: { 'Wolf Pelt': 3, 'Sharp Fang': 2 },
+                    stats: { constitution: 2, strength: 2, defense: 3 }, materials: { 'Wolf Pelt': 3, 'Sharp Fang': 2 },
                     description: 'Sturdy shield with predatory intimidation.' 
                 },
                 'Orc War Shield': { 
                     slot: 'offhand', tier: 'uncommon', level: 4,
-                    stats: { constitution: 3, strength: 2 }, materials: { 'War Banner': 1, 'Captain Shield': 1, 'Orc Blade': 1 },
+                    stats: { constitution: 3, strength: 2, defense: 4 }, materials: { 'War Banner': 1, 'Captain Shield': 1, 'Orc Blade': 1 },
                     description: 'Battle-tested shield from orc campaigns.',
                     special: 'Battle fury on successful block' 
                 },
                 'Venom Orb': { 
                     slot: 'offhand', tier: 'rare', level: 5,
-                    stats: { intelligence: 4, dexterity: 2 }, materials: { 'Poison Gland': 4, 'Venom Sac': 3, 'Toxic Silk': 2 },
+                    stats: { intelligence: 4, dexterity: 2, defense: 2 }, materials: { 'Poison Gland': 4, 'Venom Sac': 3, 'Toxic Silk': 2 },
                     description: 'Crystallized venom that enhances poison abilities.',
                     special: 'Poison spell enhancement, immunity to toxins' 
                 },
                 'Alpha Command Totem': { 
                     slot: 'offhand', tier: 'rare', level: 6,
-                    stats: { willpower: 4, constitution: 3 }, materials: { 'Pack Leader Collar': 2, 'Alpha Pelt': 2, 'Primal Essence': 1 },
+                    stats: { willpower: 4, constitution: 3, defense: 5 }, materials: { 'Pack Leader Collar': 2, 'Alpha Pelt': 2, 'Primal Essence': 1 },
                     description: 'Grants command over beast packs.',
                     special: 'Beast summoning, pack leader aura' 
                 },
                 'Dimensional Weaver\'s Focus': { 
                     slot: 'offhand', tier: 'epic', level: 7,
-                    stats: { intelligence: 5, willpower: 4 }, materials: { 'Dimensional Web': 3, 'Ethereal Essence': 2, 'Phase Silk': 4 },
+                    stats: { intelligence: 5, willpower: 4, defense: 3 }, materials: { 'Dimensional Web': 3, 'Ethereal Essence': 2, 'Phase Silk': 4 },
                     description: 'Allows manipulation of dimensional fabric.',
                     special: 'Dimensional magic mastery, portal creation' 
                 },
-                'Crown of Supreme Rule': { 
+                'Battle Horn of Supreme Rule': { 
                     slot: 'offhand', tier: 'legendary', level: 8,
-                    stats: { all: 3 }, materials: { 'Spider Throne': 1, 'Command Horn': 1, 'Command Cloak': 1 },
-                    description: 'The ultimate symbol of absolute authority.',
+                    stats: { all: 3, defense: 6 }, materials: { 'Spider Throne': 1, 'Command Horn': 1, 'Command Cloak': 1 },
+                    description: 'The ultimate horn of absolute authority and protection.',
                     special: 'Supreme command, monster loyalty, realm dominion' 
                 }
             }
@@ -4079,6 +4078,230 @@ class GameController {
                 slot: 'feet'
             },
             
+            // Bone Armor Set (Same defense as leather, grants mana like silk)
+            { 
+                id: 'bone_skull_helm', 
+                name: 'Bone Skull Helm', 
+                cost: 70,
+                materials: { bones: 2 },
+                description: '+2 Defense, +3 Mana (Head Armor)',
+                type: 'armor',
+                slot: 'head'
+            },
+            { 
+                id: 'bone_arm_guards', 
+                name: 'Bone Arm Guards', 
+                cost: 60,
+                materials: { bones: 2 },
+                description: '+2 Defense, +3 Mana (Arm Armor)',
+                type: 'armor',
+                slot: 'arms'
+            },
+            { 
+                id: 'bone_claw_gauntlets', 
+                name: 'Bone Claw Gauntlets', 
+                cost: 55,
+                materials: { bones: 2 },
+                description: '+2 Defense, +3 Mana (Hand Armor)',
+                type: 'armor',
+                slot: 'hands'
+            },
+            { 
+                id: 'bone_rib_armor', 
+                name: 'Bone Rib Armor', 
+                cost: 85,
+                materials: { bones: 2 },
+                description: '+3 Defense, +5 Mana (Chest Armor)',
+                type: 'armor',
+                slot: 'chest'
+            },
+            { 
+                id: 'bone_leg_plates', 
+                name: 'Bone Leg Plates', 
+                cost: 65,
+                materials: { bones: 2 },
+                description: '+2 Defense, +3 Mana (Leg Armor)',
+                type: 'armor',
+                slot: 'legs'
+            },
+            { 
+                id: 'bone_spike_boots', 
+                name: 'Bone Spike Boots', 
+                cost: 50,
+                materials: { bones: 2 },
+                description: '+2 Defense, +2 Mana (Foot Armor)',
+                type: 'armor',
+                slot: 'feet'
+            },
+            
+            // Chitin Armor Set (Same defense as iron, grants stamina)
+            { 
+                id: 'chitin_shell_helm', 
+                name: 'Chitin Shell Helm', 
+                cost: 90,
+                materials: { chitin: 2 },
+                description: '+4 Defense, +3 Stamina (Head Armor)',
+                type: 'armor',
+                slot: 'head'
+            },
+            { 
+                id: 'chitin_carapace_guards', 
+                name: 'Chitin Carapace Guards', 
+                cost: 80,
+                materials: { chitin: 2 },
+                description: '+4 Defense, +3 Stamina (Arm Armor)',
+                type: 'armor',
+                slot: 'arms'
+            },
+            { 
+                id: 'chitin_claw_gauntlets', 
+                name: 'Chitin Claw Gauntlets', 
+                cost: 75,
+                materials: { chitin: 2 },
+                description: '+4 Defense, +3 Stamina (Hand Armor)',
+                type: 'armor',
+                slot: 'hands'
+            },
+            { 
+                id: 'chitin_shell_armor', 
+                name: 'Chitin Shell Armor', 
+                cost: 110,
+                materials: { chitin: 2 },
+                description: '+6 Defense, +5 Stamina (Chest Armor)',
+                type: 'armor',
+                slot: 'chest'
+            },
+            { 
+                id: 'chitin_leg_shells', 
+                name: 'Chitin Leg Shells', 
+                cost: 85,
+                materials: { chitin: 2 },
+                description: '+4 Defense, +3 Stamina (Leg Armor)',
+                type: 'armor',
+                slot: 'legs'
+            },
+            { 
+                id: 'chitin_shell_boots', 
+                name: 'Chitin Shell Boots', 
+                cost: 70,
+                materials: { chitin: 2 },
+                description: '+4 Defense, +3 Stamina (Foot Armor)',
+                type: 'armor',
+                slot: 'feet'
+            },
+            
+            // Dragon Scale Armor Set (Better than iron, grants both mana and stamina)
+            { 
+                id: 'dragon_scale_crown', 
+                name: 'Dragon Scale Crown', 
+                cost: 150,
+                materials: { dragonScale: 1, scaleArmor: 1 },
+                description: '+6 Defense, +4 Mana, +4 Stamina (Head Armor)',
+                type: 'armor',
+                slot: 'head'
+            },
+            { 
+                id: 'dragon_scale_bracers', 
+                name: 'Dragon Scale Bracers', 
+                cost: 130,
+                materials: { dragonScale: 1, scaleArmor: 1 },
+                description: '+6 Defense, +4 Mana, +4 Stamina (Arm Armor)',
+                type: 'armor',
+                slot: 'arms'
+            },
+            { 
+                id: 'dragon_scale_gauntlets', 
+                name: 'Dragon Scale Gauntlets', 
+                cost: 120,
+                materials: { dragonScale: 1, scaleArmor: 1 },
+                description: '+6 Defense, +4 Mana, +4 Stamina (Hand Armor)',
+                type: 'armor',
+                slot: 'hands'
+            },
+            { 
+                id: 'dragon_scale_chestplate', 
+                name: 'Dragon Scale Chestplate', 
+                cost: 180,
+                materials: { dragonScale: 1, scaleArmor: 1 },
+                description: '+8 Defense, +6 Mana, +6 Stamina (Chest Armor)',
+                type: 'armor',
+                slot: 'chest'
+            },
+            { 
+                id: 'dragon_scale_leggings', 
+                name: 'Dragon Scale Leggings', 
+                cost: 140,
+                materials: { dragonScale: 1, scaleArmor: 1 },
+                description: '+6 Defense, +4 Mana, +4 Stamina (Leg Armor)',
+                type: 'armor',
+                slot: 'legs'
+            },
+            { 
+                id: 'dragon_scale_boots', 
+                name: 'Dragon Scale Boots', 
+                cost: 110,
+                materials: { dragonScale: 1, scaleArmor: 1 },
+                description: '+6 Defense, +4 Mana, +4 Stamina (Foot Armor)',
+                type: 'armor',
+                slot: 'feet'
+            },
+            
+            // Ghostly Shroud Armor Set (Same defense as leather, double mana of silk)
+            { 
+                id: 'ghostly_hood', 
+                name: 'Ghostly Hood', 
+                cost: 80,
+                materials: { ectoplasm: 1, spiritEssence: 1, ghostlyCloth: 1 },
+                description: '+2 Defense, +6 Mana (Head Armor)',
+                type: 'armor',
+                slot: 'head'
+            },
+            { 
+                id: 'ghostly_wraps', 
+                name: 'Ghostly Wraps', 
+                cost: 70,
+                materials: { ectoplasm: 1, spiritEssence: 1, ghostlyCloth: 1 },
+                description: '+2 Defense, +6 Mana (Arm Armor)',
+                type: 'armor',
+                slot: 'arms'
+            },
+            { 
+                id: 'ghostly_gloves', 
+                name: 'Ghostly Gloves', 
+                cost: 65,
+                materials: { ectoplasm: 1, spiritEssence: 1, ghostlyCloth: 1 },
+                description: '+2 Defense, +6 Mana (Hand Armor)',
+                type: 'armor',
+                slot: 'hands'
+            },
+            { 
+                id: 'ghostly_robes', 
+                name: 'Ghostly Robes', 
+                cost: 100,
+                materials: { ectoplasm: 1, spiritEssence: 1, ghostlyCloth: 1 },
+                description: '+3 Defense, +10 Mana (Chest Armor)',
+                type: 'armor',
+                slot: 'chest'
+            },
+            { 
+                id: 'ghostly_shroud', 
+                name: 'Ghostly Shroud', 
+                cost: 75,
+                materials: { ectoplasm: 1, spiritEssence: 1, ghostlyCloth: 1 },
+                description: '+2 Defense, +6 Mana (Leg Armor)',
+                type: 'armor',
+                slot: 'legs'
+            },
+            { 
+                id: 'ghostly_slippers', 
+                name: 'Ghostly Slippers', 
+                cost: 55,
+                materials: { ectoplasm: 1, spiritEssence: 1, ghostlyCloth: 1 },
+                description: '+2 Defense, +6 Mana (Foot Armor)',
+                type: 'armor',
+                slot: 'feet'
+            },
+            
             // Consumables
             { 
                 id: 'health_potion', 
@@ -4108,7 +4331,13 @@ class GameController {
                     animalHide: 'Animal Hide',
                     scrapIron: 'Scrap Iron',
                     scrapWood: 'Scrap Wood',
-                    bones: 'Bones'
+                    bones: 'Bones',
+                    chitin: 'Chitin',
+                    dragonScale: 'Dragon Scale',
+                    scaleArmor: 'Scale Armor',
+                    ectoplasm: 'Ectoplasm',
+                    spiritEssence: 'Spirit Essence',
+                    ghostlyCloth: 'Ghostly Cloth'
                 };
                 const current = this.gameState.hero.materials[material] || 0;
                 const color = current >= amount ? '#51cf66' : '#ff6b6b';
@@ -4143,6 +4372,30 @@ class GameController {
                     <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
                         <div style="color: #ffd93d; font-weight: bold;">🦴 Bones</div>
                         <div style="color: #51cf66;">${this.gameState.hero.materials.bones || 0}</div>
+                    </div>
+                    <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
+                        <div style="color: #ffd93d; font-weight: bold;">🪲 Chitin</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials.chitin || 0}</div>
+                    </div>
+                    <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
+                        <div style="color: #ffd93d; font-weight: bold;">🐉 Dragon Scale</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials.dragonScale || 0}</div>
+                    </div>
+                    <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
+                        <div style="color: #ffd93d; font-weight: bold;">🛡️ Scale Armor</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials.scaleArmor || 0}</div>
+                    </div>
+                    <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
+                        <div style="color: #ffd93d; font-weight: bold;">👻 Ectoplasm</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials.ectoplasm || 0}</div>
+                    </div>
+                    <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
+                        <div style="color: #ffd93d; font-weight: bold;">✨ Spirit Essence</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials.spiritEssence || 0}</div>
+                    </div>
+                    <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
+                        <div style="color: #ffd93d; font-weight: bold;">🌫️ Ghostly Cloth</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials.ghostlyCloth || 0}</div>
                     </div>
                 </div>
             </div>
