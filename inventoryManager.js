@@ -533,41 +533,70 @@ class InventoryManager {
         console.log(`[Equipment] Checking compatibility for: "${item.name}" (type: "${item.type}")`);
         console.log(`[Equipment] Lowercase name: "${itemName}", type: "${itemType}"`);
         
-        // Map item types to equipment slots
+        // Map item types to equipment slots (order matters - more specific first)
         const slotMap = {
-            // Weapons
-            'weapon': ['hand1', 'hand2'],
+            // Weapons (specific first)
             'sword': ['hand1', 'hand2'],
             'bow': ['hand1'],
             'staff': ['hand1'],
             'wand': ['hand1'],
             'shield': ['hand2'],
+            'weapon': ['hand1', 'hand2'],
             
-            // Armor pieces
-            'armor': ['chest'],
+            // Head equipment
             'helmet': ['head'],
             'hood': ['head'],
             'helm': ['head'],
-            'boots': ['feet'],
-            'gloves': ['hands'],
-            'pants': ['legs'],
-            'leggings': ['legs'],
+            'hat': ['head'],
+            'crown': ['head'],
+            'circlet': ['head'],
+            
+            // Face equipment
+            'mask': ['face'],
+            'glasses': ['face'],
+            'goggles': ['face'],
+            
+            // Neck equipment
+            'necklace': ['neck'],
+            'amulet': ['amulet'],
+            
+            // Chest equipment
+            'chestplate': ['chest'],
+            'breastplate': ['chest'],
+            'robe': ['chest'],
+            'tunic': ['chest'],
+            'shirt': ['chest'],
+            'vest': ['chest'],
+            'armor': ['chest'],
+            
+            // Arms equipment
             'bracers': ['arms'],
             'vambraces': ['arms'],
+            'armguards': ['arms'],
+            
+            // Hands equipment
+            'gloves': ['hands'],
             'gauntlets': ['hands'],
-            'robe': ['chest'],
-            'chestplate': ['chest'],
+            'mittens': ['hands'],
+            
+            // Legs equipment
+            'pants': ['legs'],
+            'leggings': ['legs'],
+            'trousers': ['legs'],
             'greaves': ['legs'],
+            'legguards': ['legs'],
+            
+            // Feet equipment
+            'boots': ['feet'],
+            'shoes': ['feet'],
+            'sandals': ['feet'],
+            'slippers': ['feet'],
             
             // Accessories
             'ring': ['ring1', 'ring2'],
-            'amulet': ['amulet'],
-            'necklace': ['neck'],
             'belt': ['belt'],
             'cloak': ['cloak'],
-            'cape': ['cloak'],
-            'mask': ['face'],
-            'glasses': ['face']
+            'cape': ['cloak']
         };
         
         // Check item type first
@@ -576,13 +605,18 @@ class InventoryManager {
             return slotMap[itemType];
         }
         
-        // Check item name for keywords (prioritize more specific matches)
-        for (const [keyword, slots] of Object.entries(slotMap)) {
+        // Check item name for keywords (prioritize more specific matches first)
+        const sortedKeywords = Object.entries(slotMap).sort((a, b) => b[0].length - a[0].length);
+        for (const [keyword, slots] of sortedKeywords) {
             if (itemName.includes(keyword)) {
-                console.log(`[Equipment] Found name keyword match: ${keyword} -> ${slots}`);
+                console.log(`[Equipment] Found name keyword match: "${keyword}" in "${itemName}" -> ${slots}`);
                 return slots;
             }
         }
+        
+        // If no matches found, log for debugging
+        console.warn(`[Equipment] No slot compatibility found for "${item.name}" (type: "${item.type}")`);
+        return [];
         
         // Default slots for generic items
         if (itemType === 'weapon' || itemName.includes('weapon')) {
@@ -656,8 +690,10 @@ class InventoryManager {
     
     // Unequip item from specific slot
     unequipFromSlot(character, slotId) {
+        console.log(`[Unequip] Attempting to unequip from slot: ${slotId}`);
         const item = character.equipmentSlots[slotId];
         if (item) {
+            console.log(`[Unequip] Unequipping item: ${item.name}`);
             character.equipmentSlots[slotId] = null;
             item.equipped = false;
             item.equippedSlot = null;
@@ -665,10 +701,14 @@ class InventoryManager {
             // Add back to inventory if not already there
             if (!character.equipment.includes(item)) {
                 character.equipment.push(item);
+                console.log(`[Unequip] Added ${item.name} back to equipment array`);
             }
             
             this.ui.log(`Unequipped ${item.name} from ${slotId}!`);
+            this.ui.showNotification(`Unequipped ${item.name}!`, "success");
             return item;
+        } else {
+            console.log(`[Unequip] No item found in slot: ${slotId}`);
         }
         return null;
     }

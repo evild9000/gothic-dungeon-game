@@ -626,13 +626,15 @@ class CharacterManager {
                         </div>
                         <div style="display: flex; gap: 5px;">
                             ${item.type !== 'consumable' ? `
-                                <button onclick="console.log('Equipping item to underling:', ${underlingIndex}, ${actualItemIndex}); window.game.characterManager.equipItemToUnderling(${underlingIndex}, ${actualItemIndex})" 
-                                        style="padding: 2px 8px; background: #2a4d3a; border: 1px solid #51cf66; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
+                                <button onclick="window.game.characterManager.equipItemToUnderling(${underlingIndex}, ${actualItemIndex})" 
+                                        style="padding: 2px 8px; background: #2a4d3a; border: 1px solid #51cf66; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;"
+                                        title="Equip ${item.name} to ${underling.name}">
                                     Equip
                                 </button>
                             ` : `
-                                <button onclick="console.log('Giving consumable to underling:', ${underlingIndex}, ${actualItemIndex}); window.game.characterManager.giveConsumableToUnderling(${underlingIndex}, ${actualItemIndex})" 
-                                        style="padding: 2px 8px; background: #4a4a2d; border: 1px solid #ffd93d; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
+                                <button onclick="window.game.characterManager.giveConsumableToUnderling(${underlingIndex}, ${actualItemIndex})" 
+                                        style="padding: 2px 8px; background: #4a4a2d; border: 1px solid #ffd93d; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;"
+                                        title="Give ${item.name} to ${underling.name}">
                                     Give
                                 </button>
                             `}
@@ -645,27 +647,39 @@ class CharacterManager {
     
     // Equipment management methods for underlings
     equipItemToUnderling(underlingIndex, itemIndex) {
-        console.log(`[Underling Equipment] Equipping item ${itemIndex} to underling ${underlingIndex}`);
+        console.log(`[Underling Equipment] Function called! Equipping item ${itemIndex} to underling ${underlingIndex}`);
+        console.log(`[Underling Equipment] Available underlings:`, this.gameState.hero.underlings?.length || 0);
+        
         const underling = this.gameState.hero.underlings[underlingIndex];
         if (!underling) {
-            console.error('Underling not found at index:', underlingIndex);
+            console.error(`[Underling Equipment] Underling not found at index: ${underlingIndex}`);
+            console.error(`[Underling Equipment] Total underlings: ${this.gameState.hero.underlings?.length || 0}`);
+            this.ui.showNotification(`Underling not found!`, "error");
             return;
         }
         
         const availableItems = [...this.gameState.hero.inventory, ...this.gameState.hero.equipment.filter(item => !item.equipped)];
+        console.log(`[Underling Equipment] Available items count: ${availableItems.length}`);
+        
         const item = availableItems[itemIndex];
         if (!item) {
-            console.error('Item not found at index:', itemIndex);
+            console.error(`[Underling Equipment] Item not found at index: ${itemIndex}`);
+            console.error(`[Underling Equipment] Available items:`, availableItems.map(i => i.name));
+            this.ui.showNotification(`Item not found!`, "error");
             return;
         }
         
-        console.log(`[Underling Equipment] Equipping "${item.name}" (type: "${item.type}") to ${underling.name}`);
+        console.log(`[Underling Equipment] Attempting to equip "${item.name}" (type: "${item.type}") to ${underling.name}`);
         
         // Initialize underling equipment slots if not done
         this.initializeCharacterEquipment(underling);
+        console.log(`[Underling Equipment] Underling equipment slots:`, Object.keys(underling.equipmentSlots || {}));
         
         // Use inventory manager's equipment system
-        if (this.gameController.inventoryManager.equipItemToSlot(item, underling)) {
+        const equipResult = this.gameController.inventoryManager.equipItemToSlot(item, underling);
+        console.log(`[Underling Equipment] Equip result:`, equipResult);
+        
+        if (equipResult) {
             // Remove from hero's inventory/equipment
             const heroInventoryIndex = this.gameState.hero.inventory.indexOf(item);
             const heroEquipmentIndex = this.gameState.hero.equipment.indexOf(item);
@@ -683,6 +697,7 @@ class CharacterManager {
             
             // Refresh the underling management screen
             setTimeout(() => {
+                console.log(`[Underling Equipment] Refreshing underling management screen`);
                 this.manageUnderling(underlingIndex);
             }, 100);
         } else {
