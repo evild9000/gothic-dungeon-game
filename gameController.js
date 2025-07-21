@@ -4616,16 +4616,39 @@ class GameController {
                 costs: { mana: 12 },
                 hasSpecialCode: true,
                 specialHandler: (caster, targets, gameState, gameController) => {
+                    console.log('[Fireball Debug] Starting Fireball cast');
+                    console.log('[Fireball Debug] Caster:', caster);
+                    console.log('[Fireball Debug] Caster intelligence:', caster.intelligence, typeof caster.intelligence);
+                    console.log('[Fireball Debug] Targets:', targets);
+                    console.log('[Fireball Debug] Target count:', targets.length);
+                    
                     const results = [];
                     
-                    targets.forEach(target => {
+                    targets.forEach((target, index) => {
+                        console.log(`[Fireball Debug] Processing target ${index + 1}:`, target.name);
+                        console.log(`[Fireball Debug] Target defense:`, target.defense, typeof target.defense);
+                        
                         // Calculate damage - ensure intelligence is valid
                         const intelligence = (typeof caster.intelligence === 'number' && !isNaN(caster.intelligence)) ? caster.intelligence : 5;
-                        const baseDamage = 18 + (intelligence * 2.5) + (Math.random() * 8 - 4);
-                        const finalDamage = Math.max(1, Math.floor(baseDamage) - (target.defense || 0));
-                        target.health = Math.max(0, target.health - finalDamage);
+                        const defense = (typeof target.defense === 'number' && !isNaN(target.defense)) ? target.defense : 0;
                         
-                        let message = `${target.name} takes ${finalDamage} fire damage`;
+                        console.log(`[Fireball Debug] Using intelligence:`, intelligence);
+                        console.log(`[Fireball Debug] Using defense:`, defense);
+                        
+                        const baseDamage = 18 + (intelligence * 2.5) + (Math.random() * 8 - 4);
+                        console.log(`[Fireball Debug] Base damage:`, baseDamage);
+                        
+                        const finalDamage = Math.max(1, Math.floor(baseDamage) - defense);
+                        console.log(`[Fireball Debug] Final damage before validation:`, finalDamage);
+                        
+                        // Ensure final damage is a valid number
+                        const validFinalDamage = (typeof finalDamage === 'number' && !isNaN(finalDamage)) ? finalDamage : 1;
+                        console.log(`[Fireball Debug] Valid final damage:`, validFinalDamage);
+                        
+                        target.health = Math.max(0, target.health - validFinalDamage);
+                        
+                        let message = `${target.name} takes ${validFinalDamage} fire damage`;
+                        console.log(`[Fireball Debug] Message:`, message);
                         
                         // 30% chance to apply burning DOT
                         if (Math.random() < 0.3) {
@@ -4635,6 +4658,8 @@ class GameController {
                         
                         results.push({ message: message });
                     });
+                    
+                    console.log('[Fireball Debug] Final results:', results);
                     
                     return {
                         success: true,
@@ -4671,12 +4696,18 @@ class GameController {
                             
                             // Calculate damage (reduced by 10% per arc level) - ensure intelligence is valid
                             const intelligence = (typeof caster.intelligence === 'number' && !isNaN(caster.intelligence)) ? caster.intelligence : 5;
+                            const defense = (typeof target.defense === 'number' && !isNaN(target.defense)) ? target.defense : 0;
+                            
                             const baseDamage = (15 + (intelligence * 2) + (Math.random() * 6 - 3)) * Math.pow(0.9, arcLevel);
-                            const finalDamage = Math.max(1, Math.floor(baseDamage) - (target.defense || 0));
-                            target.health = Math.max(0, target.health - finalDamage);
+                            const finalDamage = Math.max(1, Math.floor(baseDamage) - defense);
+                            
+                            // Ensure final damage is a valid number
+                            const validFinalDamage = (typeof finalDamage === 'number' && !isNaN(finalDamage)) ? finalDamage : 1;
+                            
+                            target.health = Math.max(0, target.health - validFinalDamage);
                             
                             const arcText = arcLevel > 0 ? ` (Arc ${arcLevel})` : '';
-                            results.push({ message: `${target.name} takes ${finalDamage} lightning damage${arcText} ⚡` });
+                            results.push({ message: `${target.name} takes ${validFinalDamage} lightning damage${arcText} ⚡` });
                             hitTargets.add(target);
                             
                             // 20% chance to arc to other enemies
