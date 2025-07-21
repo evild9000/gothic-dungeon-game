@@ -215,6 +215,110 @@ body {
     }
 }
 
+/* Game Title Styling */
+#game-title {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 10;
+    pointer-events: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+#main-title {
+    font-family: 'Metal Mania', 'Creepster', serif;
+    font-size: clamp(2.5rem, 8vw, 6rem);
+    font-weight: 700;
+    color: #d4af37;
+    text-shadow: 
+        0 0 10px rgba(212, 175, 55, 0.8),
+        0 0 20px rgba(212, 175, 55, 0.6),
+        0 0 30px rgba(212, 175, 55, 0.4),
+        3px 3px 0px #8b4513,
+        6px 6px 10px rgba(0, 0, 0, 0.8);
+    margin: 0;
+    letter-spacing: 0.2em;
+    background: linear-gradient(45deg, #d4af37, #ffd93d, #d4af37);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: titleGlow 3s ease-in-out infinite alternate, shimmer 4s ease-in-out infinite;
+    filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.7));
+}
+
+#subtitle {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1rem, 3vw, 1.5rem);
+    font-weight: 600;
+    color: #ff6b35;
+    text-shadow: 
+        0 0 8px rgba(255, 107, 53, 0.6),
+        2px 2px 4px rgba(0, 0, 0, 0.8);
+    margin: 10px 0 0 0;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    animation: subtitlePulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+    0% {
+        text-shadow: 
+            0 0 10px rgba(212, 175, 55, 0.6),
+            0 0 20px rgba(212, 175, 55, 0.4),
+            0 0 30px rgba(212, 175, 55, 0.2),
+            3px 3px 0px #8b4513,
+            6px 6px 10px rgba(0, 0, 0, 0.8);
+    }
+    100% {
+        text-shadow: 
+            0 0 15px rgba(212, 175, 55, 1),
+            0 0 25px rgba(212, 175, 55, 0.8),
+            0 0 35px rgba(212, 175, 55, 0.6),
+            3px 3px 0px #8b4513,
+            6px 6px 10px rgba(0, 0, 0, 0.8);
+    }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes subtitlePulse {
+    0% {
+        text-shadow: 
+            0 0 8px rgba(255, 107, 53, 0.4),
+            2px 2px 4px rgba(0, 0, 0, 0.8);
+    }
+    100% {
+        text-shadow: 
+            0 0 12px rgba(255, 107, 53, 0.8),
+            0 0 20px rgba(255, 107, 53, 0.4),
+            2px 2px 4px rgba(0, 0, 0, 0.8);
+    }
+}
+
+/* Mobile responsive title */
+@media (max-width: 768px) {
+    #game-title {
+        top: 45%;
+    }
+    
+    #main-title {
+        font-size: clamp(1.8rem, 6vw, 3rem);
+        letter-spacing: 0.1em;
+    }
+    
+    #subtitle {
+        font-size: clamp(0.8rem, 2.5vw, 1.2rem);
+        letter-spacing: 0.1em;
+    }
+}
+
 /* Combat Interface Styling */
 .combat-interface {
     font-family: 'Cinzel', serif;
