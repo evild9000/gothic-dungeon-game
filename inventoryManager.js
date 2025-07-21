@@ -458,7 +458,7 @@ class InventoryManager {
                     flex-direction: column;
                     justify-content: center;
                     align-items: center;
-                " onmouseover="this.style.background='${isEmpty ? '#3a3a4a' : '#1a4a1a'}'" onmouseout="this.style.background='${isEmpty ? '#2a2a3a' : '#0a3a0a'}'">
+                " onclick="${!isEmpty ? `window.game.inventoryManager.unequipFromSlot(window.game.gameState.hero, '${slotId}'); window.game.inventoryManager.showInventory();` : ''}" onmouseover="this.style.background='${isEmpty ? '#3a3a4a' : '#1a4a1a'}'" onmouseout="this.style.background='${isEmpty ? '#2a2a3a' : '#0a3a0a'}'">
                     <div style="font-size: 16px; margin-bottom: 2px;">${slotInfo.icon}</div>
                     <div style="font-size: 10px; color: #d4af37; font-weight: bold; margin-bottom: 2px;">${slotInfo.name}</div>
                     ${isEmpty ? 
@@ -467,6 +467,7 @@ class InventoryManager {
                             ${equippedItem.name}
                             ${equippedItem.stats ? Object.entries(equippedItem.stats).map(([stat, value]) => 
                                 `<br><span style="color: #ffd93d;">+${value} ${stat}</span>`).join('') : ''}
+                            <br><span style="color: #ff6b6b; font-size: 8px; cursor: pointer;">Click to unequip</span>
                         </div>`
                     }
                 </div>
@@ -529,6 +530,9 @@ class InventoryManager {
         const itemType = item.type ? item.type.toLowerCase() : '';
         const itemName = item.name ? item.name.toLowerCase() : '';
         
+        console.log(`[Equipment] Checking compatibility for: "${item.name}" (type: "${item.type}")`);
+        console.log(`[Equipment] Lowercase name: "${itemName}", type: "${itemType}"`);
+        
         // Map item types to equipment slots
         const slotMap = {
             // Weapons
@@ -568,12 +572,14 @@ class InventoryManager {
         
         // Check item type first
         if (slotMap[itemType]) {
+            console.log(`[Equipment] Found type match: ${itemType} -> ${slotMap[itemType]}`);
             return slotMap[itemType];
         }
         
-        // Check item name for keywords
+        // Check item name for keywords (prioritize more specific matches)
         for (const [keyword, slots] of Object.entries(slotMap)) {
             if (itemName.includes(keyword)) {
+                console.log(`[Equipment] Found name keyword match: ${keyword} -> ${slots}`);
                 return slots;
             }
         }

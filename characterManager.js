@@ -612,7 +612,9 @@ class CharacterManager {
         
         return `
             <div style="max-height: 300px; overflow-y: auto; background: #1a1a2e; padding: 10px; border-radius: 8px; border: 1px solid #4a5568;">
-                ${compatibleItems.map((item, itemIndex) => `
+                ${compatibleItems.map((item, itemIndex) => {
+                    const actualItemIndex = availableItems.indexOf(item); // Get correct index in availableItems array
+                    return `
                     <div style="background: #1a1a1a; padding: 8px; margin: 5px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;">
                         <div style="flex: 1;">
                             <strong style="color: #d4af37;">${item.name}</strong>
@@ -624,31 +626,40 @@ class CharacterManager {
                         </div>
                         <div style="display: flex; gap: 5px;">
                             ${item.type !== 'consumable' ? `
-                                <button onclick="window.game.characterManager.equipItemToUnderling(${underlingIndex}, ${availableItems.indexOf(item)})" 
+                                <button onclick="console.log('Equipping item to underling:', ${underlingIndex}, ${actualItemIndex}); window.game.characterManager.equipItemToUnderling(${underlingIndex}, ${actualItemIndex})" 
                                         style="padding: 2px 8px; background: #2a4d3a; border: 1px solid #51cf66; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
                                     Equip
                                 </button>
                             ` : `
-                                <button onclick="window.game.characterManager.giveConsumableToUnderling(${underlingIndex}, ${availableItems.indexOf(item)})" 
+                                <button onclick="console.log('Giving consumable to underling:', ${underlingIndex}, ${actualItemIndex}); window.game.characterManager.giveConsumableToUnderling(${underlingIndex}, ${actualItemIndex})" 
                                         style="padding: 2px 8px; background: #4a4a2d; border: 1px solid #ffd93d; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
                                     Give
                                 </button>
                             `}
                         </div>
                     </div>
-                `).join('')}
+                `;}).join('')}
             </div>
         `;
     }
     
     // Equipment management methods for underlings
     equipItemToUnderling(underlingIndex, itemIndex) {
+        console.log(`[Underling Equipment] Equipping item ${itemIndex} to underling ${underlingIndex}`);
         const underling = this.gameState.hero.underlings[underlingIndex];
-        if (!underling) return;
+        if (!underling) {
+            console.error('Underling not found at index:', underlingIndex);
+            return;
+        }
         
         const availableItems = [...this.gameState.hero.inventory, ...this.gameState.hero.equipment.filter(item => !item.equipped)];
         const item = availableItems[itemIndex];
-        if (!item) return;
+        if (!item) {
+            console.error('Item not found at index:', itemIndex);
+            return;
+        }
+        
+        console.log(`[Underling Equipment] Equipping "${item.name}" (type: "${item.type}") to ${underling.name}`);
         
         // Initialize underling equipment slots if not done
         this.initializeCharacterEquipment(underling);
@@ -661,8 +672,10 @@ class CharacterManager {
             
             if (heroInventoryIndex > -1) {
                 this.gameState.hero.inventory.splice(heroInventoryIndex, 1);
+                console.log(`[Underling Equipment] Removed from hero inventory at index ${heroInventoryIndex}`);
             } else if (heroEquipmentIndex > -1) {
                 this.gameState.hero.equipment.splice(heroEquipmentIndex, 1);
+                console.log(`[Underling Equipment] Removed from hero equipment at index ${heroEquipmentIndex}`);
             }
             
             this.ui.log(`${underling.name} equipped ${item.name}!`);
@@ -672,6 +685,9 @@ class CharacterManager {
             setTimeout(() => {
                 this.manageUnderling(underlingIndex);
             }, 100);
+        } else {
+            console.error(`[Underling Equipment] Failed to equip "${item.name}" to ${underling.name}`);
+            this.ui.showNotification(`Failed to equip ${item.name} to ${underling.name}`, "error");
         }
     }
     
