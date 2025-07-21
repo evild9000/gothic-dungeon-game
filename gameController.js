@@ -39,7 +39,9 @@ class GameController {
             chatLog: [],
             currentEnemies: null,
             inDungeon: false,
-            currentScreen: 'main'
+            inCombat: false,
+            currentScreen: 'main',
+            combatRound: 0,  // Track combat rounds for display
         };
         
         this.ui = null; // Will be set when UI is initialized
@@ -958,10 +960,17 @@ class GameController {
         // Removed ui.render() to prevent old sprite display from showing
         
         // Show combat interface
-        this.showCombatInterface();
+        // Display initial round indicator
+        setTimeout(() => {
+            this.displayRoundIndicator();
+            this.showCombatInterface();
+        }, 100);
     }
 
     generateEnemies() {
+        // Reset combat round when new enemies are generated
+        this.gameState.combatRound = 0;
+        
         // Dynamic enemy count based on dungeon level
         // Level 1-2: 1-3 enemies, Level 3+: 1 to (dungeon level) enemies, max 7
         let maxEnemies;
@@ -1397,6 +1406,19 @@ class GameController {
         }
     }
 
+    // Combat Round Display System
+    displayRoundIndicator() {
+        this.gameState.combatRound++;
+        
+        const roundText = `==== ROUND ${this.gameState.combatRound} ====`;
+        
+        // Log to combat chat with special styling
+        this.ui.log(`<div style="text-align: center; font-size: 18px; font-weight: bold; color: #ffd700; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); margin: 10px 0; padding: 8px; background: linear-gradient(45deg, rgba(255,215,0,0.2), rgba(255,140,0,0.2)); border: 2px solid #ffd700; border-radius: 8px;">${roundText}</div>`);
+        
+        // Show notification
+        this.ui.showNotification(`Round ${this.gameState.combatRound} Begins!`, "info");
+    }
+
     applyEnemyStatModifiers(enemy) {
         // Apply stat modifiers based on enemy type (use base type, not display name)
         const enemyType = enemy.type || enemy.name; // Fallback for compatibility
@@ -1556,182 +1578,197 @@ class GameController {
     // Enhanced Craftable Loot Database
     initializeCraftableLootDatabase() {
         this.craftableLootDatabase = {
-            // Ring Slot Items
+            // Ring Slot Items - Enhanced with logical monster material combinations
             rings: {
-                'Ring of Strength': { 
+                'Goblin Scavenger Ring': { 
                     slot: 'ring1', tier: 'common', level: 1,
-                    stats: { strength: 2 }, materials: { scrapIron: 3, bones: 1 },
-                    description: 'A crude iron band that enhances physical power.' 
+                    stats: { dexterity: 2, intelligence: 1 }, materials: { 'Rusty Coin': 3, 'Tattered Cloth': 2 },
+                    description: 'A ring crafted from goblin scavenged materials. Increases looting ability.' 
                 },
-                'Ring of Dexterity': { 
-                    slot: 'ring1', tier: 'common', level: 1,
-                    stats: { dexterity: 2 }, materials: { scrapWood: 2, spiderSilk: 2 },
-                    description: 'A nimble ring woven with spider silk.' 
+                'Wolf Pack Ring': { 
+                    slot: 'ring1', tier: 'common', level: 2,
+                    stats: { strength: 2, constitution: 1 }, materials: { 'Wolf Pelt': 2, 'Sharp Fang': 1 },
+                    description: 'Grants the wearer pack instincts and hunting prowess.' 
                 },
-                'Ring of Constitution': { 
-                    slot: 'ring1', tier: 'common', level: 1,
-                    stats: { constitution: 2 }, materials: { bones: 3, animalHide: 1 },
-                    description: 'A bone ring that fortifies the body.' 
+                'Spider Chitin Ring': { 
+                    slot: 'ring1', tier: 'uncommon', level: 2,
+                    stats: { dexterity: 3, willpower: 1 }, materials: { 'Spider Silk': 4, 'Chitin': 2 },
+                    description: 'Made from spider chitin, provides natural armor and agility.' 
                 },
-                'Spider Lord Ring': { 
+                'Orc Warrior Ring': { 
                     slot: 'ring1', tier: 'uncommon', level: 3,
-                    stats: { dexterity: 3, willpower: 2 }, materials: { spiderSilk: 8, bones: 3 },
-                    description: 'Grants the wearer spider-like reflexes and web sense.',
-                    special: 'Web immunity' 
+                    stats: { strength: 3, constitution: 2 }, materials: { 'Orc Tooth': 3, 'Crude Armor': 1 },
+                    description: 'Forged from orc materials, increases battle ferocity.' 
                 },
-                'Wolf Alpha Band': { 
-                    slot: 'ring1', tier: 'uncommon', level: 3,
-                    stats: { strength: 3, constitution: 2 }, materials: { animalHide: 6, bones: 4 },
-                    description: 'Made from alpha wolf hide, increases pack instincts.',
-                    special: 'Pack leader aura' 
+                'Venom Master Ring': { 
+                    slot: 'ring1', tier: 'rare', level: 4,
+                    stats: { dexterity: 4, intelligence: 3 }, materials: { 'Venom Sac': 3, 'Poison Gland': 2, 'Toxic Silk': 2 },
+                    description: 'Grants immunity to poison and enhances toxin mastery.',
+                    special: 'Poison immunity, +25% poison damage' 
                 },
-                'Bone Sovereign Ring': { 
+                'Alpha Predator Ring': { 
                     slot: 'ring1', tier: 'rare', level: 5,
-                    stats: { constitution: 4, willpower: 3 }, materials: { bones: 12, scrapIron: 6 },
-                    description: 'Commands the power of ancient bones.',
-                    special: 'Undead resistance' 
+                    stats: { strength: 4, dexterity: 3, constitution: 2 }, materials: { 'Alpha Pelt': 2, 'Alpha Fang': 2, 'Pack Leader Collar': 1 },
+                    description: 'Commands the respect of all beasts.',
+                    special: 'Beast command aura' 
                 },
-                'Shadow Assassin Ring': { 
-                    slot: 'ring1', tier: 'rare', level: 6,
-                    stats: { dexterity: 5, intelligence: 2 }, materials: { spiderSilk: 15, bones: 8 },
-                    description: 'Grants the silence of the shadow realm.',
-                    special: 'Stealth bonus' 
+                'Dimensional Spider Ring': { 
+                    slot: 'ring1', tier: 'epic', level: 6,
+                    stats: { dexterity: 5, intelligence: 4, willpower: 3 }, materials: { 'Phase Silk': 3, 'Ethereal Essence': 2, 'Dimensional Web': 1 },
+                    description: 'Allows the wearer to phase between dimensions.',
+                    special: 'Phase shift ability, +30% dodge' 
                 },
-                'Dragon Heart Ring': { 
-                    slot: 'ring1', tier: 'legendary', level: 8,
-                    stats: { strength: 5, constitution: 4, willpower: 3 }, materials: { scrapIron: 20, bones: 15, animalHide: 10 },
-                    description: 'Forged from the essence of dragon hearts.',
-                    special: 'Fire immunity, +20% all stats' 
+                'Warchief Dominance Ring': { 
+                    slot: 'ring1', tier: 'legendary', level: 7,
+                    stats: { strength: 6, constitution: 5, willpower: 4 }, materials: { 'Warchief Crown': 1, 'Great Axe': 1, 'War Cloak': 1 },
+                    description: 'The ultimate symbol of battlefield supremacy.',
+                    special: 'Command presence, +50% leadership bonuses' 
                 }
             },
             
-            // Cloak Slot Items
+            // Cloak Slot Items - Crafted from monster materials
             cloaks: {
-                'Tattered Hide Cloak': { 
+                'Goblin Scout Cloak': { 
                     slot: 'cloak', tier: 'common', level: 1,
-                    stats: { constitution: 1, willpower: 1 }, materials: { animalHide: 4 },
-                    description: 'A simple cloak made from basic animal hide.' 
+                    stats: { dexterity: 2 }, materials: { 'Tattered Cloth': 4, 'Goblin Dagger': 1 },
+                    description: 'A patched cloak that provides basic stealth.' 
                 },
-                'Spider Silk Cloak': { 
-                    slot: 'cloak', tier: 'common', level: 1,
-                    stats: { dexterity: 2 }, materials: { spiderSilk: 6 },
-                    description: 'Light and flexible, allows for swift movement.' 
+                'Animal Hide Cloak': { 
+                    slot: 'cloak', tier: 'common', level: 2,
+                    stats: { constitution: 2, willpower: 1 }, materials: { 'Animal Hide': 3, 'Wolf Pelt': 1 },
+                    description: 'Sturdy protection against the elements.' 
                 },
-                'Bone Weave Cloak': { 
-                    slot: 'cloak', tier: 'uncommon', level: 2,
-                    stats: { constitution: 2, intelligence: 2 }, materials: { bones: 8, spiderSilk: 4 },
-                    description: 'Woven with bone fragments for protection and focus.' 
+                'Spider Silk Mantle': { 
+                    slot: 'cloak', tier: 'uncommon', level: 3,
+                    stats: { dexterity: 3, intelligence: 2 }, materials: { 'Spider Silk': 6, 'Web Anchor': 2 },
+                    description: 'Lightweight and flexible, woven from spider silk.' 
                 },
-                'Shadow Walker Cloak': { 
+                'Shaman Spirit Cloak': { 
                     slot: 'cloak', tier: 'uncommon', level: 4,
-                    stats: { dexterity: 3, willpower: 2 }, materials: { spiderSilk: 12, animalHide: 6 },
-                    description: 'Allows the wearer to blend with shadows.',
-                    special: 'Stealth enhancement' 
+                    stats: { intelligence: 3, willpower: 3 }, materials: { 'Shaman Mask': 1, 'Spirit Pouch': 2, 'Magic Pouch': 1 },
+                    description: 'Imbued with shamanic magic and spirit energy.' 
                 },
-                'Alpha Hunter Cloak': { 
+                'Dire Wolf Mantle': { 
                     slot: 'cloak', tier: 'rare', level: 5,
-                    stats: { strength: 3, dexterity: 3, constitution: 2 }, materials: { animalHide: 15, bones: 8 },
-                    description: 'Made from the hide of pack leaders.',
-                    special: 'Beast communion' 
+                    stats: { strength: 3, constitution: 4, dexterity: 2 }, materials: { 'Dire Pelt': 2, 'Massive Fang': 2, 'Primal Essence': 1 },
+                    description: 'The ultimate predator\'s mantle.',
+                    special: 'Intimidation aura, +20% critical hit chance' 
                 },
-                'Necromancer\'s Mantle': { 
+                'Master Weaver Cloak': { 
                     slot: 'cloak', tier: 'rare', level: 6,
-                    stats: { intelligence: 4, willpower: 4 }, materials: { bones: 18, spiderSilk: 10 },
-                    description: 'Grants power over the undead.',
-                    special: 'Command undead' 
+                    stats: { dexterity: 4, intelligence: 4, willpower: 2 }, materials: { 'Master Silk': 4, 'Silk Gland': 2, 'Web Trap': 1 },
+                    description: 'Crafted by spider masters, provides web manipulation.',
+                    special: 'Web casting ability' 
                 },
-                'Cloak of the Void': { 
+                'Broodmother\'s Embrace': { 
+                    slot: 'cloak', tier: 'epic', level: 7,
+                    stats: { constitution: 5, willpower: 5, intelligence: 3 }, materials: { 'Brood Silk': 3, 'Egg Sac': 2, 'Motherly Essence': 1 },
+                    description: 'Protective cloak that nurtures and shields allies.',
+                    special: 'Ally protection aura, spawns protective spirits' 
+                },
+                'Spider Queen\'s Regalia': { 
                     slot: 'cloak', tier: 'legendary', level: 8,
-                    stats: { dexterity: 5, intelligence: 4, willpower: 3 }, materials: { spiderSilk: 25, bones: 20, scrapIron: 15 },
-                    description: 'Woven from the fabric of reality itself.',
-                    special: 'Phase shift, spell reflection' 
+                    stats: { all: 4 }, materials: { 'Queen Crown': 1, 'Royal Silk': 3, 'Spider Throne': 1 },
+                    description: 'The ultimate spider artifact, grants dominion over arachnids.',
+                    special: 'Spider command, web fortress creation, venom mastery' 
                 }
             },
             
-            // Neck Slot Items
+            // Neck Slot Items - Crafted from monster materials
             necks: {
-                'Bone Tooth Necklace': { 
+                'Goblin Scrap Necklace': { 
                     slot: 'neck', tier: 'common', level: 1,
-                    stats: { strength: 1, willpower: 1 }, materials: { bones: 3 },
-                    description: 'Simple necklace of sharpened bone teeth.' 
+                    stats: { dexterity: 1, intelligence: 1 }, materials: { 'Rusty Coin': 2, 'Goblin Dagger': 1 },
+                    description: 'A makeshift necklace of goblin scavenged items.' 
                 },
-                'Spider Chitin Collar': { 
-                    slot: 'neck', tier: 'common', level: 1,
-                    stats: { dexterity: 2 }, materials: { spiderSilk: 3, bones: 2 },
-                    description: 'Lightweight collar that enhances agility.' 
+                'Wolf Fang Collar': { 
+                    slot: 'neck', tier: 'common', level: 2,
+                    stats: { strength: 2, constitution: 1 }, materials: { 'Sharp Fang': 3, 'Animal Hide': 1 },
+                    description: 'Grants predatory instincts and enhanced bite force.' 
                 },
-                'Beast Tamer\'s Torc': { 
-                    slot: 'neck', tier: 'uncommon', level: 2,
-                    stats: { constitution: 2, willpower: 2 }, materials: { animalHide: 6, bones: 4 },
-                    description: 'Grants understanding of wild creatures.' 
-                },
-                'Iron Will Choker': { 
+                'Spider Chitin Pendant': { 
                     slot: 'neck', tier: 'uncommon', level: 3,
-                    stats: { willpower: 3, intelligence: 2 }, materials: { scrapIron: 8, bones: 5 },
-                    description: 'Strengthens mental fortitude against all forms of control.',
-                    special: 'Mind control resistance' 
+                    stats: { dexterity: 3, willpower: 1 }, materials: { 'Chitin': 4, 'Spider Silk': 3 },
+                    description: 'Lightweight pendant that enhances natural armor.' 
                 },
-                'Alpha\'s Collar': { 
-                    slot: 'neck', tier: 'rare', level: 4,
-                    stats: { strength: 3, constitution: 3, willpower: 2 }, materials: { animalHide: 12, scrapIron: 6 },
-                    description: 'Worn by pack leaders, commands respect.',
-                    special: 'Leadership aura' 
+                'Shaman\'s Spirit Torc': { 
+                    slot: 'neck', tier: 'uncommon', level: 4,
+                    stats: { intelligence: 3, willpower: 3 }, materials: { 'Ritual Bones': 3, 'Spirit Pouch': 2 },
+                    description: 'Channels spiritual energy and magical power.' 
                 },
-                'Lich\'s Pendant': { 
+                'Venomous Serpent Coil': { 
+                    slot: 'neck', tier: 'rare', level: 5,
+                    stats: { dexterity: 4, intelligence: 3 }, materials: { 'Venom Sac': 4, 'Poison Gland': 3, 'Venom Fang': 2 },
+                    description: 'Grants mastery over all toxins and poisons.',
+                    special: 'Poison immunity, venom enhancement' 
+                },
+                'Alpha Dominance Collar': { 
                     slot: 'neck', tier: 'rare', level: 6,
-                    stats: { intelligence: 4, willpower: 4 }, materials: { bones: 15, scrapIron: 10 },
-                    description: 'Contains fragments of ancient undead magic.',
-                    special: 'Mana regeneration' 
+                    stats: { strength: 4, constitution: 3, willpower: 2 }, materials: { 'Pack Leader Collar': 2, 'Alpha Fang': 3, 'Alpha Pelt': 1 },
+                    description: 'Commands respect from all beasts and establishes pack dominance.',
+                    special: 'Beast command, intimidation aura' 
                 },
-                'Dragon Soul Amulet': { 
+                'Dimensional Phase Amulet': { 
+                    slot: 'neck', tier: 'epic', level: 7,
+                    stats: { dexterity: 5, intelligence: 4, willpower: 3 }, materials: { 'Ethereal Essence': 3, 'Dimensional Web': 2, 'Phase Silk': 4 },
+                    description: 'Allows the wearer to exist between dimensions.',
+                    special: 'Phase shift mastery, dimensional travel' 
+                },
+                'Crown of Monster Kings': { 
                     slot: 'neck', tier: 'legendary', level: 8,
-                    stats: { strength: 4, intelligence: 4, willpower: 5 }, materials: { scrapIron: 20, bones: 15, animalHide: 12 },
-                    description: 'Houses the soul essence of an ancient dragon.',
-                    special: 'Dragon breath, elemental immunity' 
+                    stats: { all: 3 }, materials: { 'Chieftain Crown': 1, 'Warchief Crown': 1, 'Queen Crown': 1 },
+                    description: 'The ultimate symbol of dominion over all monster races.',
+                    special: 'Monster command, all creature immunities' 
                 }
             },
             
-            // Offhand Slot Items
+            // Offhand Slot Items - Crafted from monster materials
             offhands: {
-                'Bone Shield': { 
+                'Goblin Buckler': { 
                     slot: 'offhand', tier: 'common', level: 1,
-                    stats: { constitution: 2 }, materials: { bones: 5, animalHide: 2 },
-                    description: 'Basic shield crafted from large bones.' 
+                    stats: { constitution: 1, dexterity: 1 }, materials: { 'Crude Armor': 1, 'Tattered Cloth': 2 },
+                    description: 'A makeshift shield crafted from goblin scrap.' 
                 },
-                'Spider Web Net': { 
-                    slot: 'offhand', tier: 'common', level: 1,
-                    stats: { dexterity: 2 }, materials: { spiderSilk: 6 },
-                    description: 'Entangling net for capturing prey.',
-                    special: 'Web entangle' 
+                'Spider Web Shield': { 
+                    slot: 'offhand', tier: 'common', level: 2,
+                    stats: { dexterity: 2, willpower: 1 }, materials: { 'Spider Silk': 5, 'Chitin': 2 },
+                    description: 'Flexible shield that can entangle enemies.',
+                    special: 'Web entangle on block' 
                 },
-                'Hunter\'s Trophy': { 
-                    slot: 'offhand', tier: 'uncommon', level: 2,
-                    stats: { strength: 2, willpower: 2 }, materials: { animalHide: 6, bones: 4 },
-                    description: 'Display of hunting prowess that intimidates foes.' 
-                },
-                'Iron Buckler': { 
+                'Wolf Hide Buckler': { 
                     slot: 'offhand', tier: 'uncommon', level: 3,
-                    stats: { constitution: 3, strength: 1 }, materials: { scrapIron: 8, animalHide: 4 },
-                    description: 'Small metal shield for parrying attacks.',
-                    special: 'Block chance +15%' 
+                    stats: { constitution: 2, strength: 2 }, materials: { 'Wolf Pelt': 3, 'Sharp Fang': 2 },
+                    description: 'Sturdy shield with predatory intimidation.' 
                 },
-                'Web Spinner\'s Focus': { 
-                    slot: 'offhand', tier: 'rare', level: 4,
-                    stats: { intelligence: 3, dexterity: 3 }, materials: { spiderSilk: 15, bones: 8 },
-                    description: 'Magical focus that enhances web-based abilities.',
-                    special: 'Web mastery' 
+                'Orc War Shield': { 
+                    slot: 'offhand', tier: 'uncommon', level: 4,
+                    stats: { constitution: 3, strength: 2 }, materials: { 'War Banner': 1, 'Captain Shield': 1, 'Orc Blade': 1 },
+                    description: 'Battle-tested shield from orc campaigns.',
+                    special: 'Battle fury on successful block' 
                 },
-                'Bone Tower Shield': { 
+                'Venom Orb': { 
                     slot: 'offhand', tier: 'rare', level: 5,
-                    stats: { constitution: 4, strength: 2 }, materials: { bones: 18, scrapIron: 10 },
-                    description: 'Massive shield that provides superior protection.',
-                    special: 'Damage reduction +25%' 
+                    stats: { intelligence: 4, dexterity: 2 }, materials: { 'Poison Gland': 4, 'Venom Sac': 3, 'Toxic Silk': 2 },
+                    description: 'Crystallized venom that enhances poison abilities.',
+                    special: 'Poison spell enhancement, immunity to toxins' 
                 },
-                'Void Orb': { 
-                    slot: 'offhand', tier: 'legendary', level: 7,
-                    stats: { intelligence: 5, willpower: 4 }, materials: { bones: 20, spiderSilk: 15, scrapIron: 12 },
-                    description: 'An orb containing concentrated void energy.',
-                    special: 'Void magic, spell amplification' 
+                'Alpha Command Totem': { 
+                    slot: 'offhand', tier: 'rare', level: 6,
+                    stats: { willpower: 4, constitution: 3 }, materials: { 'Pack Leader Collar': 2, 'Alpha Pelt': 2, 'Primal Essence': 1 },
+                    description: 'Grants command over beast packs.',
+                    special: 'Beast summoning, pack leader aura' 
+                },
+                'Dimensional Weaver\'s Focus': { 
+                    slot: 'offhand', tier: 'epic', level: 7,
+                    stats: { intelligence: 5, willpower: 4 }, materials: { 'Dimensional Web': 3, 'Ethereal Essence': 2, 'Phase Silk': 4 },
+                    description: 'Allows manipulation of dimensional fabric.',
+                    special: 'Dimensional magic mastery, portal creation' 
+                },
+                'Crown of Supreme Rule': { 
+                    slot: 'offhand', tier: 'legendary', level: 8,
+                    stats: { all: 3 }, materials: { 'Spider Throne': 1, 'Command Horn': 1, 'Command Cloak': 1 },
+                    description: 'The ultimate symbol of absolute authority.',
+                    special: 'Supreme command, monster loyalty, realm dominion' 
                 }
             }
         };
@@ -2154,7 +2191,7 @@ class GameController {
         const getCharacterIcon = (type) => {
             const icons = {
                 'hero': '👑',
-                'archer': '🏹', 
+                'skirmisher': '🏹', 
                 'warrior': '⚔️',
                 'mage': '🔮',
                 'Goblin': '👹',
@@ -2489,6 +2526,12 @@ class GameController {
 
     playerAttack() {
         console.log('Player attack called');
+        
+        // Display round indicator if this is the start of a new round
+        if (this.gameState.combatRound === 0 || this.gameState.newRoundStarting) {
+            this.displayRoundIndicator();
+            this.gameState.newRoundStarting = false;
+        }
         
         if (!this.gameState.currentEnemies || this.gameState.currentEnemies.length === 0) {
             this.ui.log("No enemies to attack!");
@@ -3134,6 +3177,9 @@ class GameController {
         // Process status effects at the END of the enemy turn (after all actions)
         this.processAllStatusEffects();
         
+        // Mark that a new round is starting for next player action
+        this.gameState.newRoundStarting = true;
+        
         // Update UI to reflect health changes and fallen underlings
         this.ui.render();
     }
@@ -3264,7 +3310,7 @@ class GameController {
                         <!-- Underlings Status -->
                         ${aliveUnderlings.map(underling => `
                             <div style="display: flex; align-items: center; padding: ${this.getResponsiveMargin()}; background: #1a1a2a; border-radius: ${this.getResponsiveBorderRadius()}; margin-bottom: ${this.getResponsiveMargin()}; border-left: 4px solid #51cf66;">
-                                <div style="font-size: ${this.getResponsiveIconSize()}; margin-right: ${this.getResponsiveMargin()};">${underling.type === 'archer' ? '🏹' : underling.type === 'warrior' ? '⚔️' : underling.type === 'mage' ? '🔮' : '⚡'}</div>
+                                <div style="font-size: ${this.getResponsiveIconSize()}; margin-right: ${this.getResponsiveMargin()};">${underling.type === 'skirmisher' ? '🏹' : underling.type === 'warrior' ? '⚔️' : underling.type === 'mage' ? '🔮' : '⚡'}</div>
                                 <div style="flex: 1;">
                                     <div style="color: #51cf66; font-weight: bold; font-size: ${this.getResponsiveFontSize(14)}px;">${underling.name} (Level ${underling.level})</div>
                                     <div style="margin-top: 3px; font-size: ${this.getResponsiveFontSize(12)}px;">
@@ -4348,6 +4394,19 @@ class GameController {
         };
 
         const item = items[itemType];
+        
+        // Validation: Ensure item exists and has a name
+        if (!item) {
+            this.ui.log(`Error: Unknown item type "${itemType}"`);
+            this.ui.showNotification("Crafting error - invalid item!", "error");
+            return;
+        }
+        
+        if (!item.name || item.name === undefined) {
+            item.name = "Unknown Item"; // Fallback name
+            this.ui.log("Warning: Item missing name, using fallback");
+        }
+        
         this.gameState.hero.equipment.push(item);
         
         this.ui.log(`Crafted ${item.name}!`);
@@ -4385,8 +4444,8 @@ class GameController {
         // Define available underlings with their details
         const availableUnderlings = [
             {
-                id: 'archer',
-                name: 'Archer',
+                id: 'skirmisher',
+                name: 'Skirmisher',
                 cost: 100,
                 description: 'Ranged damage dealer with precise shots',
                 icon: '🏹'
@@ -4399,8 +4458,8 @@ class GameController {
                 icon: '⚔️'
             },
             {
-                id: 'healer',
-                name: 'Healer',
+                id: 'priest',
+                name: 'Priest',
                 cost: 175,
                 description: 'Support specialist with healing magic',
                 icon: '✨'
@@ -4492,8 +4551,8 @@ class GameController {
         this.gameState.hero.gold -= cost;
         
         const underlings = {
-            archer: { 
-                name: "Archer", 
+            skirmisher: { 
+                name: "Skirmisher", 
                 type: "ranged", 
                 level: 1, 
                 health: 75, 
@@ -4501,7 +4560,7 @@ class GameController {
                 stamina: 80,
                 attack: 15, 
                 defense: 5,
-                // Archer stats - focused on dexterity and intelligence 
+                // Skirmisher stats - focused on dexterity and intelligence 
                 strength: 4,
                 dexterity: 8,
                 constitution: 5,
@@ -4543,8 +4602,8 @@ class GameController {
                 willpower: 8,
                 size: 5
             },
-            healer: { 
-                name: "Healer", 
+            priest: { 
+                name: "Priest", 
                 type: "support", 
                 level: 1, 
                 health: 80, 
@@ -4552,7 +4611,7 @@ class GameController {
                 stamina: 70, 
                 attack: 8, 
                 defense: 6,
-                // Healer stats - focused on willpower and intelligence
+                // Priest stats - focused on willpower and intelligence
                 strength: 3,
                 dexterity: 5,
                 constitution: 6,
@@ -5443,8 +5502,8 @@ class GameController {
                         let message = `${target.name} takes ${validFinalDamage} fire damage`;
                         console.log(`[Fireball Debug] Message:`, message);
                         
-                        // 25% chance to apply burning DOT
-                        if (Math.random() < 0.25) {
+                        // 50% chance to apply burning DOT (increased from 25%)
+                        if (Math.random() < 0.50) {
                             gameController.applyStatusEffect(target, 'burn', 4, 3); // 4 damage per turn for 3 turns
                             message += ' and catches fire! 🔥';
                         }
@@ -5492,7 +5551,8 @@ class GameController {
                             const intelligence = (typeof caster.intelligence === 'number' && !isNaN(caster.intelligence)) ? caster.intelligence : 5;
                             const defense = (typeof target.defense === 'number' && !isNaN(target.defense)) ? target.defense : 0;
                             
-                            const baseDamage = (15 + (intelligence * 2) + (Math.random() * 6 - 3)) * Math.pow(0.9, arcLevel);
+                            // Reduced base damage by 25% (from 15 to 11.25, rounded to 11)
+                            const baseDamage = (11 + (intelligence * 2) + (Math.random() * 6 - 3)) * Math.pow(0.9, arcLevel);
                             const finalDamage = Math.max(1, Math.floor(baseDamage) - defense);
                             
                             // Ensure final damage is a valid number
@@ -5504,8 +5564,8 @@ class GameController {
                             results.push({ message: `${target.name} takes ${validFinalDamage} lightning damage${arcText} ⚡` });
                             hitTargets.add(target);
                             
-                            // 40% chance to arc to other enemies
-                            if (Math.random() < 0.4) {
+                            // 33% chance to arc to other enemies (reduced from 40%)
+                            if (Math.random() < 0.33) {
                                 const unhitEnemies = allEnemies.filter(e => !hitTargets.has(e) && e.health > 0);
                                 if (unhitEnemies.length > 0) {
                                     newTargets.push(...unhitEnemies);
@@ -5944,10 +6004,10 @@ class GameController {
 
         // Map underling types to ability classes
         const typeMapping = {
-            'ranged': 'archer',
+            'ranged': 'skirmisher',
             'tank': 'warrior', 
             'magic': 'mage',
-            'support': 'healer'
+            'support': 'priest'
         };
         
         const abilityClass = typeMapping[underling.type];
@@ -6013,7 +6073,7 @@ class GameController {
                 // For healing/buff abilities, pick most wounded ally
                 const woundedAllies = validTargets.filter(ally => ally.health < ally.maxHealth);
                 
-                // Special check for healer class - only heal if someone is at 60% health or less
+                // Special check for priest class - only heal if someone is at 60% health or less
                 if (underling.type === 'support' && selectedAbility.effects && 
                     selectedAbility.effects.some(effect => effect.type === 'heal')) {
                     const criticallyWounded = woundedAllies.filter(ally => {

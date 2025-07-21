@@ -76,7 +76,38 @@ class CharacterManager {
         if (!character || typeof character.constitution !== 'number' || isNaN(character.constitution)) {
             return 0;
         }
-        return (character.constitution - 5) * 7;
+        
+        let statBonus = (character.constitution - 5) * 7;
+        let levelBonus = 0;
+        
+        // Add level-based HP bonuses
+        const level = character.level || 1;
+        if (character.name === this.gameController?.gameState?.hero?.name || character.isHero) {
+            // Hero: +10 HP per level
+            levelBonus = (level - 1) * 10;
+        } else if (character.class) {
+            // Underlings based on class
+            switch(character.class.toLowerCase()) {
+                case 'warrior':
+                    levelBonus = (level - 1) * 14; // +14 HP per level
+                    break;
+                case 'mage':
+                    levelBonus = (level - 1) * 5;  // +5 HP per level
+                    break;
+                case 'healer':
+                case 'priest':
+                    levelBonus = (level - 1) * 8;  // +8 HP per level
+                    break;
+                case 'archer':
+                case 'skirmisher':
+                    levelBonus = (level - 1) * 9;  // +9 HP per level
+                    break;
+                default:
+                    levelBonus = (level - 1) * 10; // Default +10 HP per level
+            }
+        }
+        
+        return statBonus + levelBonus;
     }
 
     calculateSizeHealthBonus(character) {
@@ -91,7 +122,38 @@ class CharacterManager {
             isNaN(character.intelligence) || isNaN(character.willpower)) {
             return 0;
         }
-        return Math.max(0, (character.intelligence + character.willpower - 10) * 2.5);
+        
+        let statBonus = Math.max(0, (character.intelligence + character.willpower - 10) * 2.5);
+        let levelBonus = 0;
+        
+        // Add level-based Mana bonuses
+        const level = character.level || 1;
+        if (character.name === this.gameController?.gameState?.hero?.name || character.isHero) {
+            // Hero: +10 Mana per level
+            levelBonus = (level - 1) * 10;
+        } else if (character.class) {
+            // Underlings based on class
+            switch(character.class.toLowerCase()) {
+                case 'warrior':
+                    levelBonus = (level - 1) * 1;  // +1 Mana per level
+                    break;
+                case 'mage':
+                    levelBonus = (level - 1) * 15; // +15 Mana per level
+                    break;
+                case 'healer':
+                case 'priest':
+                    levelBonus = (level - 1) * 12; // +12 Mana per level
+                    break;
+                case 'archer':
+                case 'skirmisher':
+                    levelBonus = (level - 1) * 8;  // +8 Mana per level
+                    break;
+                default:
+                    levelBonus = (level - 1) * 10; // Default +10 Mana per level
+            }
+        }
+        
+        return statBonus + levelBonus;
     }
 
     calculateStaminaBonus(character) {
@@ -102,7 +164,38 @@ class CharacterManager {
             isNaN(character.dexterity) || isNaN(character.constitution)) {
             return 0;
         }
-        return Math.max(0, (character.strength + character.dexterity + character.constitution - 15) * 2.5);
+        
+        let statBonus = Math.max(0, (character.strength + character.dexterity + character.constitution - 15) * 2.5);
+        let levelBonus = 0;
+        
+        // Add level-based Stamina bonuses
+        const level = character.level || 1;
+        if (character.name === this.gameController?.gameState?.hero?.name || character.isHero) {
+            // Hero: +10 Stamina per level
+            levelBonus = (level - 1) * 10;
+        } else if (character.class) {
+            // Underlings based on class
+            switch(character.class.toLowerCase()) {
+                case 'warrior':
+                    levelBonus = (level - 1) * 11; // +11 Stamina per level
+                    break;
+                case 'mage':
+                    levelBonus = (level - 1) * 6;  // +6 Stamina per level
+                    break;
+                case 'healer':
+                case 'priest':
+                    levelBonus = (level - 1) * 6;  // +6 Stamina per level
+                    break;
+                case 'archer':
+                case 'skirmisher':
+                    levelBonus = (level - 1) * 9;  // +9 Stamina per level
+                    break;
+                default:
+                    levelBonus = (level - 1) * 10; // Default +10 Stamina per level
+            }
+        }
+        
+        return statBonus + levelBonus;
     }
 
     calculateDefenseBonus(character) {
@@ -1023,7 +1116,7 @@ class CharacterManager {
     // Get stat increases per level based on underling type
     getStatIncreases(type) {
         const increases = {
-            'ranged': { // Archer
+            'ranged': { // Skirmisher
                 health: 8, mana: 4, stamina: 6, attack: 2, defense: 1,
                 strength: 1, dexterity: 2, constitution: 1, intelligence: 1, willpower: 1
             },
@@ -1035,7 +1128,7 @@ class CharacterManager {
                 health: 6, mana: 8, stamina: 4, attack: 1, defense: 1,
                 strength: 0, dexterity: 1, constitution: 1, intelligence: 2, willpower: 2
             },
-            'support': { // Healer
+            'support': { // Priest
                 health: 8, mana: 6, stamina: 5, attack: 1, defense: 1,
                 strength: 0, dexterity: 1, constitution: 1, intelligence: 1, willpower: 2
             }

@@ -421,8 +421,8 @@ class UnderlingAbilities {
     }
     
     static abilities = {
-        // ARCHER CLASS - Ranged damage dealer with utility
-        archer: {
+        // SKIRMISHER CLASS - Ranged damage dealer with utility
+        skirmisher: {
             1: new Ability({
                 id: 'precise_shot',
                 name: 'Precise Shot',
@@ -635,6 +635,152 @@ class UnderlingAbilities {
                         results: [{ message: 'A towering treant rises to defend the party!' }]
                     };
                 }
+            }),
+            
+            11: new Ability({
+                id: 'craft_basic_poison',
+                name: 'Craft Basic Poison',
+                description: 'Create basic poison coating for weapons using monster materials',
+                icon: '🧪',
+                type: 'crafting',
+                targeting: { type: 'self', validTargets: 'self', count: 1 },
+                costs: { 
+                    stamina: 3,
+                    materials: { 'Venom Sac': 1, 'Spider Silk': 1 }
+                },
+                hasSpecialCode: true,
+                specialHandler: function(caster, targets, gameState, gameController) {
+                    // Check for materials
+                    const requiredMaterials = { 'Venom Sac': 1, 'Spider Silk': 1 };
+                    const inventory = gameState.inventory || {};
+                    
+                    for (const [material, amount] of Object.entries(requiredMaterials)) {
+                        if (!inventory[material] || inventory[material] < amount) {
+                            return {
+                                success: false,
+                                message: `${caster.name} needs ${amount} ${material} to craft basic poison!`,
+                                results: []
+                            };
+                        }
+                    }
+                    
+                    // Consume materials
+                    for (const [material, amount] of Object.entries(requiredMaterials)) {
+                        inventory[material] -= amount;
+                        if (inventory[material] <= 0) delete inventory[material];
+                    }
+                    
+                    // Add poison coating effect
+                    caster.weaponCoating = {
+                        type: 'basic_poison',
+                        charges: 3,
+                        damage: 2,
+                        duration: 3
+                    };
+                    
+                    return {
+                        success: true,
+                        message: `${caster.name} crafts basic poison coating for their weapon!`,
+                        results: [{ message: 'Weapon now applies poison on hit (3 charges)' }]
+                    };
+                }
+            }),
+            
+            12: new Ability({
+                id: 'craft_potent_poison',
+                name: 'Craft Potent Poison',
+                description: 'Create stronger poison using rare monster glands',
+                icon: '☣️',
+                type: 'crafting',
+                targeting: { type: 'self', validTargets: 'self', count: 1 },
+                costs: { 
+                    stamina: 5,
+                    materials: { 'Poison Gland': 2, 'Toxic Silk': 1 }
+                },
+                hasSpecialCode: true,
+                specialHandler: function(caster, targets, gameState, gameController) {
+                    const requiredMaterials = { 'Poison Gland': 2, 'Toxic Silk': 1 };
+                    const inventory = gameState.inventory || {};
+                    
+                    for (const [material, amount] of Object.entries(requiredMaterials)) {
+                        if (!inventory[material] || inventory[material] < amount) {
+                            return {
+                                success: false,
+                                message: `${caster.name} needs ${amount} ${material} to craft potent poison!`,
+                                results: []
+                            };
+                        }
+                    }
+                    
+                    // Consume materials
+                    for (const [material, amount] of Object.entries(requiredMaterials)) {
+                        inventory[material] -= amount;
+                        if (inventory[material] <= 0) delete inventory[material];
+                    }
+                    
+                    // Add potent poison coating
+                    caster.weaponCoating = {
+                        type: 'potent_poison',
+                        charges: 4,
+                        damage: 4,
+                        duration: 5
+                    };
+                    
+                    return {
+                        success: true,
+                        message: `${caster.name} crafts potent poison coating!`,
+                        results: [{ message: 'Weapon now applies deadly poison on hit (4 charges)' }]
+                    };
+                }
+            }),
+            
+            13: new Ability({
+                id: 'craft_venom_arsenal',
+                name: 'Craft Venom Arsenal',
+                description: 'Create multiple poison arrows using master-level materials',
+                icon: '🏹',
+                type: 'crafting',
+                targeting: { type: 'self', validTargets: 'self', count: 1 },
+                costs: { 
+                    stamina: 8,
+                    materials: { 'Venom Fang': 2, 'Master Silk': 1, 'Poison Gland': 1 }
+                },
+                hasSpecialCode: true,
+                specialHandler: function(caster, targets, gameState, gameController) {
+                    const requiredMaterials = { 'Venom Fang': 2, 'Master Silk': 1, 'Poison Gland': 1 };
+                    const inventory = gameState.inventory || {};
+                    
+                    for (const [material, amount] of Object.entries(requiredMaterials)) {
+                        if (!inventory[material] || inventory[material] < amount) {
+                            return {
+                                success: false,
+                                message: `${caster.name} needs ${amount} ${material} to craft venom arsenal!`,
+                                results: []
+                            };
+                        }
+                    }
+                    
+                    // Consume materials
+                    for (const [material, amount] of Object.entries(requiredMaterials)) {
+                        inventory[material] -= amount;
+                        if (inventory[material] <= 0) delete inventory[material];
+                    }
+                    
+                    // Add venom arsenal effect
+                    caster.weaponCoating = {
+                        type: 'venom_arsenal',
+                        charges: 6,
+                        damage: 3,
+                        duration: 4,
+                        special: 'spreads_to_nearby'
+                    };
+                    
+                    return {
+                        success: true,
+                        message: `${caster.name} crafts a venom arsenal!`,
+                        results: [{ message: 'Weapon applies spreading venom (6 charges, affects nearby enemies)' }]
+                    };
+                }
             })
         },
         
@@ -647,7 +793,7 @@ class UnderlingAbilities {
                 icon: '🛡️',
                 type: 'skill',
                 targeting: { type: 'single', validTargets: 'enemies', count: 1, range: 'melee' },
-                costs: { stamina: 2 },
+                costs: { stamina: 10 },
                 effects: [
                     {
                         type: 'damage',
@@ -815,8 +961,8 @@ class UnderlingAbilities {
             })
         },
         
-        // HEALER CLASS - Divine magic with healing and support
-        healer: {
+        // PRIEST CLASS - Divine magic with healing and support
+        priest: {
             1: new Ability({
                 id: 'minor_heal',
                 name: 'Minor Heal',
@@ -1108,7 +1254,7 @@ class UnderlingAbilities {
                 costs: { mana: 7 },
                 effects: [{
                     type: 'damage',
-                    baseValue: 10,
+                    baseValue: 7.5,  // Reduced from 10 by 25%
                     scaling: { intelligence: 2 },
                     variance: 3
                 }]
@@ -1122,14 +1268,35 @@ class UnderlingAbilities {
                 type: 'spell',
                 targeting: { type: 'multiple', validTargets: 'enemies', count: 4, range: 'ranged' },
                 costs: { mana: 8 },
-                effects: [{
-                    type: 'spread',
-                    baseValue: 12,
-                    scaling: { intelligence: 2.2 },
-                    variance: 4,
-                    spreadChance: 0.6,
-                    spreadEffect: { type: 'damage', baseValue: 6 }
-                }]
+                hasSpecialCode: true,
+                specialHandler: function(caster, targets, gameState, gameController) {
+                    const results = [];
+                    
+                    targets.forEach(target => {
+                        // Calculate base damage
+                        const baseDamage = 12 + (caster.intelligence * 2.2) + (Math.random() * 8 - 4);
+                        const finalDamage = Math.max(1, Math.floor(baseDamage) - (target.defense || 0));
+                        
+                        target.health = Math.max(0, target.health - finalDamage);
+                        let message = `${target.name} takes ${finalDamage} fire damage`;
+                        
+                        // 50% chance to apply burn effect
+                        if (Math.random() < 0.50) {
+                            // Apply burn status effect (4 damage per turn for 3 turns)
+                            if (!target.statusEffects) target.statusEffects = {};
+                            target.statusEffects.burn = { value: 4, duration: 3 };
+                            message += ' and catches fire! 🔥';
+                        }
+                        
+                        results.push({ message: message });
+                    });
+                    
+                    return {
+                        success: true,
+                        message: `${caster.name} casts Fireball!`,
+                        results: results
+                    };
+                }
             }),
             
             7: new Ability({

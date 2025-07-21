@@ -499,7 +499,7 @@ class InventoryManager {
         return allItems.map((item, index) => `
             <div style="background: #1a1a1a; padding: 8px; margin: 5px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;">
                 <div style="flex: 1;">
-                    <strong style="color: #d4af37;">${item.name}</strong>
+                    <strong style="color: #d4af37;">${item.name || 'Unknown Item'}</strong>
                     ${item.quantity && item.quantity > 1 ? ` <span style="color: #51cf66;">(${item.quantity})</span>` : ''}
                     <div style="font-size: 11px; color: #aaa;">${item.type || 'Item'}</div>
                     ${item.stats ? Object.entries(item.stats).map(([stat, value]) => 
@@ -508,15 +508,22 @@ class InventoryManager {
                         `<small style="color: #ffd93d;">${effect}: ${value}</small>`).join(' | ') : ''}
                 </div>
                 <div style="display: flex; gap: 5px;">
-                    ${item.type !== 'consumable' ? `
+                    ${item.type && item.type !== 'consumable' ? `
                         <button onclick="window.game.controller.inventoryManager.equipItemByIndex(${index})" 
-                                style="padding: 2px 8px; background: #2a4d3a; border: 1px solid #51cf66; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
-                            Equip
+                                style="padding: 2px 8px; background: #2a4d3a; border: 1px solid #51cf66; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;"
+                                ${!item.name || item.name === 'Unknown Item' ? 'disabled title="Cannot equip invalid item"' : ''}>
+                            ${!item.name || item.name === 'Unknown Item' ? 'Invalid' : 'Equip'}
                         </button>
-                    ` : `
+                    ` : item.type === 'consumable' ? `
                         <button onclick="window.game.controller.inventoryManager.useConsumableByIndex(${index})" 
                                 style="padding: 2px 8px; background: #4a4a2d; border: 1px solid #ffd93d; color: white; border-radius: 3px; cursor: pointer; font-size: 10px;">
                             Use
+                        </button>
+                    ` : `
+                        <button disabled 
+                                style="padding: 2px 8px; background: #4a2a2a; border: 1px solid #ff6b6b; color: #888; border-radius: 3px; cursor: not-allowed; font-size: 10px;"
+                                title="Invalid item type">
+                            Invalid
                         </button>
                     `}
                 </div>
