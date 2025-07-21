@@ -1499,7 +1499,19 @@ class GameController {
             return { isCritical: false, multiplier: 1.0 };
         }
         
-        const critChance = Math.min(30, attacker.dexterity * 2.5);
+        let critChance = Math.min(30, attacker.dexterity * 2.5);
+        
+        // Add equipment crit bonus if available
+        let equipmentCritBonus = 0;
+        if (attacker.equipmentSlots) {
+            Object.values(attacker.equipmentSlots).forEach(equippedItem => {
+                if (equippedItem && equippedItem.stats && equippedItem.stats.critBonus) {
+                    equipmentCritBonus += equippedItem.stats.critBonus;
+                }
+            });
+        }
+        
+        critChance += equipmentCritBonus;
         const isCritical = Math.random() * 100 < critChance;
         
         if (isCritical) {
@@ -3910,6 +3922,88 @@ class GameController {
                 type: 'weapon'
             },
             
+            // New Advanced Weapons
+            { 
+                id: 'shamanic_ritual_staff', 
+                name: 'Shamanic Ritual Staff', 
+                cost: 250,
+                materials: { 'Shaman Staff': 1, 'Ritual Bones': 1, 'Magic Pouch': 1 },
+                description: '+9 Attack (Shamanic Weapon)',
+                type: 'weapon'
+            },
+            { 
+                id: 'venomous_scout_bow', 
+                name: 'Venomous Scout Bow', 
+                cost: 280,
+                materials: { 'Scout Bow': 1, 'Leather Scraps': 1, 'Poison Dart': 1 },
+                description: '+8 Attack (Venomous Ranged)',
+                type: 'weapon'
+            },
+            { 
+                id: 'mighty_hammer', 
+                name: 'Mighty Hammer', 
+                cost: 300,
+                materials: { 'Chieftain Crown': 1, 'War Hammer': 1, 'Command Cloak': 1 },
+                description: '+7 Attack (Mighty Weapon)',
+                type: 'weapon'
+            },
+            { 
+                id: 'raging_axe', 
+                name: 'Raging Axe', 
+                cost: 350,
+                materials: { 'Berserker Axe': 1, 'Battle Scars': 1, 'Rage Potion': 1 },
+                description: '+14 Attack (Berserker Weapon)',
+                type: 'weapon'
+            },
+            { 
+                id: 'razor_spear', 
+                name: 'Razor Spear', 
+                cost: 400,
+                materials: { 'Scout Spear': 1, 'Tracking Kit': 1, 'Trail Map': 1 },
+                description: '+15 Attack, +5% Crit (Precision Weapon)',
+                type: 'weapon'
+            },
+            { 
+                id: 'cracked_bone_staff', 
+                name: 'Cracked Bone Staff', 
+                cost: 450,
+                materials: { 'Bone Staff': 1, 'Shaman Mask': 1, 'Spirit Pouch': 1 },
+                description: '+16 Attack, +5 Willpower (Mystical Weapon)',
+                type: 'weapon'
+            },
+            { 
+                id: 'foul_staff', 
+                name: 'Foul Staff', 
+                cost: 500,
+                materials: { 'Necromancer Staff': 1, 'Death Robes': 1, 'Soul Crystal': 1 },
+                description: '+20 Attack, +5 Intelligence (Necromantic Weapon)',
+                type: 'weapon'
+            },
+            { 
+                id: 'dark_demon_blade', 
+                name: 'Dark Demon Blade', 
+                cost: 800,
+                materials: { 'Imp Wing': 1, 'Sulfur': 1, 'Demonic Essence': 1, 'Shadow Essence': 1, 'Dark Crystal': 1, 'Void Cloth': 1, 'Flame Heart': 1, 'Brimstone': 1 },
+                description: '+35 Attack, +15% Crit, +15 Dex, +15 Stamina (Demonic Weapon)',
+                type: 'weapon'
+            },
+            { 
+                id: 'warped_reality_blade', 
+                name: 'Warped Reality Blade', 
+                cost: 900,
+                materials: { 'Reality Blade': 1, 'Demon Crown': 1, "Lord's Scepter": 1, 'Infernal Throne': 1, 'Arch Crown': 1, 'Demon Gate Key': 1 },
+                description: '+30 Attack, +20 Mana, +15 Willpower, +10 Defense (Reality Weapon)',
+                type: 'weapon'
+            },
+            { 
+                id: 'bloody_ritual_dagger', 
+                name: 'Bloody Ritual Dagger', 
+                cost: 950,
+                materials: { 'Cultist Robes': 1, 'Dragon Idol': 1, 'Ritual Dagger': 1 },
+                description: '+35 Attack, +20 Willpower, +20 Mana (Ritual Weapon)',
+                type: 'weapon'
+            },
+            
             // Silk Armor Set
             { 
                 id: 'silk_hood', 
@@ -4337,7 +4431,45 @@ class GameController {
                     scaleArmor: 'Scale Armor',
                     ectoplasm: 'Ectoplasm',
                     spiritEssence: 'Spirit Essence',
-                    ghostlyCloth: 'Ghostly Cloth'
+                    ghostlyCloth: 'Ghostly Cloth',
+                    'Shaman Staff': 'Shaman Staff',
+                    'Ritual Bones': 'Ritual Bones',
+                    'Magic Pouch': 'Magic Pouch',
+                    'Scout Bow': 'Scout Bow',
+                    'Leather Scraps': 'Leather Scraps',
+                    'Poison Dart': 'Poison Dart',
+                    'Chieftain Crown': 'Chieftain Crown',
+                    'War Hammer': 'War Hammer',
+                    'Command Cloak': 'Command Cloak',
+                    'Berserker Axe': 'Berserker Axe',
+                    'Battle Scars': 'Battle Scars',
+                    'Rage Potion': 'Rage Potion',
+                    'Scout Spear': 'Scout Spear',
+                    'Tracking Kit': 'Tracking Kit',
+                    'Trail Map': 'Trail Map',
+                    'Bone Staff': 'Bone Staff',
+                    'Shaman Mask': 'Shaman Mask',
+                    'Spirit Pouch': 'Spirit Pouch',
+                    'Necromancer Staff': 'Necromancer Staff',
+                    'Death Robes': 'Death Robes',
+                    'Soul Crystal': 'Soul Crystal',
+                    'Imp Wing': 'Imp Wing',
+                    'Sulfur': 'Sulfur',
+                    'Demonic Essence': 'Demonic Essence',
+                    'Shadow Essence': 'Shadow Essence',
+                    'Dark Crystal': 'Dark Crystal',
+                    'Void Cloth': 'Void Cloth',
+                    'Flame Heart': 'Flame Heart',
+                    'Brimstone': 'Brimstone',
+                    'Reality Blade': 'Reality Blade',
+                    'Demon Crown': 'Demon Crown',
+                    "Lord's Scepter": "Lord's Scepter",
+                    'Infernal Throne': 'Infernal Throne',
+                    'Arch Crown': 'Arch Crown',
+                    'Demon Gate Key': 'Demon Gate Key',
+                    'Cultist Robes': 'Cultist Robes',
+                    'Dragon Idol': 'Dragon Idol',
+                    'Ritual Dagger': 'Ritual Dagger'
                 };
                 const current = this.gameState.hero.materials[material] || 0;
                 const color = current >= amount ? '#51cf66' : '#ff6b6b';
@@ -4502,6 +4634,78 @@ class GameController {
                 type: "weapon", 
                 weaponType: "divine",
                 stats: { attack: 8 }, 
+                equipped: false 
+            },
+            
+            // New Advanced Weapons
+            shamanic_ritual_staff: { 
+                name: "Shamanic Ritual Staff", 
+                type: "weapon", 
+                weaponType: "shamanic",
+                stats: { attack: 9 }, 
+                equipped: false 
+            },
+            venomous_scout_bow: { 
+                name: "Venomous Scout Bow", 
+                type: "weapon", 
+                weaponType: "ranged",
+                stats: { attack: 8 }, 
+                equipped: false 
+            },
+            mighty_hammer: { 
+                name: "Mighty Hammer", 
+                type: "weapon", 
+                weaponType: "melee",
+                stats: { attack: 7 }, 
+                equipped: false 
+            },
+            raging_axe: { 
+                name: "Raging Axe", 
+                type: "weapon", 
+                weaponType: "melee",
+                stats: { attack: 14 }, 
+                equipped: false 
+            },
+            razor_spear: { 
+                name: "Razor Spear", 
+                type: "weapon", 
+                weaponType: "melee",
+                stats: { attack: 15, critBonus: 5 }, 
+                equipped: false 
+            },
+            cracked_bone_staff: { 
+                name: "Cracked Bone Staff", 
+                type: "weapon", 
+                weaponType: "arcane",
+                stats: { attack: 16, willpower: 5 }, 
+                equipped: false 
+            },
+            foul_staff: { 
+                name: "Foul Staff", 
+                type: "weapon", 
+                weaponType: "necromantic",
+                stats: { attack: 20, intelligence: 5 }, 
+                equipped: false 
+            },
+            dark_demon_blade: { 
+                name: "Dark Demon Blade", 
+                type: "weapon", 
+                weaponType: "demonic",
+                stats: { attack: 35, critBonus: 15, dexterity: 15, stamina: 15 }, 
+                equipped: false 
+            },
+            warped_reality_blade: { 
+                name: "Warped Reality Blade", 
+                type: "weapon", 
+                weaponType: "reality",
+                stats: { attack: 30, mana: 20, willpower: 15, defense: 10 }, 
+                equipped: false 
+            },
+            bloody_ritual_dagger: { 
+                name: "Bloody Ritual Dagger", 
+                type: "weapon", 
+                weaponType: "ritual",
+                stats: { attack: 35, willpower: 20, mana: 20 }, 
                 equipped: false 
             },
             
