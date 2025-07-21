@@ -657,9 +657,9 @@ class UIManager {
                     <div style="text-align: center; color: #d4af37;">
                         <h3 style="color: #d4af37; margin-bottom: 15px;">🎮 Game Version Info 🎮</h3>
                         <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <p><strong>Commit:</strong> <span style="color: #51cf66;">9082730</span></p>
+                            <p><strong>Commit:</strong> <span style="color: #51cf66;">c3a019a</span></p>
                             <p><strong>Date:</strong> <span style="color: #4ecdc4;">${new Date().toLocaleDateString()}</span></p>
-                            <p><strong>Features:</strong> <span style="color: #ffd93d;">Spell damage fixes, Fame progression</span></p>
+                            <p><strong>Features:</strong> <span style="color: #ffd93d;">Equipment navigation fix, Spell damage fixes, Fame progression</span></p>
                             <p><strong>Build:</strong> <span style="color: #ff6b6b;">Latest stable release</span></p>
                         </div>
                         <div style="background: #1a3a1a; padding: 10px; border-radius: 8px; border-left: 3px solid #51cf66;">
