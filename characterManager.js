@@ -695,10 +695,10 @@ class CharacterManager {
             this.ui.log(`${underling.name} equipped ${item.name}!`);
             this.ui.showNotification(`${underling.name} equipped ${item.name}!`, "success");
             
-            // Refresh the underling management screen
+            // Refresh the underling equipment screen
             setTimeout(() => {
-                console.log(`[Underling Equipment] Refreshing underling management screen`);
-                this.manageUnderling(underlingIndex);
+                console.log(`[Underling Equipment] Refreshing underling equipment screen`);
+                this.gameController.inventoryManager.openUnderlingEquipmentManager(underlingIndex);
             }, 100);
         } else {
             console.error(`[Underling Equipment] Failed to equip "${item.name}" to ${underling.name}`);
@@ -723,10 +723,10 @@ class CharacterManager {
         this.ui.log(`${underling.name} unequipped ${item.name}!`);
         this.ui.showNotification(`${item.name} returned to inventory!`, "info");
         
-        // Refresh the underling management screen
+        // Refresh the underling equipment screen
         const underlingIndex = this.gameState.hero.underlings.indexOf(underling);
         setTimeout(() => {
-            this.manageUnderling(underlingIndex);
+            this.gameController.inventoryManager.openUnderlingEquipmentManager(underlingIndex);
         }, 100);
     }
     
@@ -763,9 +763,9 @@ class CharacterManager {
         
         this.ui.showNotification(`${underling.name} used ${item.name}!`, "success");
         
-        // Refresh the underling management screen
+        // Refresh the underling equipment screen
         setTimeout(() => {
-            this.manageUnderling(underlingIndex);
+            this.gameController.inventoryManager.openUnderlingEquipmentManager(underlingIndex);
         }, 100);
     }
     
