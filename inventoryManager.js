@@ -560,18 +560,18 @@ class InventoryManager {
             'necklace': ['neck'],
             'amulet': ['amulet'],
             
-            // Chest equipment
+            // Chest equipment (specific before generic)
             'chestplate': ['chest'],
             'breastplate': ['chest'],
             'robe': ['chest'],
             'tunic': ['chest'],
             'shirt': ['chest'],
             'vest': ['chest'],
-            'armor': ['chest'],
             
             // Arms equipment
-            'bracers': ['arms'],
             'vambraces': ['arms'],
+            'bracers': ['arms'],
+            'sleeves': ['arms'],
             'armguards': ['arms'],
             
             // Hands equipment
@@ -596,7 +596,10 @@ class InventoryManager {
             'ring': ['ring1', 'ring2'],
             'belt': ['belt'],
             'cloak': ['cloak'],
-            'cape': ['cloak']
+            'cape': ['cloak'],
+            
+            // Generic fallbacks (least specific)
+            'armor': ['chest']
         };
         
         // Check item type first
