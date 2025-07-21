@@ -366,14 +366,44 @@ class GameController {
         const nameContent = `
             <div style="text-align: center;">
                 <h4 style="font-size: ${this.getResponsiveFontSize(18)}px;">🏰 Welcome, Adventurer! 🏰</h4>
-                <p style="font-size: ${this.getResponsiveFontSize(14)}px;">Before you begin your quest, please tell us your name:</p>
-                <input type="text" id="heroNameInput" placeholder="Enter your hero's name..." 
-                       style="width: ${this.getResponsiveInputWidth()}; padding: ${this.getResponsiveButtonPadding()}; margin: ${this.getResponsiveMargin()} 0; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; text-align: center; font-size: ${this.getResponsiveFontSize(14)}px;" 
-                       maxlength="20" autocomplete="off">
-                <p style="color: #888; font-size: ${this.getResponsiveFontSize(10)}px;">Maximum 20 characters</p>
+                <p style="font-size: ${this.getResponsiveFontSize(14)}px;">Create your hero's identity:</p>
+                
+                <!-- Name Input -->
+                <div style="margin: ${this.getResponsiveMargin()} 0;">
+                    <label style="display: block; color: #d4af37; font-size: ${this.getResponsiveFontSize(12)}px; margin-bottom: 5px;">Hero Name:</label>
+                    <input type="text" id="heroNameInput" placeholder="Enter your hero's name..." 
+                           style="width: ${this.getResponsiveInputWidth()}; padding: ${this.getResponsiveButtonPadding()}; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; text-align: center; font-size: ${this.getResponsiveFontSize(14)}px;" 
+                           maxlength="20" autocomplete="off">
+                    <p style="color: #888; font-size: ${this.getResponsiveFontSize(10)}px;">Maximum 20 characters</p>
+                </div>
+                
+                <!-- Species Selection -->
+                <div style="margin: ${this.getResponsiveMargin()} 0;">
+                    <label style="display: block; color: #d4af37; font-size: ${this.getResponsiveFontSize(12)}px; margin-bottom: 5px;">Species:</label>
+                    <select id="heroSpeciesInput" 
+                            style="width: ${this.getResponsiveInputWidth()}; padding: ${this.getResponsiveButtonPadding()}; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; font-size: ${this.getResponsiveFontSize(14)}px;"
+                            onchange="window.game.controller.updateSubspeciesDropdown()">
+                        ${this.generateSpeciesOptions()}
+                    </select>
+                </div>
+                
+                <!-- Subspecies Selection -->
+                <div id="subspeciesContainer" style="margin: ${this.getResponsiveMargin()} 0;">
+                    <label style="display: block; color: #d4af37; font-size: ${this.getResponsiveFontSize(12)}px; margin-bottom: 5px;">Subspecies:</label>
+                    <select id="heroSubspeciesInput" 
+                            style="width: ${this.getResponsiveInputWidth()}; padding: ${this.getResponsiveButtonPadding()}; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; font-size: ${this.getResponsiveFontSize(14)}px;">
+                        ${this.generateSubspeciesOptions('human')}
+                    </select>
+                </div>
+                
+                <!-- Species Info Display -->
+                <div id="speciesInfo" style="margin-top: ${this.getResponsiveMargin()}; padding: ${this.getResponsivePadding()}; background: #2a2a3a; border-radius: ${this.getResponsiveBorderRadius()};">
+                    ${this.generateSpeciesInfoDisplay('human', 'common')}
+                </div>
+                
                 <div style="margin-top: ${this.getResponsiveMargin()}; padding: ${this.getResponsivePadding()}; background: #2a2a3a; border-radius: ${this.getResponsiveBorderRadius()};">
                     <p style="color: #d4af37; font-size: ${this.getResponsiveFontSize(12)}px; margin: 0;">
-                        💡 This will be your unique hero identity throughout your adventure!
+                        💡 Your species choice affects stats, abilities, and equipment slots!
                     </p>
                 </div>
             </div>
@@ -407,7 +437,12 @@ class GameController {
 
     confirmHeroName() {
         const nameInput = document.getElementById('heroNameInput');
+        const speciesInput = document.getElementById('heroSpeciesInput');
+        const subspeciesInput = document.getElementById('heroSubspeciesInput');
+        
         let heroName = nameInput ? nameInput.value.trim() : '';
+        const selectedSpecies = speciesInput ? speciesInput.value : 'human';
+        const selectedSubspecies = subspeciesInput ? subspeciesInput.value : 'common';
         
         // Validate and sanitize hero name
         if (!heroName) {
@@ -417,8 +452,11 @@ class GameController {
         // Sanitize name (remove special characters that might break saves)
         heroName = heroName.replace(/[<>:"/\\|?*]/g, '').substring(0, 20);
         
-        // Update hero name
+        // Update hero name and species
         this.gameState.hero.name = heroName;
+        
+        // Initialize hero with species data
+        this.characterManager.initializeCharacterSpecies(this.gameState.hero, selectedSpecies, selectedSubspecies);
         
         // Close modal and re-enable keyboard shortcuts
         const modals = document.querySelectorAll('.modal-overlay');
@@ -429,18 +467,92 @@ class GameController {
         
         if (this.ui) {
             this.ui.enableKeyboardShortcuts();
-            this.ui.log(`Welcome, ${heroName}! Your adventure begins!`);
-            this.ui.showNotification(`Welcome, ${heroName}!`, "success");
-            this.ui.render(); // Update UI to reflect name change
+            const speciesName = this.characterManager.getCharacterSpeciesDisplayName(this.gameState.hero);
+            this.ui.log(`Welcome, ${heroName} the ${speciesName}! Your adventure begins!`);
+            this.ui.showNotification(`Welcome, ${heroName} the ${speciesName}!`, "success");
+            this.ui.render(); // Update UI to reflect changes
             this.ui.updateButtonStates(); // Ensure button states are refreshed
         }
         
-        console.log('Hero name confirmed:', heroName);
+        console.log('Hero created:', heroName, selectedSpecies, selectedSubspecies);
+    }
+    
+    // Species selection helper methods
+    generateSpeciesOptions() {
+        const availableSpecies = this.characterManager.getAvailableSpecies();
+        return availableSpecies.map(species => {
+            const speciesDef = this.characterManager.getSpeciesDefinition(species);
+            return `<option value="${species}">${speciesDef.name}</option>`;
+        }).join('');
+    }
+    
+    generateSubspeciesOptions(species) {
+        const availableSubspecies = this.characterManager.getAvailableSubspecies(species);
+        return availableSubspecies.map(subspecies => {
+            const subspeciesDef = this.characterManager.getSubspeciesDefinition(species, subspecies);
+            return `<option value="${subspecies}">${subspeciesDef.name}</option>`;
+        }).join('');
+    }
+    
+    generateSpeciesInfoDisplay(species, subspecies) {
+        const speciesDef = this.characterManager.getSpeciesDefinition(species);
+        const subspeciesDef = this.characterManager.getSubspeciesDefinition(species, subspecies);
+        
+        // Calculate total stat modifiers
+        const totalModifiers = {};
+        ['strength', 'dexterity', 'constitution', 'intelligence', 'willpower', 'size'].forEach(stat => {
+            totalModifiers[stat] = (speciesDef.statModifiers[stat] || 0) + (subspeciesDef.statModifiers[stat] || 0);
+        });
+        
+        const statDisplay = Object.entries(totalModifiers)
+            .filter(([stat, modifier]) => modifier !== 0)
+            .map(([stat, modifier]) => {
+                const sign = modifier > 0 ? '+' : '';
+                const color = modifier > 0 ? '#51cf66' : '#ff6b6b';
+                return `<span style="color: ${color};">${sign}${modifier} ${stat.toUpperCase()}</span>`;
+            }).join(', ');
+        
+        return `
+            <p style="color: #4ecdc4; font-size: ${this.getResponsiveFontSize(12)}px; margin: 5px 0;">
+                <strong>${subspeciesDef.name}</strong>
+            </p>
+            <p style="color: #ccc; font-size: ${this.getResponsiveFontSize(10)}px; margin: 5px 0;">
+                ${subspeciesDef.description || speciesDef.description}
+            </p>
+            ${statDisplay ? `<p style="color: #ffd93d; font-size: ${this.getResponsiveFontSize(10)}px; margin: 5px 0;">
+                <strong>Stat Modifiers:</strong> ${statDisplay}
+            </p>` : ''}
+        `;
+    }
+    
+    updateSubspeciesDropdown() {
+        const speciesInput = document.getElementById('heroSpeciesInput');
+        const subspeciesInput = document.getElementById('heroSubspeciesInput');
+        const speciesInfo = document.getElementById('speciesInfo');
+        
+        if (!speciesInput || !subspeciesInput || !speciesInfo) return;
+        
+        const selectedSpecies = speciesInput.value;
+        const subspeciesOptions = this.generateSubspeciesOptions(selectedSpecies);
+        subspeciesInput.innerHTML = subspeciesOptions;
+        
+        // Update species info display
+        const selectedSubspecies = subspeciesInput.value;
+        speciesInfo.innerHTML = this.generateSpeciesInfoDisplay(selectedSpecies, selectedSubspecies);
+        
+        // Add event listener for subspecies changes
+        subspeciesInput.onchange = () => {
+            const newSubspecies = subspeciesInput.value;
+            speciesInfo.innerHTML = this.generateSpeciesInfoDisplay(selectedSpecies, newSubspecies);
+        };
     }
 
     useDefaultHeroName() {
-        // Use default hero name and close modal
+        // Use default hero name and species
         this.gameState.hero.name = 'Hero';
+        
+        // Initialize hero with default species data
+        this.characterManager.initializeCharacterSpecies(this.gameState.hero, 'human', 'common');
         
         // Close modal and re-enable keyboard shortcuts
         const modals = document.querySelectorAll('.modal-overlay');
@@ -453,11 +565,11 @@ class GameController {
             this.ui.enableKeyboardShortcuts();
             this.ui.log("Welcome, Hero! Your adventure begins!");
             this.ui.showNotification("Welcome, Hero!", "success");
-            this.ui.render(); // Update UI to reflect name change
+            this.ui.render(); // Update UI to reflect changes
             this.ui.updateButtonStates(); // Ensure button states are refreshed
         }
         
-        console.log('Using default hero name: Hero');
+        console.log('Using default hero: Hero, human, common');
     }
 
     newGame() {
@@ -475,15 +587,45 @@ class GameController {
         const modals = document.querySelectorAll('.modal-overlay');
         modals.forEach(modal => modal.remove());
         
-        // Show hero naming prompt
+        // Show hero creation prompt with species selection
         const nameContent = `
             <div style="text-align: center;">
                 <h4 style="font-size: ${this.getResponsiveFontSize(18)}px;">Create Your Hero</h4>
-                <p style="font-size: ${this.getResponsiveFontSize(14)}px;">Enter your hero's name to begin your adventure:</p>
-                <input type="text" id="heroNameInput" placeholder="Enter hero name..." 
-                       style="width: ${this.getResponsiveInputWidth()}; padding: ${this.getResponsiveButtonPadding()}; margin: ${this.getResponsiveMargin()} 0; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; text-align: center; font-size: ${this.getResponsiveFontSize(14)}px;" 
-                       maxlength="20" autocomplete="off">
-                <p style="color: #888; font-size: ${this.getResponsiveFontSize(10)}px;">Maximum 20 characters</p>
+                <p style="font-size: ${this.getResponsiveFontSize(14)}px;">Create your hero's identity:</p>
+                
+                <!-- Name Input -->
+                <div style="margin: ${this.getResponsiveMargin()} 0;">
+                    <label style="display: block; color: #d4af37; font-size: ${this.getResponsiveFontSize(12)}px; margin-bottom: 5px;">Hero Name:</label>
+                    <input type="text" id="heroNameInput" placeholder="Enter hero name..." 
+                           style="width: ${this.getResponsiveInputWidth()}; padding: ${this.getResponsiveButtonPadding()}; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; text-align: center; font-size: ${this.getResponsiveFontSize(14)}px;" 
+                           maxlength="20" autocomplete="off">
+                    <p style="color: #888; font-size: ${this.getResponsiveFontSize(10)}px;">Maximum 20 characters</p>
+                </div>
+                
+                <!-- Species Selection -->
+                <div style="margin: ${this.getResponsiveMargin()} 0;">
+                    <label style="display: block; color: #d4af37; font-size: ${this.getResponsiveFontSize(12)}px; margin-bottom: 5px;">Species:</label>
+                    <select id="heroSpeciesInput" 
+                            style="width: ${this.getResponsiveInputWidth()}; padding: ${this.getResponsiveButtonPadding()}; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; font-size: ${this.getResponsiveFontSize(14)}px;"
+                            onchange="window.game.controller.updateSubspeciesDropdown()">
+                        ${this.generateSpeciesOptions()}
+                    </select>
+                </div>
+                
+                <!-- Subspecies Selection -->
+                <div id="subspeciesContainer" style="margin: ${this.getResponsiveMargin()} 0;">
+                    <label style="display: block; color: #d4af37; font-size: ${this.getResponsiveFontSize(12)}px; margin-bottom: 5px;">Subspecies:</label>
+                    <select id="heroSubspeciesInput" 
+                            style="width: ${this.getResponsiveInputWidth()}; padding: ${this.getResponsiveButtonPadding()}; border: 2px solid #d4af37; border-radius: ${this.getResponsiveBorderRadius()}; background: #2a2a2a; color: white; font-size: ${this.getResponsiveFontSize(14)}px;">
+                        ${this.generateSubspeciesOptions('human')}
+                    </select>
+                </div>
+                
+                <!-- Species Info Display -->
+                <div id="speciesInfo" style="margin-top: ${this.getResponsiveMargin()}; padding: ${this.getResponsivePadding()}; background: #2a2a3a; border-radius: ${this.getResponsiveBorderRadius()};">
+                    ${this.generateSpeciesInfoDisplay('human', 'common')}
+                </div>
+                
                 <hr style="margin: ${this.getResponsiveMargin()} 0; border-color: #444;">
                 <p style="font-size: ${this.getResponsiveFontSize(14)}px;">Choose reset method:</p>
             </div>
@@ -526,7 +668,12 @@ class GameController {
     
     createHeroAndStart(isHardReset) {
         const nameInput = document.getElementById('heroNameInput');
+        const speciesInput = document.getElementById('heroSpeciesInput');
+        const subspeciesInput = document.getElementById('heroSubspeciesInput');
+        
         let heroName = nameInput ? nameInput.value.trim() : '';
+        const selectedSpecies = speciesInput ? speciesInput.value : 'human';
+        const selectedSubspecies = subspeciesInput ? subspeciesInput.value : 'common';
         
         // Validate hero name
         if (!heroName) {
@@ -544,11 +691,11 @@ class GameController {
         if (isHardReset) {
             this.performBrowserRefresh();
         } else {
-            this.performNewGameReset(heroName);
+            this.performNewGameReset(heroName, selectedSpecies, selectedSubspecies);
         }
     }
     
-    performNewGameReset(heroName = 'Hero') {
+    performNewGameReset(heroName = 'Hero', heroSpecies = 'human', heroSubspecies = 'common') {
         // Reset game state completely
         this.gameState = {
             hero: {
@@ -592,7 +739,10 @@ class GameController {
         this.currentCombatItems = null;
         this.currentCombatTargets = null;
         
-        // Apply stat bonuses to new character
+        // Initialize hero with species data
+        this.characterManager.initializeCharacterSpecies(this.gameState.hero, heroSpecies, heroSubspecies);
+        
+        // Apply stat bonuses to new character (this should come after species initialization)
         this.applyStatBonuses();
         
         // Reset UI state completely
@@ -600,13 +750,14 @@ class GameController {
             this.ui.currentBackground = 'village';
             this.ui.setBackground('village');
             this.ui.clearChatLog();
-            this.ui.log(`Welcome ${heroName}! Your adventure begins!`);
+            const speciesName = this.characterManager.getCharacterSpeciesDisplayName(this.gameState.hero);
+            this.ui.log(`Welcome ${heroName} the ${speciesName}! Your adventure begins!`);
             this.ui.render();
             this.ui.updateButtonStates(); // Ensure button states reflect new game state
-            this.ui.showNotification(`Welcome ${heroName}!`, "success");
+            this.ui.showNotification(`Welcome ${heroName} the ${speciesName}!`, "success");
         }
         
-        console.log('New game reset complete. Hero:', heroName, 'Gold:', this.gameState.hero.gold);
+        console.log('New game reset complete. Hero:', heroName, heroSpecies, heroSubspecies, 'Gold:', this.gameState.hero.gold);
     }
     
     performBrowserRefresh() {
@@ -850,7 +1001,22 @@ class GameController {
                         underling.willpower = 5;
                         underling.size = 5;
                     }
+                    
+                    // Add species data if missing (backward compatibility)
+                    if (!underling.speciesKey && !underling.species) {
+                        underling.speciesKey = 'human';
+                    }
+                    if (!underling.baseClass) {
+                        // Extract base class from name if possible
+                        const nameParts = underling.name.split(' ');
+                        underling.baseClass = nameParts.length > 1 ? nameParts[nameParts.length - 1] : underling.name;
+                    }
                 });
+            }
+            
+            // Add species data to hero if missing (backward compatibility)
+            if (!this.gameState.hero.speciesKey && !this.gameState.hero.species) {
+                this.gameState.hero.speciesKey = 'human';
             }
             
             // Add new stats to hero if missing (backward compatibility)
@@ -4898,37 +5064,56 @@ class GameController {
 
         this.ui.log("Opening recruitment center...");
         
+        // Generate species-specific underling names
+        const getRandomSpecies = () => {
+            const speciesList = Object.keys(this.characterManager.speciesDefinitions);
+            return speciesList[Math.floor(Math.random() * speciesList.length)];
+        };
+
+        const getSpeciesDisplayName = (speciesKey) => {
+            const species = this.characterManager.speciesDefinitions[speciesKey];
+            return species ? species.displayName : 'Human';
+        };
+
         // Define available underlings with their details
         const availableUnderlings = [
             {
                 id: 'skirmisher',
-                name: 'Skirmisher',
+                baseClass: 'Skirmisher',
+                speciesKey: getRandomSpecies(),
                 cost: 100,
                 description: 'Ranged damage dealer with precise shots',
                 icon: '🏹'
             },
             {
                 id: 'warrior',
-                name: 'Warrior',
+                baseClass: 'Warrior', 
+                speciesKey: getRandomSpecies(),
                 cost: 150,
                 description: 'Melee tank with protective taunt ability',
                 icon: '⚔️'
             },
             {
                 id: 'priest',
-                name: 'Priest',
+                baseClass: 'Priest',
+                speciesKey: getRandomSpecies(),
                 cost: 175,
                 description: 'Support specialist with healing magic',
                 icon: '✨'
             },
             {
                 id: 'mage',
-                name: 'Mage',
+                baseClass: 'Mage',
+                speciesKey: getRandomSpecies(),
                 cost: 200,
                 description: 'Magic damage and arcane support',
                 icon: '🔮'
             }
-        ];
+        ].map(underling => ({
+            ...underling,
+            name: `${getSpeciesDisplayName(underling.speciesKey)} ${underling.baseClass}`,
+            speciesDisplayName: getSpeciesDisplayName(underling.speciesKey)
+        }));
         
         const recruitmentContent = `
             <div style="text-align: center; margin-bottom: 15px;">
@@ -4961,7 +5146,7 @@ class GameController {
                         </div>
                         <div style="text-align: center; font-weight: bold; color: #ffd93d;">💰${underling.cost}g</div>
                         <div style="text-align: center;">
-                            <button onclick="window.game.controller.recruitUnderling('${underling.id}', ${underling.cost})" 
+                            <button onclick="window.game.controller.recruitUnderling('${underling.id}', ${underling.cost}, '${underling.speciesKey}', '${underling.baseClass}')" 
                                     style="padding: 6px 12px; background: ${isAvailable ? 'linear-gradient(45deg, #2a4d3a, #4a7c59)' : 'linear-gradient(45deg, #4a2a2a, #6a3a3a)'}; 
                                            border: 1px solid ${isAvailable ? '#51cf66' : '#ff6b6b'}; color: white; border-radius: 4px; cursor: ${isAvailable ? 'pointer' : 'not-allowed'}; 
                                            font-size: 12px; font-weight: bold;"
@@ -4992,7 +5177,7 @@ class GameController {
         ]);
     }
 
-    recruitUnderling(type, cost) {
+    recruitUnderling(type, cost, speciesKey = 'human', baseClass = null) {
         if (this.gameState.hero.underlings.length >= this.gameState.hero.leadership) {
             this.ui.log(`You can only have ${this.gameState.hero.leadership} underlings! Upgrade your leadership to recruit more.`);
             this.ui.showNotification("Leadership limit reached!", "error");
@@ -5078,15 +5263,32 @@ class GameController {
             }
         };
 
+        const baseUnderling = underlings[type];
+        if (!baseUnderling) {
+            this.ui.log("Unknown underling type!");
+            return;
+        }
+
+        // Get species information for display name
+        const speciesDisplayName = this.characterManager.getSpeciesDisplayName(speciesKey);
+        const finalClassName = baseClass || baseUnderling.name;
+
         const underling = { 
-            ...underlings[type], 
+            ...baseUnderling, 
             id: Date.now(),
-            maxHealth: underlings[type].health,
-            maxMana: underlings[type].mana,
-            maxStamina: underlings[type].stamina,
+            name: `${speciesDisplayName} ${finalClassName}`,
+            speciesKey: speciesKey,
+            baseClass: finalClassName,
+            maxHealth: baseUnderling.health,
+            maxMana: baseUnderling.mana,
+            maxStamina: baseUnderling.stamina,
             equipment: [],
             isAlive: true
         };
+
+        // Apply species modifiers to the underling
+        this.characterManager.applySpeciesModifiers(underling, speciesKey);
+
         this.gameState.hero.underlings.push(underling);
         
         // Apply stat bonuses to the new underling

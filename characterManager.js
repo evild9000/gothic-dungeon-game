@@ -5,6 +5,28 @@ class CharacterManager {
         this.gameState = gameController.gameState;
         this.ui = gameController.ui;
         
+        // Species definitions - framework ready for expansion
+        this.speciesDefinitions = {
+            human: {
+                name: "Human",
+                statModifiers: { strength: 0, dexterity: 0, constitution: 0, intelligence: 0, willpower: 0, size: 0 },
+                subspecies: {
+                    common: { 
+                        name: "Common Human", 
+                        statModifiers: { strength: 0, dexterity: 0, constitution: 0, intelligence: 0, willpower: 0, size: 0 },
+                        description: "Versatile and adaptable" 
+                    }
+                },
+                racialAbilities: [], // Framework for racial abilities
+                equipmentSlots: "human", // Reference to equipment slot configuration
+                description: "Adaptable and versatile beings",
+                baseStats: { strength: 5, dexterity: 5, constitution: 5, intelligence: 5, willpower: 5, size: 5 }
+            }
+            // Framework ready for additional species:
+            // elf: { name: "Elf", statModifiers: { strength: -1, dexterity: 2, constitution: -1, intelligence: 1, willpower: 1, size: -1 }, ... }
+            // dwarf: { name: "Dwarf", statModifiers: { strength: 1, dexterity: -1, constitution: 2, intelligence: 0, willpower: 1, size: -1 }, ... }
+        };
+        
         // Equipment slot definitions for different species
         this.speciesEquipmentSlots = {
             human: {
@@ -24,13 +46,14 @@ class CharacterManager {
                 belt: { name: "Belt", icon: "👑", description: "Belts, sashes, girdles" },
                 cloak: { name: "Cloak", icon: "🧥", description: "Cloaks, capes, mantles" }
             }
-            // Future species can be added here:
-            // spider: { legs1-8, abdomen, head, etc. }
-            // dragon: { head, neck, wings, tail, etc. }
+            // Framework ready for additional species equipment slots:
+            // spider: { head: {...}, abdomen: {...}, leg1: {...}, leg2: {...}, leg3: {...}, leg4: {...}, leg5: {...}, leg6: {...}, leg7: {...}, leg8: {...} }
+            // centaur: { head: {...}, chest: {...}, arms: {...}, hands: {...}, saddle: {...}, rear_legs: {...}, front_legs: {...} }
         };
         
         // Character species definitions (currently all human)
         this.defaultSpecies = 'human';
+        this.defaultSubspecies = 'common';
         
         // Stat configuration
         this.statConfig = {
@@ -43,6 +66,107 @@ class CharacterManager {
                 size: "Affects health, melee damage, and defense (larger = more HP/damage but less defense, smaller = less HP/damage but more defense)"
             }
         };
+    }
+    
+    // Species management methods
+    getAvailableSpecies() {
+        return Object.keys(this.speciesDefinitions);
+    }
+    
+    getSpeciesDefinition(species) {
+        return this.speciesDefinitions[species] || this.speciesDefinitions[this.defaultSpecies];
+    }
+    
+    getAvailableSubspecies(species) {
+        const speciesDef = this.getSpeciesDefinition(species);
+        return Object.keys(speciesDef.subspecies || {});
+    }
+    
+    getSubspeciesDefinition(species, subspecies) {
+        const speciesDef = this.getSpeciesDefinition(species);
+        return speciesDef.subspecies[subspecies] || speciesDef.subspecies[this.defaultSubspecies];
+    }
+    
+    // Apply species stat modifiers to character
+    applySpeciesModifiers(character) {
+        if (!character.species || !character.subspecies) return;
+        
+        const speciesDef = this.getSpeciesDefinition(character.species);
+        const subspeciesDef = this.getSubspeciesDefinition(character.species, character.subspecies);
+        
+        // Apply base species modifiers
+        if (speciesDef.statModifiers) {
+            Object.entries(speciesDef.statModifiers).forEach(([stat, modifier]) => {
+                if (character[stat] !== undefined) {
+                    character[stat] = Math.max(1, (character.baseStats?.[stat] || 5) + modifier);
+                }
+            });
+        }
+        
+        // Apply subspecies modifiers
+        if (subspeciesDef.statModifiers) {
+            Object.entries(subspeciesDef.statModifiers).forEach(([stat, modifier]) => {
+                if (character[stat] !== undefined) {
+                    character[stat] = Math.max(1, character[stat] + modifier);
+                }
+            });
+        }
+    }
+    
+    // Initialize character with species data
+    initializeCharacterSpecies(character, species = null, subspecies = null) {
+        // Set species and subspecies
+        character.species = species || this.defaultSpecies;
+        character.subspecies = subspecies || this.defaultSubspecies;
+        
+        // Store base stats before modifiers
+        if (!character.baseStats) {
+            character.baseStats = {
+                strength: character.strength || 5,
+                dexterity: character.dexterity || 5,
+                constitution: character.constitution || 5,
+                intelligence: character.intelligence || 5,
+                willpower: character.willpower || 5,
+                size: character.size || 5
+            };
+        }
+        
+        // Apply species modifiers
+        this.applySpeciesModifiers(character);
+        
+        // Initialize equipment slots for species
+        this.initializeCharacterEquipment(character);
+    }
+    
+    // Get display name for a species
+    getSpeciesDisplayName(speciesKey) {
+        const species = this.speciesDefinitions[speciesKey];
+        return species ? species.displayName : 'Human';
+    }
+    
+    // Get character's species display name
+    getCharacterSpeciesDisplayName(character) {
+        const speciesKey = character.speciesKey || character.species || this.defaultSpecies;
+        return this.getSpeciesDisplayName(speciesKey);
+    }
+    
+    // Get character's species display name
+    getCharacterSpeciesDisplayName(character) {
+        if (!character.species || !character.subspecies) {
+            return "Human";
+        }
+        
+        const subspeciesDef = this.getSubspeciesDefinition(character.species, character.subspecies);
+        return subspeciesDef.name || character.species;
+    }
+    
+    // Get character's full class name including species
+    getCharacterFullClassName(character) {
+        const speciesName = this.getCharacterSpeciesDisplayName(character);
+        const className = character.type || character.class || "Adventurer";
+        
+        // Format as "Elven Skirmisher" or "Dwarven Warrior"
+        return `${speciesName} ${className}`;
     }
     
     // Get equipment slots for a character based on their species
@@ -368,6 +492,7 @@ class CharacterManager {
                     
                     <!-- Basic Info -->
                     <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                        <p><strong>Species:</strong> ${this.getCharacterSpeciesDisplayName(hero)}</p>
                         <p><strong>Level:</strong> ${hero.level}</p>
                         <p><strong>Gold:</strong> ${hero.gold}</p>
                         <p><strong>Fame:</strong> ${hero.fame}/${Math.floor(100 * Math.pow(1.5, hero.level - 1))} (${Math.floor((hero.fame / Math.floor(100 * Math.pow(1.5, hero.level - 1))) * 100)}% to next level)</p>
