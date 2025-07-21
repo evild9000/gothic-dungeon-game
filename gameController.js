@@ -4598,7 +4598,7 @@ class GameController {
                 type: 'spell',
                 targeting: { type: 'single', validTargets: 'allies_and_self', count: 1 },
                 costs: { mana: 8 },
-                levelRequirement: 3,
+                usageRestrictions: { level: 3 },
                 effects: [{
                     type: 'heal',
                     baseValue: 20,
@@ -4615,7 +4615,7 @@ class GameController {
                 type: 'spell',
                 targeting: { type: 'multiple', validTargets: 'enemies', count: 3, range: 'ranged' },
                 costs: { mana: 12 },
-                levelRequirement: 5,
+                usageRestrictions: { level: 5 },
                 hasSpecialCode: true,
                 specialHandler: (caster, targets, gameState, gameController) => {
                     console.log('[Fireball Debug] Starting Fireball cast');
@@ -4679,7 +4679,7 @@ class GameController {
                 type: 'spell',
                 targeting: { type: 'multiple', validTargets: 'enemies', count: 2, range: 'ranged' },
                 costs: { mana: 10 },
-                levelRequirement: 4,
+                usageRestrictions: { level: 4 },
                 hasSpecialCode: true,
                 specialHandler: (caster, targets, gameState, gameController) => {
                     const results = [];
@@ -4743,7 +4743,7 @@ class GameController {
                 type: 'spell',
                 targeting: { type: 'single', validTargets: 'allies_and_self', count: 1 },
                 costs: { mana: 6 },
-                levelRequirement: 2,
+                usageRestrictions: { level: 2 },
                 effects: [{
                     type: 'buff_defense',
                     baseValue: 5,
@@ -4759,7 +4759,7 @@ class GameController {
                 type: 'spell',
                 targeting: { type: 'all', validTargets: 'allies', count: 'all' },
                 costs: { mana: 20 },
-                levelRequirement: 6,
+                usageRestrictions: { level: 6 },
                 effects: [{
                     type: 'heal',
                     baseValue: 12,
@@ -4792,7 +4792,7 @@ class GameController {
                 type: 'spell',
                 targeting: { type: 'single', validTargets: 'enemies', count: 1, range: 'ranged' },
                 costs: { mana: 8 },
-                levelRequirement: 1,
+                usageRestrictions: { level: 1 },
                 effects: [
                     {
                         type: 'damage',
@@ -4834,11 +4834,7 @@ class GameController {
 
         const heroAbilities = this.getHeroAbilities();
         const availableAbilities = Object.values(heroAbilities).filter(ability => {
-            // Check level requirement
-            if (ability.levelRequirement && this.gameState.hero.level < ability.levelRequirement) {
-                return false;
-            }
-            
+            // The canUse method already checks level requirements in usageRestrictions.level
             const canUseResult = ability.canUse(this.gameState.hero, this.gameState);
             return canUseResult.canUse;
         });
@@ -4869,13 +4865,13 @@ class GameController {
                     <h4 style="color: #d4af37; margin-bottom: 10px;">📚 All Abilities (Level Requirements)</h4>
                     <div style="background: rgba(42, 42, 58, 0.6); padding: 10px; border-radius: 6px; max-height: 200px; overflow-y: auto;">
                         ${allAbilities.map(ability => {
-                            const isLocked = ability.levelRequirement && this.gameState.hero.level < ability.levelRequirement;
+                            const isLocked = ability.usageRestrictions && ability.usageRestrictions.level && this.gameState.hero.level < ability.usageRestrictions.level;
                             const canUse = !isLocked && ability.canUse(this.gameState.hero, this.gameState).canUse;
                             return `
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; color: ${isLocked ? '#888' : (canUse ? '#4ecdc4' : '#ccc')};">
                                     <span>${ability.icon} ${ability.name}</span>
                                     <span style="font-size: 12px;">
-                                        ${isLocked ? `🔒 Level ${ability.levelRequirement}` : (canUse ? '✅ Available' : '❌ Insufficient Resources')}
+                                        ${isLocked ? `🔒 Level ${ability.usageRestrictions.level}` : (canUse ? '✅ Available' : '❌ Insufficient Resources')}
                                     </span>
                                 </div>
                             `;
@@ -5014,9 +5010,10 @@ class GameController {
             return;
         }
         
-        // Check level requirement
-        if (ability.levelRequirement && this.gameState.hero.level < ability.levelRequirement) {
-            this.ui.showNotification(`Ability requires level ${ability.levelRequirement}!`, "error");
+        // Use canUse method to check all restrictions including level
+        const canUseResult = ability.canUse(this.gameState.hero, this.gameState);
+        if (!canUseResult.canUse) {
+            this.ui.showNotification(canUseResult.reason, "error");
             return;
         }
         

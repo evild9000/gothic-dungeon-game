@@ -250,20 +250,6 @@ body {
     filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.7));
 }
 
-#subtitle {
-    font-family: 'Cinzel', serif;
-    font-size: clamp(1rem, 3vw, 1.5rem);
-    font-weight: 600;
-    color: #ff6b35;
-    text-shadow: 
-        0 0 8px rgba(255, 107, 53, 0.6),
-        2px 2px 4px rgba(0, 0, 0, 0.8);
-    margin: 10px 0 0 0;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    animation: subtitlePulse 2s ease-in-out infinite alternate;
-}
-
 @keyframes titleGlow {
     0% {
         text-shadow: 
@@ -288,20 +274,6 @@ body {
     100% { background-position: 200% 0; }
 }
 
-@keyframes subtitlePulse {
-    0% {
-        text-shadow: 
-            0 0 8px rgba(255, 107, 53, 0.4),
-            2px 2px 4px rgba(0, 0, 0, 0.8);
-    }
-    100% {
-        text-shadow: 
-            0 0 12px rgba(255, 107, 53, 0.8),
-            0 0 20px rgba(255, 107, 53, 0.4),
-            2px 2px 4px rgba(0, 0, 0, 0.8);
-    }
-}
-
 /* Mobile responsive title */
 @media (max-width: 768px) {
     #game-title {
@@ -310,11 +282,6 @@ body {
     
     #main-title {
         font-size: clamp(1.8rem, 6vw, 3rem);
-        letter-spacing: 0.1em;
-    }
-    
-    #subtitle {
-        font-size: clamp(0.8rem, 2.5vw, 1.2rem);
         letter-spacing: 0.1em;
     }
 }

@@ -94,6 +94,17 @@ class CharacterManager {
         return Math.max(0, (character.intelligence + character.willpower - 10) * 2.5);
     }
 
+    calculateStaminaBonus(character) {
+        // Stamina derives from Strength, Dexterity, and Constitution (33% each)
+        // Formula: (STR + DEX + CON - 15) * 2.5 stamina
+        if (!character || typeof character.strength !== 'number' || typeof character.dexterity !== 'number' || 
+            typeof character.constitution !== 'number' || isNaN(character.strength) || 
+            isNaN(character.dexterity) || isNaN(character.constitution)) {
+            return 0;
+        }
+        return Math.max(0, (character.strength + character.dexterity + character.constitution - 15) * 2.5);
+    }
+
     calculateDefenseBonus(character) {
         if (!character || typeof character.dexterity !== 'number' || typeof character.size !== 'number' || 
             isNaN(character.dexterity) || isNaN(character.size)) {
@@ -177,19 +188,23 @@ class CharacterManager {
     applyCharacterStatBonuses(character) {
         const currentHealthPercent = character.health / character.maxHealth;
         const currentManaPercent = character.mana / character.maxMana;
+        const currentStaminaPercent = character.stamina ? character.stamina / character.maxStamina : 1;
         
         let baseHealth = character.maxHealth;
         let baseMana = character.maxMana;
+        let baseStamina = character.maxStamina || 100; // Default stamina for existing characters
         
         if (character.statBonusesApplied) {
             baseHealth -= character.previousHealthBonus || 0;
             baseHealth -= character.previousSizeHealthBonus || 0;
             baseMana -= character.previousManaBonus || 0;
+            baseStamina -= character.previousStaminaBonus || 0;
         }
         
         const healthBonus = this.calculateHealthBonus(character);
         const sizeHealthBonus = this.calculateSizeHealthBonus(character);
         const manaBonus = this.calculateManaBonus(character);
+        const staminaBonus = this.calculateStaminaBonus(character);
         
         const totalHealthBonus = healthBonus + sizeHealthBonus;
         const newMaxHealth = baseHealth + totalHealthBonus;
@@ -197,14 +212,22 @@ class CharacterManager {
         
         character.maxHealth = Math.max(minimumHealth, newMaxHealth);
         character.maxMana = Math.max(1, baseMana + manaBonus);
+        character.maxStamina = Math.max(1, baseStamina + staminaBonus);
+        
+        // Initialize stamina if it doesn't exist (for existing characters)
+        if (!character.stamina) {
+            character.stamina = character.maxStamina;
+        }
         
         character.health = Math.min(character.health, Math.floor(character.maxHealth * currentHealthPercent));
         character.mana = Math.min(character.mana, Math.floor(character.maxMana * currentManaPercent));
+        character.stamina = Math.min(character.stamina, Math.floor(character.maxStamina * currentStaminaPercent));
         
         character.statBonusesApplied = true;
         character.previousHealthBonus = healthBonus;
         character.previousSizeHealthBonus = sizeHealthBonus;
         character.previousManaBonus = manaBonus;
+        character.previousStaminaBonus = staminaBonus;
     }
     
     // Stat management
@@ -220,6 +243,10 @@ class CharacterManager {
         if (hero.size === undefined) hero.size = 5;
         if (hero.rations === undefined) hero.rations = 0;
         
+        // Initialize stamina if missing
+        if (hero.stamina === undefined) hero.stamina = 100;
+        if (hero.maxStamina === undefined) hero.maxStamina = 100;
+        
         // Ensure stats are valid numbers
         hero.strength = Math.max(1, hero.strength || 5);
         hero.dexterity = Math.max(1, hero.dexterity || 5);
@@ -227,6 +254,9 @@ class CharacterManager {
         hero.intelligence = Math.max(1, hero.intelligence || 5);
         hero.willpower = Math.max(1, hero.willpower || 5);
         hero.size = Math.max(1, hero.size || 5);
+        
+        // Apply stat bonuses which will recalculate stamina properly
+        this.applyStatBonuses();
     }
     
     // Character management UI
