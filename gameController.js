@@ -962,39 +962,435 @@ class GameController {
     }
 
     generateEnemies() {
-        const enemyCount = Math.floor(Math.random() * 3) + 1;
+        // Dynamic enemy count based on dungeon level
+        // Level 1-2: 1-3 enemies, Level 3+: 1 to (dungeon level) enemies, max 7
+        let maxEnemies;
+        if (this.gameState.dungeonLevel <= 2) {
+            maxEnemies = 3;
+        } else {
+            maxEnemies = Math.min(7, this.gameState.dungeonLevel);
+        }
+        
+        // Weighted towards larger groups in deeper dungeons
+        let enemyCount;
+        if (this.gameState.dungeonLevel <= 2) {
+            enemyCount = Math.floor(Math.random() * 3) + 1; // 1-3 enemies
+        } else {
+            // For deeper levels, bias towards larger groups
+            const bias = Math.min(0.3, this.gameState.dungeonLevel * 0.05); // Increasing bias
+            const random = Math.random();
+            if (random < bias) {
+                // Higher chance of max group size
+                enemyCount = maxEnemies;
+            } else {
+                // Random size from 1 to max
+                enemyCount = Math.floor(Math.random() * maxEnemies) + 1;
+            }
+        }
+        
         this.gameState.currentEnemies = [];
         
-        const enemyTypes = ['Goblin', 'Orc', 'Skeleton', 'Wolf', 'Spider'];
-        const enemyTypeCounts = {}; // Track count for each enemy type
-        
-        for (let i = 0; i < enemyCount; i++) {
-            const enemyType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+        // Generate appropriate monster group for dungeon level
+        this.generateMonsterGroup(enemyCount);
+    }
+
+    // Comprehensive Monster System
+    initializeMonsterDatabase() {
+        this.monsterGroups = {
+            // Undead Groups
+            'Undead Patrol': {
+                minLevel: 1,
+                maxLevel: 10,
+                monsters: ['Skeleton', 'Zombie', 'Skeleton Archer'],
+                leader: null,
+                weight: 3
+            },
+            'Necromancer\'s Minions': {
+                minLevel: 4,
+                maxLevel: 10,
+                monsters: ['Skeleton', 'Zombie', 'Wraith'],
+                leader: 'Dark Necromancer',
+                weight: 2
+            },
+            'Ancient Undead': {
+                minLevel: 6,
+                maxLevel: 10,
+                monsters: ['Bone Knight', 'Lich', 'Death Knight'],
+                leader: null,
+                weight: 1
+            },
             
-            // Increment count for this enemy type
+            // Goblin Groups
+            'Goblin Raiders': {
+                minLevel: 1,
+                maxLevel: 5,
+                monsters: ['Goblin', 'Goblin Scout', 'Goblin Warrior'],
+                leader: null,
+                weight: 4
+            },
+            'Goblin War Party': {
+                minLevel: 3,
+                maxLevel: 7,
+                monsters: ['Goblin Warrior', 'Goblin Shaman', 'Hobgoblin'],
+                leader: 'Goblin Chieftain',
+                weight: 2
+            },
+            
+            // Orc Groups
+            'Orc Warband': {
+                minLevel: 2,
+                maxLevel: 6,
+                monsters: ['Orc', 'Orc Berserker', 'Orc Scout'],
+                leader: null,
+                weight: 3
+            },
+            'Orc Legion': {
+                minLevel: 4,
+                maxLevel: 8,
+                monsters: ['Orc Berserker', 'Orc Shaman', 'Orc Captain'],
+                leader: 'Orc Warchief',
+                weight: 2
+            },
+            
+            // Beast Groups
+            'Wolf Pack': {
+                minLevel: 1,
+                maxLevel: 6,
+                monsters: ['Wolf', 'Alpha Wolf', 'Dire Wolf'],
+                leader: null,
+                weight: 3
+            },
+            'Beast Riders': {
+                minLevel: 3,
+                maxLevel: 8,
+                monsters: ['Wolf', 'Goblin Wolf Rider', 'Orc Beast Master'],
+                leader: null,
+                weight: 2
+            },
+            
+            // Spider Groups
+            'Spider Nest': {
+                minLevel: 1,
+                maxLevel: 5,
+                monsters: ['Spider', 'Venomous Spider', 'Web Spinner'],
+                leader: null,
+                weight: 3
+            },
+            'Giant Spider Colony': {
+                minLevel: 4,
+                maxLevel: 8,
+                monsters: ['Giant Spider', 'Brood Mother', 'Phase Spider'],
+                leader: 'Spider Queen',
+                weight: 1
+            },
+            
+            // Demon Groups
+            'Lesser Demons': {
+                minLevel: 5,
+                maxLevel: 10,
+                monsters: ['Imp', 'Shadow Demon', 'Fire Demon'],
+                leader: null,
+                weight: 2
+            },
+            'Demonic Legion': {
+                minLevel: 7,
+                maxLevel: 10,
+                monsters: ['Demon Warrior', 'Succubus', 'Demon Lord'],
+                leader: 'Arch Demon',
+                weight: 1
+            },
+            
+            // Dragon Groups
+            'Draconic Servants': {
+                minLevel: 6,
+                maxLevel: 10,
+                monsters: ['Kobold', 'Dragonkin', 'Wyvern'],
+                leader: null,
+                weight: 2
+            },
+            'Dragon\'s Lair': {
+                minLevel: 8,
+                maxLevel: 10,
+                monsters: ['Young Dragon', 'Dragon Cultist'],
+                leader: 'Ancient Dragon',
+                weight: 1
+            }
+        };
+
+        this.monsterTypes = {
+            // Basic Monsters (Levels 1-3)
+            'Goblin': { minLevel: 1, maxLevel: 5, stats: { str: -1, dex: 2, con: 0, int: 1, wil: 0, size: -1 }, 
+                       lootTable: ['Goblin Dagger', 'Rusty Coin', 'Tattered Cloth'], specialAbilities: [] },
+            'Goblin Scout': { minLevel: 1, maxLevel: 4, stats: { str: -1, dex: 3, con: 0, int: 2, wil: 1, size: -1 }, 
+                             lootTable: ['Scout Bow', 'Leather Scraps', 'Poison Dart'], specialAbilities: ['Sneak Attack'] },
+            'Goblin Warrior': { minLevel: 2, maxLevel: 5, stats: { str: 1, dex: 1, con: 1, int: 0, wil: 1, size: -1 }, 
+                               lootTable: ['Goblin Axe', 'Leather Armor', 'Battle Banner'], specialAbilities: ['Battle Cry'] },
+            'Goblin Shaman': { minLevel: 3, maxLevel: 6, stats: { str: -1, dex: 1, con: 0, int: 3, wil: 3, size: -1 }, 
+                              lootTable: ['Shaman Staff', 'Ritual Bones', 'Magic Pouch'], specialAbilities: ['Heal Ally', 'Lightning Bolt'] },
+            'Goblin Chieftain': { minLevel: 4, maxLevel: 7, stats: { str: 2, dex: 2, con: 2, int: 2, wil: 3, size: 0 }, 
+                                 lootTable: ['Chieftain Crown', 'War Hammer', 'Command Cloak'], specialAbilities: ['Rally Troops', 'Intimidate'] },
+            
+            'Wolf': { minLevel: 1, maxLevel: 4, stats: { str: 2, dex: 3, con: 1, int: 1, wil: 1, size: -1 }, 
+                     lootTable: ['Wolf Pelt', 'Sharp Fang', 'Animal Hide'], specialAbilities: ['Pack Hunter'] },
+            'Alpha Wolf': { minLevel: 2, maxLevel: 5, stats: { str: 3, dex: 3, con: 2, int: 2, wil: 2, size: 0 }, 
+                           lootTable: ['Alpha Pelt', 'Alpha Fang', 'Pack Leader Collar'], specialAbilities: ['Howl', 'Pack Leader'] },
+            'Dire Wolf': { minLevel: 3, maxLevel: 6, stats: { str: 4, dex: 2, con: 3, int: 1, wil: 2, size: 1 }, 
+                          lootTable: ['Dire Pelt', 'Massive Fang', 'Primal Essence'], specialAbilities: ['Savage Bite', 'Intimidate'] },
+            
+            'Spider': { minLevel: 1, maxLevel: 3, stats: { str: -2, dex: 4, con: 1, int: 2, wil: -1, size: -2 }, 
+                       lootTable: ['Spider Silk', 'Venom Sac', 'Chitin'], specialAbilities: ['Web'] },
+            'Venomous Spider': { minLevel: 2, maxLevel: 4, stats: { str: -1, dex: 4, con: 2, int: 2, wil: 0, size: -1 }, 
+                                lootTable: ['Toxic Silk', 'Poison Gland', 'Venom Fang'], specialAbilities: ['Poison Bite', 'Web'] },
+            'Web Spinner': { minLevel: 2, maxLevel: 5, stats: { str: -1, dex: 3, con: 1, int: 3, wil: 1, size: -1 }, 
+                            lootTable: ['Master Silk', 'Web Anchor', 'Silk Gland'], specialAbilities: ['Entangle', 'Web Trap'] },
+            'Giant Spider': { minLevel: 4, maxLevel: 7, stats: { str: 2, dex: 3, con: 3, int: 2, wil: 1, size: 1 }, 
+                             lootTable: ['Giant Silk', 'Massive Mandible', 'Spider Heart'], specialAbilities: ['Crush', 'Web', 'Poison Bite'] },
+            'Brood Mother': { minLevel: 5, maxLevel: 8, stats: { str: 1, dex: 2, con: 4, int: 3, wil: 2, size: 2 }, 
+                             lootTable: ['Brood Silk', 'Egg Sac', 'Motherly Essence'], specialAbilities: ['Spawn Spiderlings', 'Protective Web'] },
+            'Phase Spider': { minLevel: 6, maxLevel: 9, stats: { str: 0, dex: 5, con: 2, int: 4, wil: 3, size: 0 }, 
+                             lootTable: ['Phase Silk', 'Ethereal Essence', 'Dimensional Web'], specialAbilities: ['Phase Shift', 'Dimensional Web'] },
+            'Spider Queen': { minLevel: 7, maxLevel: 10, stats: { str: 3, dex: 4, con: 5, int: 5, wil: 4, size: 3 }, 
+                             lootTable: ['Queen Crown', 'Royal Silk', 'Spider Throne'], specialAbilities: ['Command Spiders', 'Venom Nova', 'Web Fortress'] },
+            
+            // Mid-level Monsters (Levels 3-6)
+            'Orc': { minLevel: 2, maxLevel: 5, stats: { str: 3, dex: -1, con: 2, int: -2, wil: 0, size: 1 }, 
+                    lootTable: ['Orc Blade', 'Crude Armor', 'Orc Tooth'], specialAbilities: ['Rage'] },
+            'Orc Berserker': { minLevel: 3, maxLevel: 6, stats: { str: 4, dex: 0, con: 3, int: -2, wil: 1, size: 1 }, 
+                              lootTable: ['Berserker Axe', 'Battle Scars', 'Rage Potion'], specialAbilities: ['Berserk', 'Reckless Attack'] },
+            'Orc Scout': { minLevel: 2, maxLevel: 5, stats: { str: 2, dex: 2, con: 1, int: -1, wil: 1, size: 0 }, 
+                          lootTable: ['Scout Spear', 'Tracking Kit', 'Trail Map'], specialAbilities: ['Track', 'Ambush'] },
+            'Orc Shaman': { minLevel: 4, maxLevel: 7, stats: { str: 1, dex: 0, con: 2, int: 2, wil: 4, size: 1 }, 
+                           lootTable: ['Bone Staff', 'Shaman Mask', 'Spirit Pouch'], specialAbilities: ['Buff Ally', 'Lightning Strike'] },
+            'Orc Captain': { minLevel: 5, maxLevel: 8, stats: { str: 4, dex: 1, con: 3, int: 0, wil: 3, size: 1 }, 
+                            lootTable: ['Captain Shield', 'War Banner', 'Command Horn'], specialAbilities: ['Battle Command', 'Shield Bash'] },
+            'Orc Warchief': { minLevel: 6, maxLevel: 9, stats: { str: 5, dex: 1, con: 4, int: 1, wil: 4, size: 2 }, 
+                             lootTable: ['Warchief Crown', 'Great Axe', 'War Cloak'], specialAbilities: ['War Cry', 'Intimidate', 'Commanding Presence'] },
+            
+            'Hobgoblin': { minLevel: 3, maxLevel: 6, stats: { str: 2, dex: 1, con: 2, int: 1, wil: 2, size: 0 }, 
+                          lootTable: ['Steel Sword', 'Chain Mail', 'Military Badge'], specialAbilities: ['Formation Fighting'] },
+            'Goblin Wolf Rider': { minLevel: 3, maxLevel: 6, stats: { str: 1, dex: 3, con: 1, int: 1, wil: 2, size: -1 }, 
+                                  lootTable: ['Riding Spear', 'Wolf Saddle', 'Rider Boots'], specialAbilities: ['Mounted Charge', 'Hit and Run'] },
+            'Orc Beast Master': { minLevel: 4, maxLevel: 7, stats: { str: 3, dex: 2, con: 3, int: 2, wil: 3, size: 1 }, 
+                                 lootTable: ['Beast Whip', 'Animal Hide Armor', 'Taming Collar'], specialAbilities: ['Command Beast', 'Beast Bond'] },
+            
+            'Skeleton': { minLevel: 1, maxLevel: 4, stats: { str: -1, dex: 1, con: 3, int: -2, wil: 2, size: 0 }, 
+                         lootTable: ['Old Bones', 'Rusty Weapon', 'Bone Dust'], specialAbilities: ['Undead Resilience'] },
+            'Skeleton Archer': { minLevel: 2, maxLevel: 5, stats: { str: -1, dex: 3, con: 3, int: -2, wil: 2, size: 0 }, 
+                                lootTable: ['Bone Bow', 'Ancient Arrows', 'Archer Bracer'], specialAbilities: ['Precise Shot', 'Undead Resilience'] },
+            'Zombie': { minLevel: 1, maxLevel: 4, stats: { str: 2, dex: -2, con: 4, int: -3, wil: 1, size: 0 }, 
+                       lootTable: ['Rotting Flesh', 'Tattered Clothes', 'Grave Dirt'], specialAbilities: ['Shambling', 'Disease'] },
+            'Bone Knight': { minLevel: 5, maxLevel: 8, stats: { str: 3, dex: 0, con: 4, int: -1, wil: 3, size: 1 }, 
+                            lootTable: ['Bone Armor', 'Ancient Sword', 'Knight\'s Crest'], specialAbilities: ['Bone Shield', 'Undead Resilience', 'Shield Slam'] },
+            'Wraith': { minLevel: 4, maxLevel: 7, stats: { str: -1, dex: 4, con: 2, int: 3, wil: 4, size: 0 }, 
+                       lootTable: ['Ectoplasm', 'Spirit Essence', 'Ghostly Cloth'], specialAbilities: ['Phase', 'Life Drain', 'Terror'] },
+            'Lich': { minLevel: 7, maxLevel: 10, stats: { str: -1, dex: 2, con: 3, int: 6, wil: 5, size: 0 }, 
+                     lootTable: ['Lich Crown', 'Spell Tome', 'Soul Gem'], specialAbilities: ['Death Magic', 'Summon Undead', 'Mana Shield'] },
+            'Death Knight': { minLevel: 8, maxLevel: 10, stats: { str: 5, dex: 1, con: 5, int: 2, wil: 5, size: 2 }, 
+                             lootTable: ['Death Blade', 'Cursed Armor', 'Dark Crown'], specialAbilities: ['Death Strike', 'Aura of Fear', 'Unholy Strength'] },
+            'Dark Necromancer': { minLevel: 6, maxLevel: 9, stats: { str: -2, dex: 1, con: 2, int: 6, wil: 5, size: 0 }, 
+                                 lootTable: ['Necromancer Staff', 'Death Robes', 'Soul Crystal'], specialAbilities: ['Raise Dead', 'Dark Bolt', 'Command Undead'] },
+            
+            // High-level Monsters (Levels 6-10)
+            'Imp': { minLevel: 5, maxLevel: 8, stats: { str: -1, dex: 4, con: 1, int: 3, wil: 2, size: -2 }, 
+                    lootTable: ['Imp Wing', 'Sulfur', 'Demonic Essence'], specialAbilities: ['Teleport', 'Fire Bolt'] },
+            'Shadow Demon': { minLevel: 6, maxLevel: 9, stats: { str: 2, dex: 5, con: 2, int: 3, wil: 3, size: 0 }, 
+                             lootTable: ['Shadow Essence', 'Dark Crystal', 'Void Cloth'], specialAbilities: ['Shadow Step', 'Drain Light'] },
+            'Fire Demon': { minLevel: 7, maxLevel: 10, stats: { str: 4, dex: 2, con: 4, int: 2, wil: 3, size: 1 }, 
+                           lootTable: ['Flame Heart', 'Brimstone', 'Infernal Hide'], specialAbilities: ['Flame Burst', 'Fire Immunity'] },
+            'Demon Warrior': { minLevel: 7, maxLevel: 10, stats: { str: 5, dex: 3, con: 4, int: 2, wil: 3, size: 2 }, 
+                              lootTable: ['Demon Blade', 'Infernal Armor', 'War Horn'], specialAbilities: ['Demonic Strength', 'Fear Aura'] },
+            'Succubus': { minLevel: 8, maxLevel: 10, stats: { str: 1, dex: 4, con: 3, int: 5, wil: 5, size: 0 }, 
+                         lootTable: ['Succubus Charm', 'Seductive Perfume', 'Soul Shard'], specialAbilities: ['Charm', 'Life Drain', 'Illusion'] },
+            'Demon Lord': { minLevel: 9, maxLevel: 10, stats: { str: 6, dex: 3, con: 5, int: 4, wil: 5, size: 3 }, 
+                           lootTable: ['Demon Crown', 'Lord\'s Scepter', 'Infernal Throne'], specialAbilities: ['Summon Demons', 'Hellfire', 'Command'] },
+            'Arch Demon': { minLevel: 10, maxLevel: 10, stats: { str: 7, dex: 4, con: 6, int: 5, wil: 6, size: 4 }, 
+                           lootTable: ['Arch Crown', 'Reality Blade', 'Demon Gate Key'], specialAbilities: ['Reality Tear', 'Demon Army', 'Infernal Command'] },
+            
+            'Kobold': { minLevel: 6, maxLevel: 9, stats: { str: 0, dex: 3, con: 2, int: 3, wil: 2, size: -1 }, 
+                       lootTable: ['Kobold Spear', 'Dragon Scale', 'Treasure Map'], specialAbilities: ['Dragon Worship', 'Trap Making'] },
+            'Dragonkin': { minLevel: 7, maxLevel: 10, stats: { str: 4, dex: 2, con: 4, int: 3, wil: 3, size: 1 }, 
+                          lootTable: ['Dragon Claw', 'Scale Mail', 'Breath Weapon'], specialAbilities: ['Dragon Breath', 'Draconic Might'] },
+            'Wyvern': { minLevel: 8, maxLevel: 10, stats: { str: 5, dex: 4, con: 4, int: 2, wil: 3, size: 3 }, 
+                       lootTable: ['Wyvern Wing', 'Poison Stinger', 'Dragon Blood'], specialAbilities: ['Fly', 'Poison Sting', 'Aerial Strike'] },
+            'Young Dragon': { minLevel: 9, maxLevel: 10, stats: { str: 6, dex: 3, con: 6, int: 5, wil: 4, size: 4 }, 
+                             lootTable: ['Dragon Heart', 'Precious Gems', 'Dragon Hoard'], specialAbilities: ['Dragon Breath', 'Flight', 'Treasure Sense'] },
+            'Dragon Cultist': { minLevel: 8, maxLevel: 10, stats: { str: 2, dex: 2, con: 3, int: 4, wil: 5, size: 0 }, 
+                               lootTable: ['Cultist Robes', 'Dragon Idol', 'Ritual Dagger'], specialAbilities: ['Dragon Magic', 'Summon Dragon', 'Draconic Shield'] },
+            'Ancient Dragon': { minLevel: 10, maxLevel: 10, stats: { str: 8, dex: 4, con: 7, int: 6, wil: 6, size: 5 }, 
+                               lootTable: ['Ancient Crown', 'Dragon Throne', 'Legendary Hoard'], specialAbilities: ['Ancient Breath', 'Dragon Magic', 'Lair Actions'] }
+        };
+    }
+
+    generateMonsterGroup(enemyCount) {
+        // Initialize monster database if not done
+        if (!this.monsterGroups) {
+            this.initializeMonsterDatabase();
+        }
+        
+        // Get available groups for current dungeon level
+        const availableGroups = Object.entries(this.monsterGroups).filter(([name, group]) => 
+            this.gameState.dungeonLevel >= group.minLevel && this.gameState.dungeonLevel <= group.maxLevel
+        );
+        
+        if (availableGroups.length === 0) {
+            // Fallback to basic monsters if no groups available
+            this.generateBasicEnemies(enemyCount);
+            return;
+        }
+        
+        // Select group based on weights
+        const totalWeight = availableGroups.reduce((sum, [name, group]) => sum + group.weight, 0);
+        let randomWeight = Math.random() * totalWeight;
+        
+        let selectedGroup = null;
+        for (const [name, group] of availableGroups) {
+            randomWeight -= group.weight;
+            if (randomWeight <= 0) {
+                selectedGroup = group;
+                break;
+            }
+        }
+        
+        if (!selectedGroup) {
+            selectedGroup = availableGroups[0][1]; // Fallback
+        }
+        
+        // Generate enemies from selected group
+        this.createGroupEnemies(selectedGroup, enemyCount);
+    }
+
+    createGroupEnemies(group, targetCount) {
+        const enemyTypeCounts = {};
+        let currentCount = 0;
+        
+        // Add leader first if exists and there's room
+        if (group.leader && targetCount > 1) {
+            const leader = this.createMonster(group.leader, true);
+            if (leader) {
+                this.gameState.currentEnemies.push(leader);
+                enemyTypeCounts[group.leader] = 1;
+                currentCount++;
+            }
+        }
+        
+        // Fill remaining slots with group monsters
+        while (currentCount < targetCount && group.monsters.length > 0) {
+            const monsterType = group.monsters[Math.floor(Math.random() * group.monsters.length)];
+            
+            // Check if this monster type can appear at current dungeon level
+            if (this.monsterTypes[monsterType] && 
+                this.gameState.dungeonLevel >= this.monsterTypes[monsterType].minLevel &&
+                this.gameState.dungeonLevel <= this.monsterTypes[monsterType].maxLevel) {
+                
+                enemyTypeCounts[monsterType] = (enemyTypeCounts[monsterType] || 0) + 1;
+                const monster = this.createMonster(monsterType, false, enemyTypeCounts[monsterType]);
+                
+                if (monster) {
+                    this.gameState.currentEnemies.push(monster);
+                    currentCount++;
+                }
+            }
+        }
+        
+        // If we still don't have enough enemies, fill with basic monsters
+        if (currentCount < targetCount) {
+            this.generateBasicEnemies(targetCount - currentCount);
+        }
+    }
+
+    createMonster(monsterType, isLeader = false, count = 1) {
+        const monsterData = this.monsterTypes[monsterType];
+        if (!monsterData) {
+            console.warn(`Unknown monster type: ${monsterType}`);
+            return null;
+        }
+        
+        const displayName = count > 1 ? `${monsterType} ${count}` : monsterType;
+        const levelVariation = Math.floor(Math.random() * 3) - 1; // -1 to +1
+        const monsterLevel = Math.max(1, Math.min(10, this.gameState.dungeonLevel + levelVariation));
+        
+        const enemy = {
+            id: `${monsterType}_${Date.now()}_${Math.random()}`,
+            name: displayName,
+            type: monsterType,
+            isLeader: isLeader,
+            level: monsterLevel,
+            health: 40 + (monsterLevel * 8) + (isLeader ? 20 : 0),
+            maxHealth: 40 + (monsterLevel * 8) + (isLeader ? 20 : 0),
+            attack: 8 + (monsterLevel * 2) + (isLeader ? 5 : 0),
+            // Base stats (will be modified by monster type)
+            strength: 5,
+            dexterity: 5,
+            constitution: 5,
+            intelligence: 5,
+            willpower: 5,
+            size: 5,
+            specialAbilities: [...(monsterData.specialAbilities || [])],
+            lootTable: [...(monsterData.lootTable || [])]
+        };
+        
+        // Apply monster-specific stat modifiers
+        this.applyMonsterStatModifiers(enemy, monsterData);
+        
+        // Apply stat bonuses to health and stats
+        this.applyEnemyStatBonuses(enemy);
+        
+        return enemy;
+    }
+
+    applyMonsterStatModifiers(enemy, monsterData) {
+        // Apply base stat modifiers
+        const stats = monsterData.stats || {};
+        enemy.strength += stats.str || 0;
+        enemy.dexterity += stats.dex || 0;
+        enemy.constitution += stats.con || 0;
+        enemy.intelligence += stats.int || 0;
+        enemy.willpower += stats.wil || 0;
+        enemy.size += stats.size || 0;
+        
+        // Leader bonuses
+        if (enemy.isLeader) {
+            enemy.strength += 1;
+            enemy.constitution += 2;
+            enemy.willpower += 2;
+            enemy.intelligence += 1;
+        }
+        
+        // Ensure no stat goes below 1
+        ['strength', 'dexterity', 'constitution', 'intelligence', 'willpower', 'size'].forEach(stat => {
+            enemy[stat] = Math.max(1, enemy[stat]);
+        });
+    }
+
+    generateBasicEnemies(count) {
+        // Fallback to original system
+        const basicTypes = ['Goblin', 'Wolf', 'Spider', 'Skeleton'];
+        const enemyTypeCounts = {};
+        
+        for (let i = 0; i < count; i++) {
+            const enemyType = basicTypes[Math.floor(Math.random() * basicTypes.length)];
             enemyTypeCounts[enemyType] = (enemyTypeCounts[enemyType] || 0) + 1;
             
             const enemy = {
-                id: `${enemyType}_${Date.now()}_${i}`, // Unique identifier for each enemy
+                id: `${enemyType}_${Date.now()}_${i}`,
                 name: enemyTypeCounts[enemyType] > 1 ? `${enemyType} ${enemyTypeCounts[enemyType]}` : enemyType,
-                type: enemyType, // Store the base type for modifiers
+                type: enemyType,
                 level: this.gameState.dungeonLevel + Math.floor(Math.random() * 2),
                 health: 50 + (this.gameState.dungeonLevel * 10),
                 maxHealth: 50 + (this.gameState.dungeonLevel * 10),
                 attack: 10 + (this.gameState.dungeonLevel * 2),
-                // Base stats for enemies (modified by type)
                 strength: 5,
                 dexterity: 5,
                 constitution: 5,
                 intelligence: 5,
                 willpower: 5,
-                size: 5
+                size: 5,
+                specialAbilities: [],
+                lootTable: []
             };
             
-            // Apply enemy type stat modifiers
+            // Apply original stat modifiers
             this.applyEnemyStatModifiers(enemy);
-            
-            // Apply stat bonuses to enemy health and stats after modifiers
             this.applyEnemyStatBonuses(enemy);
             
             this.gameState.currentEnemies.push(enemy);
@@ -1157,8 +1553,365 @@ class GameController {
         return (character.size - 5) * 1;
     }
 
+    // Enhanced Craftable Loot Database
+    initializeCraftableLootDatabase() {
+        this.craftableLootDatabase = {
+            // Ring Slot Items
+            rings: {
+                'Ring of Strength': { 
+                    slot: 'ring1', tier: 'common', level: 1,
+                    stats: { strength: 2 }, materials: { scrapIron: 3, bones: 1 },
+                    description: 'A crude iron band that enhances physical power.' 
+                },
+                'Ring of Dexterity': { 
+                    slot: 'ring1', tier: 'common', level: 1,
+                    stats: { dexterity: 2 }, materials: { scrapWood: 2, spiderSilk: 2 },
+                    description: 'A nimble ring woven with spider silk.' 
+                },
+                'Ring of Constitution': { 
+                    slot: 'ring1', tier: 'common', level: 1,
+                    stats: { constitution: 2 }, materials: { bones: 3, animalHide: 1 },
+                    description: 'A bone ring that fortifies the body.' 
+                },
+                'Spider Lord Ring': { 
+                    slot: 'ring1', tier: 'uncommon', level: 3,
+                    stats: { dexterity: 3, willpower: 2 }, materials: { spiderSilk: 8, bones: 3 },
+                    description: 'Grants the wearer spider-like reflexes and web sense.',
+                    special: 'Web immunity' 
+                },
+                'Wolf Alpha Band': { 
+                    slot: 'ring1', tier: 'uncommon', level: 3,
+                    stats: { strength: 3, constitution: 2 }, materials: { animalHide: 6, bones: 4 },
+                    description: 'Made from alpha wolf hide, increases pack instincts.',
+                    special: 'Pack leader aura' 
+                },
+                'Bone Sovereign Ring': { 
+                    slot: 'ring1', tier: 'rare', level: 5,
+                    stats: { constitution: 4, willpower: 3 }, materials: { bones: 12, scrapIron: 6 },
+                    description: 'Commands the power of ancient bones.',
+                    special: 'Undead resistance' 
+                },
+                'Shadow Assassin Ring': { 
+                    slot: 'ring1', tier: 'rare', level: 6,
+                    stats: { dexterity: 5, intelligence: 2 }, materials: { spiderSilk: 15, bones: 8 },
+                    description: 'Grants the silence of the shadow realm.',
+                    special: 'Stealth bonus' 
+                },
+                'Dragon Heart Ring': { 
+                    slot: 'ring1', tier: 'legendary', level: 8,
+                    stats: { strength: 5, constitution: 4, willpower: 3 }, materials: { scrapIron: 20, bones: 15, animalHide: 10 },
+                    description: 'Forged from the essence of dragon hearts.',
+                    special: 'Fire immunity, +20% all stats' 
+                }
+            },
+            
+            // Cloak Slot Items
+            cloaks: {
+                'Tattered Hide Cloak': { 
+                    slot: 'cloak', tier: 'common', level: 1,
+                    stats: { constitution: 1, willpower: 1 }, materials: { animalHide: 4 },
+                    description: 'A simple cloak made from basic animal hide.' 
+                },
+                'Spider Silk Cloak': { 
+                    slot: 'cloak', tier: 'common', level: 1,
+                    stats: { dexterity: 2 }, materials: { spiderSilk: 6 },
+                    description: 'Light and flexible, allows for swift movement.' 
+                },
+                'Bone Weave Cloak': { 
+                    slot: 'cloak', tier: 'uncommon', level: 2,
+                    stats: { constitution: 2, intelligence: 2 }, materials: { bones: 8, spiderSilk: 4 },
+                    description: 'Woven with bone fragments for protection and focus.' 
+                },
+                'Shadow Walker Cloak': { 
+                    slot: 'cloak', tier: 'uncommon', level: 4,
+                    stats: { dexterity: 3, willpower: 2 }, materials: { spiderSilk: 12, animalHide: 6 },
+                    description: 'Allows the wearer to blend with shadows.',
+                    special: 'Stealth enhancement' 
+                },
+                'Alpha Hunter Cloak': { 
+                    slot: 'cloak', tier: 'rare', level: 5,
+                    stats: { strength: 3, dexterity: 3, constitution: 2 }, materials: { animalHide: 15, bones: 8 },
+                    description: 'Made from the hide of pack leaders.',
+                    special: 'Beast communion' 
+                },
+                'Necromancer\'s Mantle': { 
+                    slot: 'cloak', tier: 'rare', level: 6,
+                    stats: { intelligence: 4, willpower: 4 }, materials: { bones: 18, spiderSilk: 10 },
+                    description: 'Grants power over the undead.',
+                    special: 'Command undead' 
+                },
+                'Cloak of the Void': { 
+                    slot: 'cloak', tier: 'legendary', level: 8,
+                    stats: { dexterity: 5, intelligence: 4, willpower: 3 }, materials: { spiderSilk: 25, bones: 20, scrapIron: 15 },
+                    description: 'Woven from the fabric of reality itself.',
+                    special: 'Phase shift, spell reflection' 
+                }
+            },
+            
+            // Neck Slot Items
+            necks: {
+                'Bone Tooth Necklace': { 
+                    slot: 'neck', tier: 'common', level: 1,
+                    stats: { strength: 1, willpower: 1 }, materials: { bones: 3 },
+                    description: 'Simple necklace of sharpened bone teeth.' 
+                },
+                'Spider Chitin Collar': { 
+                    slot: 'neck', tier: 'common', level: 1,
+                    stats: { dexterity: 2 }, materials: { spiderSilk: 3, bones: 2 },
+                    description: 'Lightweight collar that enhances agility.' 
+                },
+                'Beast Tamer\'s Torc': { 
+                    slot: 'neck', tier: 'uncommon', level: 2,
+                    stats: { constitution: 2, willpower: 2 }, materials: { animalHide: 6, bones: 4 },
+                    description: 'Grants understanding of wild creatures.' 
+                },
+                'Iron Will Choker': { 
+                    slot: 'neck', tier: 'uncommon', level: 3,
+                    stats: { willpower: 3, intelligence: 2 }, materials: { scrapIron: 8, bones: 5 },
+                    description: 'Strengthens mental fortitude against all forms of control.',
+                    special: 'Mind control resistance' 
+                },
+                'Alpha\'s Collar': { 
+                    slot: 'neck', tier: 'rare', level: 4,
+                    stats: { strength: 3, constitution: 3, willpower: 2 }, materials: { animalHide: 12, scrapIron: 6 },
+                    description: 'Worn by pack leaders, commands respect.',
+                    special: 'Leadership aura' 
+                },
+                'Lich\'s Pendant': { 
+                    slot: 'neck', tier: 'rare', level: 6,
+                    stats: { intelligence: 4, willpower: 4 }, materials: { bones: 15, scrapIron: 10 },
+                    description: 'Contains fragments of ancient undead magic.',
+                    special: 'Mana regeneration' 
+                },
+                'Dragon Soul Amulet': { 
+                    slot: 'neck', tier: 'legendary', level: 8,
+                    stats: { strength: 4, intelligence: 4, willpower: 5 }, materials: { scrapIron: 20, bones: 15, animalHide: 12 },
+                    description: 'Houses the soul essence of an ancient dragon.',
+                    special: 'Dragon breath, elemental immunity' 
+                }
+            },
+            
+            // Offhand Slot Items
+            offhands: {
+                'Bone Shield': { 
+                    slot: 'offhand', tier: 'common', level: 1,
+                    stats: { constitution: 2 }, materials: { bones: 5, animalHide: 2 },
+                    description: 'Basic shield crafted from large bones.' 
+                },
+                'Spider Web Net': { 
+                    slot: 'offhand', tier: 'common', level: 1,
+                    stats: { dexterity: 2 }, materials: { spiderSilk: 6 },
+                    description: 'Entangling net for capturing prey.',
+                    special: 'Web entangle' 
+                },
+                'Hunter\'s Trophy': { 
+                    slot: 'offhand', tier: 'uncommon', level: 2,
+                    stats: { strength: 2, willpower: 2 }, materials: { animalHide: 6, bones: 4 },
+                    description: 'Display of hunting prowess that intimidates foes.' 
+                },
+                'Iron Buckler': { 
+                    slot: 'offhand', tier: 'uncommon', level: 3,
+                    stats: { constitution: 3, strength: 1 }, materials: { scrapIron: 8, animalHide: 4 },
+                    description: 'Small metal shield for parrying attacks.',
+                    special: 'Block chance +15%' 
+                },
+                'Web Spinner\'s Focus': { 
+                    slot: 'offhand', tier: 'rare', level: 4,
+                    stats: { intelligence: 3, dexterity: 3 }, materials: { spiderSilk: 15, bones: 8 },
+                    description: 'Magical focus that enhances web-based abilities.',
+                    special: 'Web mastery' 
+                },
+                'Bone Tower Shield': { 
+                    slot: 'offhand', tier: 'rare', level: 5,
+                    stats: { constitution: 4, strength: 2 }, materials: { bones: 18, scrapIron: 10 },
+                    description: 'Massive shield that provides superior protection.',
+                    special: 'Damage reduction +25%' 
+                },
+                'Void Orb': { 
+                    slot: 'offhand', tier: 'legendary', level: 7,
+                    stats: { intelligence: 5, willpower: 4 }, materials: { bones: 20, spiderSilk: 15, scrapIron: 12 },
+                    description: 'An orb containing concentrated void energy.',
+                    special: 'Void magic, spell amplification' 
+                }
+            }
+        };
+        
+        // Initialize crafting recipes for all items
+        this.initializeCraftingRecipes();
+    }
+    
+    initializeCraftingRecipes() {
+        if (!this.gameState.craftingRecipes) {
+            this.gameState.craftingRecipes = {};
+        }
+        
+        // Add all craftable loot to crafting recipes
+        ['rings', 'cloaks', 'necks', 'offhands'].forEach(category => {
+            Object.entries(this.craftableLootDatabase[category]).forEach(([itemName, itemData]) => {
+                this.gameState.craftingRecipes[itemName] = {
+                    materials: itemData.materials,
+                    level: itemData.level,
+                    category: category,
+                    unlocked: false
+                };
+            });
+        });
+    }
+    
+    // Enhanced loot generation that includes craftable equipment materials
+    generateEnhancedLoot(enemy) {
+        const loot = [];
+        
+        // Use monster's loot table if available
+        if (enemy.lootTable && enemy.lootTable.length > 0) {
+            const dropChance = 0.7; // 70% chance for special loot
+            if (Math.random() < dropChance) {
+                const randomLoot = enemy.lootTable[Math.floor(Math.random() * enemy.lootTable.length)];
+                loot.push(randomLoot);
+            }
+        }
+        
+        // Add enhanced material drops based on enemy type and level
+        const materialDrops = this.getEnhancedMaterialDrops(enemy);
+        loot.push(...materialDrops);
+        
+        // Rare chance for crafting recipe discovery
+        if (Math.random() < 0.1) { // 10% chance
+            const recipe = this.discoverCraftingRecipe(enemy.level);
+            if (recipe) {
+                loot.push(`Recipe: ${recipe}`);
+            }
+        }
+        
+        return loot;
+    }
+    
+    getEnhancedMaterialDrops(enemy) {
+        const materials = [];
+        const baseDropRate = 0.8; // 80% base chance
+        const levelBonus = enemy.level * 0.05; // +5% per level
+        const finalDropRate = Math.min(baseDropRate + levelBonus, 0.95); // Cap at 95%
+        
+        // Determine material types based on monster type
+        const materialMap = {
+            // Spider types
+            'Spider': [{ material: 'spiderSilk', amount: 1, chance: finalDropRate }],
+            'Venomous Spider': [{ material: 'spiderSilk', amount: 2, chance: finalDropRate }],
+            'Web Spinner': [{ material: 'spiderSilk', amount: 2, chance: finalDropRate }],
+            'Giant Spider': [{ material: 'spiderSilk', amount: 3, chance: finalDropRate }],
+            'Brood Mother': [{ material: 'spiderSilk', amount: 4, chance: finalDropRate }],
+            'Phase Spider': [{ material: 'spiderSilk', amount: 3, chance: finalDropRate }],
+            'Spider Queen': [{ material: 'spiderSilk', amount: 6, chance: finalDropRate }],
+            
+            // Beast types
+            'Wolf': [{ material: 'animalHide', amount: 1, chance: finalDropRate }],
+            'Alpha Wolf': [{ material: 'animalHide', amount: 2, chance: finalDropRate }],
+            'Dire Wolf': [{ material: 'animalHide', amount: 3, chance: finalDropRate }],
+            
+            // Undead types
+            'Skeleton': [{ material: 'bones', amount: 2, chance: finalDropRate }],
+            'Skeleton Archer': [{ material: 'bones', amount: 2, chance: finalDropRate }],
+            'Zombie': [{ material: 'bones', amount: 1, chance: finalDropRate }],
+            'Bone Knight': [{ material: 'bones', amount: 4, chance: finalDropRate }],
+            'Wraith': [{ material: 'bones', amount: 3, chance: finalDropRate }],
+            'Lich': [{ material: 'bones', amount: 6, chance: finalDropRate }],
+            'Death Knight': [{ material: 'bones', amount: 5, chance: finalDropRate }],
+            'Dark Necromancer': [{ material: 'bones', amount: 4, chance: finalDropRate }],
+            
+            // Goblin/Orc types - mixed materials
+            'Goblin': [
+                { material: 'scrapWood', amount: 1, chance: finalDropRate * 0.6 },
+                { material: 'scrapIron', amount: 1, chance: finalDropRate * 0.4 }
+            ],
+            'Orc': [
+                { material: 'scrapIron', amount: 2, chance: finalDropRate * 0.7 },
+                { material: 'scrapWood', amount: 1, chance: finalDropRate * 0.3 }
+            ]
+        };
+        
+        // Get materials for this enemy type or use default
+        const enemyMaterials = materialMap[enemy.type] || materialMap[enemy.name] || [
+            { material: 'bones', amount: 1, chance: finalDropRate * 0.4 },
+            { material: 'scrapIron', amount: 1, chance: finalDropRate * 0.3 },
+            { material: 'scrapWood', amount: 1, chance: finalDropRate * 0.2 },
+            { material: 'animalHide', amount: 1, chance: finalDropRate * 0.1 }
+        ];
+        
+        // Roll for each material
+        enemyMaterials.forEach(drop => {
+            if (Math.random() < drop.chance) {
+                materials.push({
+                    type: 'material',
+                    material: drop.material,
+                    amount: drop.amount
+                });
+            }
+        });
+        
+        return materials;
+    }
+    
+    discoverCraftingRecipe(enemyLevel) {
+        // Get available recipes for this level
+        const availableRecipes = Object.entries(this.gameState.craftingRecipes).filter(([name, recipe]) => 
+            recipe.level <= enemyLevel && !recipe.unlocked
+        );
+        
+        if (availableRecipes.length === 0) return null;
+        
+        // Select random recipe to unlock
+        const [recipeName, recipe] = availableRecipes[Math.floor(Math.random() * availableRecipes.length)];
+        recipe.unlocked = true;
+        
+        return recipeName;
+    }
+
     dropLoot(enemy) {
-        // Define loot drops based on enemy type
+        // Initialize loot database if not done
+        if (!this.craftableLootDatabase) {
+            this.initializeCraftableLootDatabase();
+        }
+        
+        // Generate enhanced loot
+        const lootItems = this.generateEnhancedLoot(enemy);
+        
+        // Process each loot item
+        lootItems.forEach(loot => {
+            if (typeof loot === 'string') {
+                if (loot.startsWith('Recipe: ')) {
+                    const recipeName = loot.substring(8);
+                    this.ui.log(`${enemy.name} dropped ${loot}!`);
+                    this.ui.showNotification(`Discovered ${recipeName} crafting recipe!`, "legendary");
+                } else {
+                    // Handle special named items
+                    this.addItemToInventory(loot);
+                    this.ui.log(`${enemy.name} dropped ${loot}!`);
+                    this.ui.showNotification(`Found ${loot}!`, "rare");
+                }
+            } else if (loot.type === 'material') {
+                // Handle material drops
+                this.gameState.hero.materials[loot.material] = (this.gameState.hero.materials[loot.material] || 0) + loot.amount;
+                const materialNames = {
+                    spiderSilk: 'Spider Silk',
+                    animalHide: 'Animal Hide',
+                    bones: 'Bones',
+                    scrapWood: 'Scrap Wood',
+                    scrapIron: 'Scrap Iron'
+                };
+                const materialName = materialNames[loot.material] || loot.material;
+                this.ui.log(`${enemy.name} dropped ${loot.amount} ${materialName}!`);
+                this.ui.showNotification(`Found ${materialName}!`, "success");
+            }
+        });
+        
+        // Fallback to old system if no enhanced loot was generated
+        if (lootItems.length === 0) {
+            this.dropLootLegacy(enemy);
+        }
+    }
+    
+    dropLootLegacy(enemy) {
+        // Original loot system as fallback
         const lootTable = {
             Spider: { 
                 material: 'spiderSilk', 
@@ -1211,6 +1964,14 @@ class GameController {
                 this.ui.showNotification(`Found ${drop.materialName}!`, "success");
             }
         }
+    }
+    
+    addItemToInventory(itemName) {
+        // Add item to inventory (to be implemented with full inventory system)
+        if (!this.gameState.hero.inventory) {
+            this.gameState.hero.inventory = [];
+        }
+        this.gameState.hero.inventory.push(itemName);
     }
 
     // Centralized enemy defeat handler to prevent double rewards
@@ -2741,6 +3502,9 @@ class GameController {
         const existingModals = document.querySelectorAll('.modal-overlay');
         existingModals.forEach(modal => modal.remove());
         
+        // Clear all status effects (burning, poison, bleeding, etc.)
+        this.clearAllStatusEffects();
+        
         // Restore some health and mana for the party
         const restHpRestore = Math.floor(this.gameState.hero.maxHealth * 0.25); // 25% HP restoration
         const restManaRestore = Math.floor((this.gameState.hero.maxMana || 100) * 0.25); // 25% Mana restoration
@@ -2930,6 +3694,9 @@ class GameController {
         
         // Return to village background
         this.ui.setBackground('village');
+        
+        // Clear all status effects when leaving dungeon
+        this.clearAllStatusEffects();
         
         // Restore 15% HP and mana for hero and underlings
         this.restorePartyAfterDungeon();
@@ -4587,6 +5354,30 @@ class GameController {
             });
         }
     }
+
+    // Clear all status effects from a character or all party members
+    clearAllStatusEffects(character = null) {
+        if (character) {
+            // Clear status effects from specific character
+            if (character.statusEffects) {
+                character.statusEffects = {};
+            }
+        } else {
+            // Clear status effects from entire party
+            if (this.gameState.hero.statusEffects) {
+                this.gameState.hero.statusEffects = {};
+            }
+            
+            if (this.gameState.hero.underlings) {
+                this.gameState.hero.underlings.forEach(underling => {
+                    if (underling.statusEffects) {
+                        underling.statusEffects = {};
+                    }
+                });
+            }
+        }
+    }
+
     getHeroAbilities() {
         // Define hero abilities that scale with level and stats
         const abilities = {

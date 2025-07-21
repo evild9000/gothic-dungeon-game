@@ -2,32 +2,32 @@ future todo:
 - mobile screen layout and background images - maybe some tweaks yet
 - move some small chunks out of gamecontroller to other controllers
 - allow to sell items in shop?
+- expand -give some little icons near the  name for status effects, such as stunned, webbed, poisoned, burning, etc review all spells, abilities, powers and if there is an ongoing status effect positive or negative give an icon for it to 2. the affected target with a hover over tooltip showing rounds remaining of the effect and information about it.
+- 
 =============
-underling inventory: revamp because it doesnt show items equipped-- move the equipment slot graphics and equipment management for underlings to the inventory module and remove it from the character management 
 
---
-
-test- warrior shield bash stun isnt causing the foe to lose their turn, they get a chance to resist based on will/con 'save'
-test -give some little icons near the  name for status effects, such as stunned, webbed, poisoned, burning, etc review all spells, abilities, powers and if there is an ongoing status effect positive or negative give an icon for it to the 	affected target with a hover over tooltip showing rounds remaining of the effect and information about it.
-
-here are the latest list of bugs, issues and feature requests:  - healing light only allowed targeting the hero not all allies
-- casting a spell by the hero should count as its turn and then proceed to the next entity, not allow me to keep casting spells or attack as well
-- protective shield only allowed me to cast on warrior underling not other allies or self
-- i want silk armor to include a small mana bonus for each piece - obviously calculate this into the wearers max mana
-- healer should not use healing abilities unless someone is at 60% health or less
-- when using an item such as a stamina or mana potion, when the modal comes up to select the target, show their mana and stamina as well as their health
-- when the party exits a dungeon the message says they recover 15% HP/SP - change it to say HP/Mana and stamina
+issues:
+fix requested 1. hero is listed as having 0 stamina in 
+fix requested 2. level lock hero abilities, ice shard 1, protective shield 2 healing light 3, lightning bolt 4, fire ball 5, healing circle 6
+requested     3. resting should remove all effects such as stunned, poisoned, etc
+requested     4. increase potential size of enemy group max size equals dungeon level, minimum of three
+requested     5. add more monsters, add more drops
+requested     6. add more crafting 
+requested?    7. add more items
+requested     8.  add monster logical groupings and level based monsters
 
 
-test - all spells, abilities
-- summons
+resting or leaving the dungeon should remove all status effects from spells or buffs or debuffs, like bleeding, poison, burning, etc 2. the maximum size of the enemy group can increase to the level of the dungeon with a maximum of 3 at level 1 or 2 still, but for example a level 4 dungeon encounter could have up to 4 enemies or a level 7 dungeon encounter could have up to 7 enemies, howevre it is still random, but would be skewed towards a larger group the deeper the party went. 3. also add another 50 monster types of varying levels, keep some monsters types for deeper dungeon levels, so you may need to add a mechanic for monsters to only appear in the deeper levels of dungeons. 4. add a mechanic to group certain monsters together. dont just throw monsters together randomly. skeletons should not just appear with spiders. skeletons should appear with other undead like zombies or a a necromancer or something, wolves would only appear with goblin wolf riders or a orc beastmaster etc. add some logic to the monster grouping. you can even make some subtypes, like goblin shamans, orc warchiefs. get creative! and feel free to give the monsters special abilities because the framework is there 5. as you add the new monsters be sure to populate what sort of special loot they may drop for crafting, either creating new loot or allowing them to drop loot that wwe have. but keep in might we have slots that are not used yet, so we need craftable loot drops for rings, cloaks, necks, offhand items etc, again...get creative!
+
+
+expand options to do in dungeon: 
+puzzles, traps, mysteries, rituals, magical pools, etc, genies, wandering tinkerers, nodes
 
 
 ====
 
+each species will have a species and a subtype as well as stat bonuses or penalties and one or more abilities that go along with it or one of the subtypes
 
-set up ability, skill or power templates
-with:  target, mana, effect (function: heal, damage, # targets, enemies or allies, resist, atk or def buff or debuff, stat debuff or buff, stun/paralyze/slow, DOT, summon, vampiric, poison, bleed, burn, special flag which calls a method or function with the spell or ability name to apply additional special effects, passing to it the hero, underlings, enemies, possible equipment?)
 
 add species (stat and slot variability)
 - elf str 4 dex 7 con 4 int 6 wil 6 siz 4
@@ -75,13 +75,8 @@ add classes
 	-subtype
 - skirmisher
 	-subtype
-	
-- needed for simple web game?  lets keep to basic classes and old school skills and spells
-add skill progression and training costs xp/gold
 
-add crafting
-add loot drops
-puzzles, traps, mysteries, rituals, magical pools, etc, genies, wandering tinkerers, nodes
+
 ==
 
 Option 2: Netlify Drop (30 seconds)
