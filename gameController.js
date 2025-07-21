@@ -4420,7 +4420,7 @@ class GameController {
     }
 
     checkLevelUp() {
-        const requiredXP = this.gameState.hero.level * 100;
+        const requiredXP = Math.floor(100 * Math.pow(1.5, this.gameState.hero.level - 1));
         if (this.gameState.hero.fame >= requiredXP) {
             this.gameState.hero.level++;
             this.gameState.hero.fame -= requiredXP;
@@ -4598,6 +4598,7 @@ class GameController {
                 type: 'spell',
                 targeting: { type: 'single', validTargets: 'allies_and_self', count: 1 },
                 costs: { mana: 8 },
+                levelRequirement: 3,
                 effects: [{
                     type: 'heal',
                     baseValue: 20,
@@ -4614,6 +4615,7 @@ class GameController {
                 type: 'spell',
                 targeting: { type: 'multiple', validTargets: 'enemies', count: 3, range: 'ranged' },
                 costs: { mana: 12 },
+                levelRequirement: 5,
                 hasSpecialCode: true,
                 specialHandler: (caster, targets, gameState, gameController) => {
                     console.log('[Fireball Debug] Starting Fireball cast');
@@ -4650,8 +4652,8 @@ class GameController {
                         let message = `${target.name} takes ${validFinalDamage} fire damage`;
                         console.log(`[Fireball Debug] Message:`, message);
                         
-                        // 30% chance to apply burning DOT
-                        if (Math.random() < 0.3) {
+                        // 25% chance to apply burning DOT
+                        if (Math.random() < 0.25) {
                             gameController.applyStatusEffect(target, 'burn', 4, 3); // 4 damage per turn for 3 turns
                             message += ' and catches fire! 🔥';
                         }
@@ -4677,6 +4679,7 @@ class GameController {
                 type: 'spell',
                 targeting: { type: 'multiple', validTargets: 'enemies', count: 2, range: 'ranged' },
                 costs: { mana: 10 },
+                levelRequirement: 4,
                 hasSpecialCode: true,
                 specialHandler: (caster, targets, gameState, gameController) => {
                     const results = [];
@@ -4710,8 +4713,8 @@ class GameController {
                             results.push({ message: `${target.name} takes ${validFinalDamage} lightning damage${arcText} ⚡` });
                             hitTargets.add(target);
                             
-                            // 20% chance to arc to other enemies
-                            if (Math.random() < 0.2) {
+                            // 40% chance to arc to other enemies
+                            if (Math.random() < 0.4) {
                                 const unhitEnemies = allEnemies.filter(e => !hitTargets.has(e) && e.health > 0);
                                 if (unhitEnemies.length > 0) {
                                     newTargets.push(...unhitEnemies);
@@ -4740,6 +4743,7 @@ class GameController {
                 type: 'spell',
                 targeting: { type: 'single', validTargets: 'allies_and_self', count: 1 },
                 costs: { mana: 6 },
+                levelRequirement: 2,
                 effects: [{
                     type: 'buff_defense',
                     baseValue: 5,
@@ -4755,6 +4759,7 @@ class GameController {
                 type: 'spell',
                 targeting: { type: 'all', validTargets: 'allies', count: 'all' },
                 costs: { mana: 20 },
+                levelRequirement: 6,
                 effects: [{
                     type: 'heal',
                     baseValue: 12,
@@ -4787,6 +4792,7 @@ class GameController {
                 type: 'spell',
                 targeting: { type: 'single', validTargets: 'enemies', count: 1, range: 'ranged' },
                 costs: { mana: 8 },
+                levelRequirement: 1,
                 effects: [
                     {
                         type: 'damage',
@@ -4828,9 +4834,17 @@ class GameController {
 
         const heroAbilities = this.getHeroAbilities();
         const availableAbilities = Object.values(heroAbilities).filter(ability => {
+            // Check level requirement
+            if (ability.levelRequirement && this.gameState.hero.level < ability.levelRequirement) {
+                return false;
+            }
+            
             const canUseResult = ability.canUse(this.gameState.hero, this.gameState);
             return canUseResult.canUse;
         });
+        
+        // Get all abilities for display (including locked ones)
+        const allAbilities = Object.values(heroAbilities);
 
         if (availableAbilities.length === 0) {
             this.ui.showNotification("No usable abilities available!", "error");
@@ -4849,6 +4863,24 @@ class GameController {
                             `<option value="${ability.id}">${ability.icon} ${ability.name} (${ability.costs.mana || 0} MP, ${ability.costs.stamina || 0} SP)</option>`
                         ).join('')}
                     </select>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <h4 style="color: #d4af37; margin-bottom: 10px;">📚 All Abilities (Level Requirements)</h4>
+                    <div style="background: rgba(42, 42, 58, 0.6); padding: 10px; border-radius: 6px; max-height: 200px; overflow-y: auto;">
+                        ${allAbilities.map(ability => {
+                            const isLocked = ability.levelRequirement && this.gameState.hero.level < ability.levelRequirement;
+                            const canUse = !isLocked && ability.canUse(this.gameState.hero, this.gameState).canUse;
+                            return `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; color: ${isLocked ? '#888' : (canUse ? '#4ecdc4' : '#ccc')};">
+                                    <span>${ability.icon} ${ability.name}</span>
+                                    <span style="font-size: 12px;">
+                                        ${isLocked ? `🔒 Level ${ability.levelRequirement}` : (canUse ? '✅ Available' : '❌ Insufficient Resources')}
+                                    </span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
                 </div>
                 
                 <div id="abilityDescription" style="margin-bottom: 15px; padding: 10px; background: rgba(42, 42, 58, 0.6); border-radius: 6px; min-height: 40px; color: #ccc; font-style: italic;">
@@ -4979,6 +5011,12 @@ class GameController {
         
         if (!ability) {
             this.ui.showNotification("Invalid ability selected!", "error");
+            return;
+        }
+        
+        // Check level requirement
+        if (ability.levelRequirement && this.gameState.hero.level < ability.levelRequirement) {
+            this.ui.showNotification(`Ability requires level ${ability.levelRequirement}!`, "error");
             return;
         }
         

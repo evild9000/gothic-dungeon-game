@@ -247,7 +247,7 @@ class CharacterManager {
                     <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin: 10px 0;">
                         <p><strong>Level:</strong> ${hero.level}</p>
                         <p><strong>Gold:</strong> ${hero.gold}</p>
-                        <p><strong>Fame:</strong> ${hero.fame}/${hero.level * 100} (${Math.floor((hero.fame / (hero.level * 100)) * 100)}% to next level)</p>
+                        <p><strong>Fame:</strong> ${hero.fame}/${Math.floor(100 * Math.pow(1.5, hero.level - 1))} (${Math.floor((hero.fame / Math.floor(100 * Math.pow(1.5, hero.level - 1))) * 100)}% to next level)</p>
                         <p><strong>Health:</strong> ${hero.health}/${hero.maxHealth}</p>
                         <p><strong>Mana:</strong> ${hero.mana}/${hero.maxMana}</p>
                         <p><strong>Stamina:</strong> ${hero.stamina || 0}/${hero.maxStamina || 100}</p>

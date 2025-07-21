@@ -935,7 +935,7 @@ class InventoryManager {
     
     getUnderlingEquippedItemsSummary(underling) {
         if (!underling.equipment || underling.equipment.filter(item => item.equipped).length === 0) {
-            return '<div style="color: #888; margin-top: 3px;">No equipped items</div>';
+            return ''; // Remove "No equipped items" text
         }
         
         const equippedItems = underling.equipment.filter(item => item.equipped);
@@ -1018,7 +1018,7 @@ class InventoryManager {
     
     getUnderlingEquippedItems(underling) {
         if (!underling.equipment || underling.equipment.filter(item => item.equipped).length === 0) {
-            return '<div style="font-size: 10px; color: #888;">No equipped items</div>';
+            return ''; // Remove "No equipped items" text
         }
         
         return underling.equipment.filter(item => item.equipped).map(item => `
