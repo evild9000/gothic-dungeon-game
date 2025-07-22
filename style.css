@@ -1645,6 +1645,89 @@ body.combat-panel-active #chat-log {
     max-width: 600px !important;
 }
 
+/* Docked Modal Styles for Traps */
+.docked-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    pointer-events: auto;
+}
+
+.docked-modal-content {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #2d1810, #1a1a2a);
+    border: 3px solid #8b4513;
+    border-radius: 15px;
+    box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.8),
+        0 0 50px rgba(139, 69, 19, 0.3);
+    max-width: 600px;
+    min-width: 400px;
+    font-family: 'Cinzel', serif;
+    color: #d4af37;
+    overflow: hidden;
+    pointer-events: auto;
+}
+
+.docked-modal-header {
+    background: linear-gradient(135deg, #8b4513, #a0522d);
+    padding: 15px 20px;
+    border-bottom: 2px solid #d4af37;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: grab;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.docked-modal-header:active {
+    cursor: grabbing;
+}
+
+.docked-modal-header h2 {
+    margin: 0;
+    color: #d4af37;
+    font-size: 18px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.docked-modal-header .close-btn {
+    background: #8b0000;
+    border: 2px solid #ff4444;
+    border-radius: 50%;
+    color: white;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.docked-modal-header .close-btn:hover {
+    background: #ff4444;
+    transform: scale(1.1);
+}
+
+.docked-modal-body {
+    padding: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
 .trap-description {
     background: rgba(20, 20, 40, 0.7);
     padding: 15px;

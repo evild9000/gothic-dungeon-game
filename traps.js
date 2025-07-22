@@ -115,44 +115,52 @@ class TrapManager {
         console.log('hasAntiTrapTools:', hasAntiTrapTools);
 
         const modalHTML = `
-            <div class="modal-overlay" id="trapModal">
-                <div class="modal-content trap-modal">
-                    <h2>⚠️ ${trap.name}</h2>
-                    <div class="trap-description">
-                        <p>${trap.description}</p>
-                        <p class="trap-warning">This looks dangerous! What do you do?</p>
+            <div class="docked-modal-overlay" id="trapModal">
+                <div class="docked-modal-content trap-modal" id="trapModalContent">
+                    <div class="docked-modal-header" id="trapModalHeader">
+                        <h2>⚠️ ${trap.name}</h2>
+                        <button class="close-btn" onclick="trapManager.closeTrapModal()">✕</button>
                     </div>
-                    
-                    <div class="trap-actions">
-                        <button class="action-button danger-btn" onclick="trapManager.triggerTrap('${JSON.stringify(trap).replace(/"/g, '&quot;')}')">
-                            🏃 Rush Through
-                        </button>
+                    <div class="docked-modal-body">
+                        <div class="trap-description">
+                            <p>${trap.description}</p>
+                            <p class="trap-warning">This looks dangerous! What do you do?</p>
+                        </div>
                         
-                        ${hasSkirmisher ? `
-                            <button class="action-button skill-btn" onclick="trapManager.attemptDisarm('${JSON.stringify(trap).replace(/"/g, '&quot;')}', false)">
-                                🎯 Disarm Trap (Skirmisher)
+                        <div class="trap-actions">
+                            <button class="action-button danger-btn" onclick="trapManager.triggerTrap('${JSON.stringify(trap).replace(/"/g, '&quot;')}')">
+                                🏃 Rush Through
                             </button>
-                        ` : ''}
-                        
-                        ${hasSkirmisher && hasAntiTrapTools ? `
-                            <button class="action-button success-btn" onclick="trapManager.attemptDisarm('${JSON.stringify(trap).replace(/"/g, '&quot;')}', true)">
-                                🔧 Disarm with Tools (+Bonus)
+                            
+                            ${hasSkirmisher ? `
+                                <button class="action-button skill-btn" onclick="trapManager.attemptDisarm('${JSON.stringify(trap).replace(/"/g, '&quot;')}', false)">
+                                    🎯 Disarm Trap (Skirmisher)
+                                </button>
+                            ` : ''}
+                            
+                            ${hasSkirmisher && hasAntiTrapTools ? `
+                                <button class="action-button success-btn" onclick="trapManager.attemptDisarm('${JSON.stringify(trap).replace(/"/g, '&quot;')}', true)">
+                                    🔧 Disarm with Tools (+Bonus)
+                                </button>
+                            ` : ''}
+                            
+                            <button class="action-button secondary-btn" onclick="trapManager.avoidTrap()">
+                                ↩️ Find Another Path
                             </button>
-                        ` : ''}
+                        </div>
                         
-                        <button class="action-button secondary-btn" onclick="trapManager.avoidTrap()">
-                            ↩️ Find Another Path
-                        </button>
-                    </div>
-                    
-                    <div class="trap-stats">
-                        <small>Estimated Damage: ${trap.damage[0]}-${trap.damage[1]} HP</small>
+                        <div class="trap-stats">
+                            <small>Estimated Damage: ${trap.damage[0]}-${trap.damage[1]} HP</small>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Make the modal draggable
+        this.makeTrapModalDraggable();
     }
 
     /**
@@ -278,6 +286,60 @@ class TrapManager {
         // Use encounter manager for continuation if available
         if (this.gameController.encounterManager) {
             this.gameController.encounterManager.onTrapComplete();
+        }
+    }
+
+    /**
+     * Make the trap modal draggable
+     */
+    makeTrapModalDraggable() {
+        const modal = document.getElementById('trapModalContent');
+        const header = document.getElementById('trapModalHeader');
+        
+        if (!modal || !header) return;
+        
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        header.addEventListener('mousedown', dragStart);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', dragEnd);
+
+        function dragStart(e) {
+            if (e.target.classList.contains('close-btn')) return;
+            
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+
+            if (e.target === header || header.contains(e.target)) {
+                isDragging = true;
+                header.style.cursor = 'grabbing';
+            }
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+
+                xOffset = currentX;
+                yOffset = currentY;
+
+                modal.style.transform = `translate(${currentX}px, ${currentY}px)`;
+            }
+        }
+
+        function dragEnd(e) {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+            header.style.cursor = 'grab';
         }
     }
 }
