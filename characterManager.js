@@ -662,18 +662,26 @@ class CharacterManager {
     
     // Use a racial ability
     useRacialAbility(character, abilityName) {
+        console.log(`[Racial Ability] ${character.name} attempting to use ${abilityName}`);
+        
         const abilities = this.getCharacterRacialAbilities(character);
+        console.log(`[Racial Ability] Available abilities:`, abilities.map(a => a.name));
+        
         const ability = abilities.find(a => a.name === abilityName);
         
         if (!ability) {
-            console.log(`Racial ability ${abilityName} not found for character`);
+            console.log(`[Racial Ability] ${abilityName} not found for character`);
+            this.gameController.ui.log(`${character.name} doesn't have the racial ability "${abilityName}"!`);
             return false;
         }
         
         if (!this.isRacialAbilityAvailable(character, abilityName)) {
-            console.log(`Racial ability ${abilityName} is on cooldown`);
+            console.log(`[Racial Ability] ${abilityName} is on cooldown`);
+            this.gameController.ui.log(`${character.name}'s ${abilityName} ability is on cooldown!`);
             return false;
         }
+        
+        console.log(`[Racial Ability] Executing ${abilityName} with effect: ${ability.effect}`);
         
         // Apply cooldown
         if (ability.cooldown === 'battle') {
@@ -801,8 +809,15 @@ class CharacterManager {
     
     executeRockThrow(character, level) {
         const staminaCost = 30;
+        
+        // Debug logging
+        console.log(`[Rock Throw] ${character.name} attempting rock throw:`);
+        console.log(`[Rock Throw] Stamina: ${character.stamina}/${staminaCost} required`);
+        console.log(`[Rock Throw] In combat: ${this.gameController.gameState.inCombat}`);
+        console.log(`[Rock Throw] Current enemies:`, this.gameController.gameState.currentEnemies);
+        
         if (character.stamina < staminaCost) {
-            this.gameController.ui.log(`${character.name} doesn't have enough stamina to throw a rock! (${staminaCost} required)`);
+            this.gameController.ui.log(`${character.name} doesn't have enough stamina to throw a rock! (${staminaCost} required, has ${character.stamina})`);
             return false;
         }
 
@@ -812,18 +827,20 @@ class CharacterManager {
             return false;
         }
 
+        // Select random enemy target
+        const enemies = this.gameController.gameState.currentEnemies.filter(enemy => enemy.currentHP > 0);
+        console.log(`[Rock Throw] Available enemies:`, enemies.length);
+        
+        if (enemies.length === 0) {
+            this.gameController.ui.log(`${character.name} has no enemies to target with rock throwing!`);
+            return false;
+        }
+
         character.stamina -= staminaCost;
         
         // Calculate damage with +15 base attack power
         const baseDamage = 15 + (level * 3); // Base +15 damage, +3 per level
         const totalDamage = character.attack + baseDamage;
-        
-        // Select random enemy target
-        const enemies = this.gameController.gameState.currentEnemies.filter(enemy => enemy.currentHP > 0);
-        if (enemies.length === 0) {
-            this.gameController.ui.log("No enemies to target!");
-            return false;
-        }
         
         const target = enemies[Math.floor(Math.random() * enemies.length)];
         const finalDamage = Math.max(1, totalDamage - target.defense);
