@@ -309,6 +309,9 @@ class CharacterManager {
         // Apply species modifiers
         this.applySpeciesModifiers(character);
         
+        // Initialize racial abilities
+        this.initializeRacialAbilityCooldowns(character);
+        
         // Initialize equipment slots for species
         this.initializeCharacterEquipment(character);
     }

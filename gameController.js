@@ -5572,7 +5572,7 @@ class GameController {
                 constitution: 8,
                 intelligence: 4,
                 willpower: 6,
-                size: 5
+                size: 4  // Changed from 5 to 4 to match dwarf base size
             },
             mage: { 
                 name: "Mage", 
@@ -5633,13 +5633,17 @@ class GameController {
             isAlive: true
         };
 
-        // Apply species modifiers to the underling
-        this.characterManager.applySpeciesModifiers(underling, speciesKey);
+        // Initialize character species data and apply modifiers
+        const subspecies = this.getDefaultSubspeciesForSpecies(speciesKey);
+        this.characterManager.initializeCharacterSpecies(underling, speciesKey, subspecies);
 
         this.gameState.hero.underlings.push(underling);
         
         // Apply stat bonuses to the new underling
         this.applyCharacterStatBonuses(underling);
+        
+        // Recalculate base attack and defense after racial modifiers
+        this.recalculateBaseAttackDefense(underling);
         
         // Ensure newly recruited underlings start at full health/mana/stamina
         underling.health = underling.maxHealth;
@@ -5649,6 +5653,43 @@ class GameController {
         this.ui.log(`Recruited ${underling.name}!`);
         this.ui.showNotification(`Recruited ${underling.name}!`, "success");
         this.ui.render();
+    }
+
+    // Helper function to get the default subspecies for each species
+    getDefaultSubspeciesForSpecies(speciesKey) {
+        const defaultSubspecies = {
+            'human': 'common',
+            'elf': 'wood',
+            'dwarf': 'mountain',
+            'gnome': 'forest',
+            'orc': 'tribal',
+            'goblin': 'cave',
+            'giantkin': 'ogre',  // Default giantkin subspecies
+            'yeti': 'mountain'
+        };
+        
+        return defaultSubspecies[speciesKey] || 'common';
+    }
+
+    // Recalculate base attack and defense values after racial modifiers
+    recalculateBaseAttackDefense(character) {
+        // The base attack value includes stat bonuses, so we need to update it
+        // Get the characterManager's calculation for consistency
+        const attackBonus = this.characterManager.calculateAttackBonus(character, 'melee');
+        const defenseBonus = this.characterManager.calculateDefenseBonus(character);
+        
+        // Update attack and defense to reflect current stats
+        // Note: These are used for display purposes, combat uses dynamic calculations
+        if (character.baseAttack === undefined) {
+            character.baseAttack = character.attack; // Store original for reference
+        }
+        if (character.baseDefense === undefined) {
+            character.baseDefense = character.defense; // Store original for reference
+        }
+        
+        // Update display values (these affect the character sheet display)
+        character.attack = Math.max(1, character.baseAttack + Math.floor(attackBonus));
+        character.defense = Math.max(1, character.baseDefense + Math.floor(defenseBonus));
     }
 
     openShop() {
