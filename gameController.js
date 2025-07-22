@@ -6975,6 +6975,7 @@ class GameController {
 
                     if (selectedAbility) {
                         if (isRacial) {
+                            console.log('[DEBUG] Selected racial ability:', selectedAbility.name, 'targeting:', selectedAbility.targeting);
                             descriptionDiv.innerHTML = `<strong style="color: #d4af37;">🧬 ${selectedAbility.name}</strong><br>${selectedAbility.description}`;
                             
                             // Check if racial ability needs target selection
@@ -6982,9 +6983,11 @@ class GameController {
                                 (selectedAbility.targeting.type === 'single' || 
                                  selectedAbility.targeting.type === 'multiple') &&
                                 selectedAbility.targeting.validTargets !== 'self') {
+                                console.log('[DEBUG] Showing target selection for racial ability:', selectedAbility.name);
                                 targetDiv.style.display = 'block';
                                 this.updateRacialTargetSelection(selectedAbility, targetDiv, targetSelect);
                             } else {
+                                console.log('[DEBUG] Not showing target selection for racial ability:', selectedAbility.name, 'targeting:', selectedAbility.targeting);
                                 targetDiv.style.display = 'none'; // Most racial abilities are self-target or automatic
                             }
                         } else {

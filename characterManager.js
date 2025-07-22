@@ -624,7 +624,12 @@ class CharacterManager {
     
     // Get racial abilities for a character
     getCharacterRacialAbilities(character) {
-        if (!character.species || !character.subspecies) return [];
+        if (!character.species || !character.subspecies) {
+            console.log('[DEBUG] No species/subspecies for character:', character.name);
+            return [];
+        }
+        
+        console.log('[DEBUG] Getting racial abilities for:', character.name, 'species:', character.species, 'subspecies:', character.subspecies);
         
         const speciesDef = this.getSpeciesDefinition(character.species);
         const subspeciesDef = this.getSubspeciesDefinition(character.species, character.subspecies);
@@ -633,14 +638,17 @@ class CharacterManager {
         
         // Add species-level abilities
         if (speciesDef.racialAbilities) {
+            console.log('[DEBUG] Adding species abilities:', speciesDef.racialAbilities);
             abilities = abilities.concat(speciesDef.racialAbilities);
         }
         
         // Add subspecies-specific ability
         if (subspeciesDef.racialAbility) {
+            console.log('[DEBUG] Adding subspecies ability:', subspeciesDef.racialAbility);
             abilities.push(subspeciesDef.racialAbility);
         }
         
+        console.log('[DEBUG] Final racial abilities:', abilities);
         return abilities;
     }
     
