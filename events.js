@@ -85,13 +85,25 @@ class EventManager {
      * Handle trap encounter
      */
     handleTrapEvent(dungeonLevel) {
+        console.log('handleTrapEvent called, dungeonLevel:', dungeonLevel);
+        console.log('gameController.trapManager:', this.gameController.trapManager);
+        
         if (this.gameController.trapManager) {
             const trap = this.gameController.trapManager.generateTrap(dungeonLevel);
+            console.log('Generated trap:', trap);
             if (trap) {
                 this.ui.log("You notice something suspicious ahead...");
-                setTimeout(() => this.gameController.trapManager.showTrap(trap), 500);
+                console.log('About to call showTrap with timeout...');
+                setTimeout(() => {
+                    console.log('Timeout executed, calling showTrap');
+                    this.gameController.trapManager.showTrap(trap);
+                }, 500);
                 return;
+            } else {
+                console.log('No trap generated, falling back to combat');
             }
+        } else {
+            console.log('No trapManager available, falling back to combat');
         }
         // Fallback to combat if trap fails
         this.handleCombatEvent();

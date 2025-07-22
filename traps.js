@@ -97,14 +97,22 @@ class TrapManager {
      * Display trap encounter interface
      */
     showTrap(trap) {
+        console.log('TrapManager.showTrap called with trap:', trap);
+        console.log('gameState.hero:', this.gameState.hero);
+        console.log('gameState.hero.underlings:', this.gameState.hero ? this.gameState.hero.underlings : 'hero is null');
+        
         // Check if there are skirmishers among underlings
         const hasSkirmisher = this.gameState.hero && this.gameState.hero.underlings && 
             this.gameState.hero.underlings.some(member => 
                 member.class === 'Skirmisher' && member.currentHP > 0
             );
         
+        console.log('hasSkirmisher:', hasSkirmisher);
+        
         const hasAntiTrapTools = this.gameController.inventoryManager && 
             this.gameController.inventoryManager.hasItem("Anti-Trap Tools");
+            
+        console.log('hasAntiTrapTools:', hasAntiTrapTools);
 
         const modalHTML = `
             <div class="modal-overlay" id="trapModal">
