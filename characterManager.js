@@ -18,7 +18,7 @@ class CharacterManager {
                         description: "Versatile and adaptable" 
                     }
                 },
-                racialAbilities: [], // Framework for racial abilities
+                racialAbilities: [], // Humans have no racial abilities - they rely on versatility
                 equipmentSlots: "human", // Reference to equipment slot configuration
                 description: "Adaptable and versatile beings",
                 baseStats: { strength: 5, dexterity: 5, constitution: 5, intelligence: 5, willpower: 5, size: 5 }
@@ -34,7 +34,13 @@ class CharacterManager {
                         description: "Forest dwelling elves with enhanced agility"
                     }
                 },
-                racialAbilities: [],
+                racialAbilities: [{
+                    name: "Meditate",
+                    description: "Focus inner energy to restore 20 mana and 20 stamina",
+                    type: "restoration",
+                    cooldown: "battle",
+                    effect: "meditate_restore"
+                }],
                 equipmentSlots: "human", // Uses human equipment slots for now
                 description: "Graceful and magical forest dwellers",
                 baseStats: { strength: 4, dexterity: 7, constitution: 4, intelligence: 6, willpower: 6, size: 4 }
@@ -50,10 +56,38 @@ class CharacterManager {
                         description: "Hardy mountain folk with great endurance"
                     }
                 },
-                racialAbilities: [],
+                racialAbilities: [{
+                    name: "Stone Bulwark",
+                    description: "Channel dwarven stonework mastery to gain +10 defense for 5 rounds",
+                    type: "defensive",
+                    cooldown: "battle",
+                    effect: "stone_bulwark_defense"
+                }],
                 equipmentSlots: "human",
                 description: "Stout and resilient mountain folk",
                 baseStats: { strength: 6, dexterity: 4, constitution: 7, intelligence: 5, willpower: 6, size: 4 }
+            },
+            gnome: {
+                name: "Gnome",
+                displayName: "Gnomish",
+                statModifiers: { strength: -2, dexterity: 2, constitution: 0, intelligence: 1, willpower: 1, size: -2 },
+                subspecies: {
+                    forest: {
+                        name: "Forest Gnome",
+                        statModifiers: { strength: 0, dexterity: 1, constitution: 0, intelligence: 0, willpower: 0, size: 0 },
+                        description: "Small woodland creatures with keen minds"
+                    }
+                },
+                racialAbilities: [{
+                    name: "Tinkering",
+                    description: "Summon a clockwork device to fight alongside you for one battle",
+                    type: "summon",
+                    cooldown: "battle",
+                    effect: "clockwork_summon"
+                }],
+                equipmentSlots: "human",
+                description: "Small, clever folk with natural cunning",
+                baseStats: { strength: 3, dexterity: 7, constitution: 5, intelligence: 6, willpower: 6, size: 3 }
             },
             orc: {
                 name: "Orc",
@@ -66,10 +100,104 @@ class CharacterManager {
                         description: "Fierce tribal warriors"
                     }
                 },
-                racialAbilities: [],
+                racialAbilities: [{
+                    name: "Ferocity",
+                    description: "When reduced to 0 HP, surge back to 10 HP once per battle",
+                    type: "survival",
+                    cooldown: "battle",
+                    effect: "ferocity_revival"
+                }],
                 equipmentSlots: "human",
                 description: "Powerful and aggressive warriors",
                 baseStats: { strength: 7, dexterity: 5, constitution: 6, intelligence: 4, willpower: 5, size: 6 }
+            },
+            goblin: {
+                name: "Goblin",
+                displayName: "Goblin",
+                statModifiers: { strength: -1, dexterity: 2, constitution: 1, intelligence: 0, willpower: 0, size: -1 },
+                subspecies: {
+                    cave: {
+                        name: "Cave Goblin",
+                        statModifiers: { strength: 0, dexterity: 1, constitution: 0, intelligence: 0, willpower: 0, size: 0 },
+                        description: "Sneaky cave dwellers with sharp reflexes"
+                    }
+                },
+                racialAbilities: [],
+                equipmentSlots: "human",
+                description: "Quick and cunning small humanoids",
+                baseStats: { strength: 4, dexterity: 7, constitution: 6, intelligence: 5, willpower: 5, size: 4 }
+            },
+            giantkin: {
+                name: "Giantkin",
+                displayName: "Giantkin",
+                statModifiers: { strength: 4, dexterity: -1, constitution: 2, intelligence: -2, willpower: -1, size: 4 },
+                subspecies: {
+                    ogre: {
+                        name: "Ogre",
+                        statModifiers: { strength: 0, dexterity: 0, constitution: 0, intelligence: 0, willpower: 0, size: 0 },
+                        description: "Powerful brutes with devastating knockout attacks",
+                        baseStats: { strength: 9, dexterity: 4, constitution: 7, intelligence: 3, willpower: 4, size: 9 },
+                        racialAbility: {
+                            name: "Brute",
+                            description: "Knock down up to three foes with a resistance check",
+                            type: "combat",
+                            cooldown: "battle",
+                            effect: "knockdown_multiple"
+                        }
+                    },
+                    troll: {
+                        name: "Troll",
+                        statModifiers: { strength: -1, dexterity: 0, constitution: 1, intelligence: 0, willpower: -1, size: 0 },
+                        description: "Regenerating giants with incredible endurance",
+                        baseStats: { strength: 8, dexterity: 5, constitution: 8, intelligence: 3, willpower: 3, size: 9 },
+                        racialAbility: {
+                            name: "Regenerate",
+                            description: "Regenerate 5% of max HP every combat round",
+                            type: "passive",
+                            cooldown: "none",
+                            effect: "regeneration"
+                        }
+                    },
+                    giant: {
+                        name: "Giant",
+                        statModifiers: { strength: 3, dexterity: -1, constitution: 1, intelligence: 0, willpower: 0, size: 1 },
+                        description: "Massive beings capable of hurling devastating rocks",
+                        baseStats: { strength: 12, dexterity: 3, constitution: 10, intelligence: 4, willpower: 4, size: 10 },
+                        racialAbility: {
+                            name: "Rock Throwing",
+                            description: "Hurl a massive rock for devastating damage at stamina cost",
+                            type: "combat",
+                            cooldown: "none",
+                            effect: "rock_throw"
+                        }
+                    }
+                },
+                racialAbilities: [],
+                equipmentSlots: "human",
+                description: "Massive humanoids of incredible strength and size",
+                baseStats: { strength: 9, dexterity: 4, constitution: 7, intelligence: 3, willpower: 4, size: 9 }
+            },
+            yeti: {
+                name: "Yeti",
+                displayName: "Yeti",
+                statModifiers: { strength: 3, dexterity: -1, constitution: 1, intelligence: -1, willpower: 1, size: 1 },
+                subspecies: {
+                    mountain: {
+                        name: "Mountain Yeti",
+                        statModifiers: { strength: 0, dexterity: 0, constitution: 0, intelligence: 0, willpower: 0, size: 0 },
+                        description: "Arctic giants with freezing breath attacks"
+                    }
+                },
+                racialAbilities: [{
+                    name: "Frost Breath",
+                    description: "Breathe freezing air that damages up to 4 enemies",
+                    type: "combat",
+                    cooldown: "battle",
+                    effect: "frost_breath_aoe"
+                }],
+                equipmentSlots: "human",
+                description: "Massive arctic creatures with devastating frost abilities",
+                baseStats: { strength: 8, dexterity: 4, constitution: 6, intelligence: 4, willpower: 6, size: 6 }
             }
             // Framework ready for additional species like spiders, centaurs, etc.
         };
@@ -444,6 +572,266 @@ class CharacterManager {
         
         return { isCritical: false, multiplier: 1.0 };
     }
+    
+    // ====== RACIAL ABILITY SYSTEM ======
+    
+    // Get racial abilities for a character
+    getCharacterRacialAbilities(character) {
+        if (!character.species || !character.subspecies) return [];
+        
+        const speciesDef = this.getSpeciesDefinition(character.species);
+        const subspeciesDef = this.getSubspeciesDefinition(character.species, character.subspecies);
+        
+        let abilities = [];
+        
+        // Add species-level abilities
+        if (speciesDef.racialAbilities) {
+            abilities = abilities.concat(speciesDef.racialAbilities);
+        }
+        
+        // Add subspecies-specific ability
+        if (subspeciesDef.racialAbility) {
+            abilities.push(subspeciesDef.racialAbility);
+        }
+        
+        return abilities;
+    }
+    
+    // Initialize racial ability cooldowns for a character
+    initializeRacialAbilityCooldowns(character) {
+        if (!character.racialAbilityCooldowns) {
+            character.racialAbilityCooldowns = {};
+        }
+        
+        const abilities = this.getCharacterRacialAbilities(character);
+        abilities.forEach(ability => {
+            if (!character.racialAbilityCooldowns[ability.name]) {
+                character.racialAbilityCooldowns[ability.name] = 0;
+            }
+        });
+    }
+    
+    // Check if a racial ability is available (not on cooldown)
+    isRacialAbilityAvailable(character, abilityName) {
+        this.initializeRacialAbilityCooldowns(character);
+        return (character.racialAbilityCooldowns[abilityName] || 0) === 0;
+    }
+    
+    // Use a racial ability
+    useRacialAbility(character, abilityName) {
+        const abilities = this.getCharacterRacialAbilities(character);
+        const ability = abilities.find(a => a.name === abilityName);
+        
+        if (!ability) {
+            console.log(`Racial ability ${abilityName} not found for character`);
+            return false;
+        }
+        
+        if (!this.isRacialAbilityAvailable(character, abilityName)) {
+            console.log(`Racial ability ${abilityName} is on cooldown`);
+            return false;
+        }
+        
+        // Apply cooldown
+        if (ability.cooldown === 'battle') {
+            character.racialAbilityCooldowns[abilityName] = 1; // Will be reset after battle
+        }
+        
+        // Execute the ability effect
+        return this.executeRacialAbilityEffect(character, ability);
+    }
+    
+    // Execute racial ability effects
+    executeRacialAbilityEffect(character, ability) {
+        const level = character.level || 1;
+        
+        switch(ability.effect) {
+            case 'stone_bulwark_defense':
+                return this.executeStroneBulwark(character, level);
+            case 'meditate_restore':
+                return this.executeMeditate(character, level);
+            case 'clockwork_summon':
+                return this.executeClockworkSummon(character, level);
+            case 'ferocity_revival':
+                return this.executeFerocity(character, level);
+            case 'rock_throw':
+                return this.executeRockThrow(character, level);
+            case 'knockdown_multiple':
+                return this.executeBrute(character, level);
+            case 'regeneration':
+                return this.executeRegeneration(character, level);
+            case 'frost_breath_aoe':
+                return this.executeFrostBreath(character, level);
+            default:
+                console.log(`Unknown racial ability effect: ${ability.effect}`);
+                return false;
+        }
+    }
+    
+    // Reset battle-based cooldowns
+    resetBattleRacialAbilityCooldowns(character) {
+        if (!character.racialAbilityCooldowns) return;
+        
+        Object.keys(character.racialAbilityCooldowns).forEach(abilityName => {
+            character.racialAbilityCooldowns[abilityName] = 0;
+        });
+    }
+    
+    // ====== RACIAL ABILITY IMPLEMENTATIONS ======
+    
+    executeStroneBulwark(character, level) {
+        const defenseBonus = 10 + Math.floor(level / 2); // +10 defense, +0.5 per level
+        const duration = 5;
+        
+        if (!character.statusEffects) character.statusEffects = {};
+        character.statusEffects.stone_bulwark = {
+            value: defenseBonus,
+            duration: duration
+        };
+        
+        this.gameController.ui.log(`${character.name} channels dwarven stonework mastery, gaining +${defenseBonus} defense for ${duration} rounds!`);
+        return true;
+    }
+    
+    executeMeditate(character, level) {
+        const manaRestore = 20 + (level * 5); // Base 20 + 5 per level
+        const staminaRestore = 20 + (level * 5); // Base 20 + 5 per level
+        
+        const manaRestored = Math.min(manaRestore, character.maxMana - character.mana);
+        const staminaRestored = Math.min(staminaRestore, character.maxStamina - character.stamina);
+        
+        character.mana += manaRestored;
+        character.stamina += staminaRestored;
+        
+        this.gameController.ui.log(`${character.name} meditates deeply, restoring ${manaRestored} mana and ${staminaRestored} stamina!`);
+        return true;
+    }
+    
+    executeClockworkSummon(character, level) {
+        // Create a clockwork device summon for this battle
+        const clockwork = {
+            name: `${character.name}'s Clockwork Device`,
+            health: 20 + (level * 10),
+            maxHealth: 20 + (level * 10),
+            attack: 10 + (level * 2),
+            level: level,
+            isSummon: true,
+            summonedBy: character.name,
+            battleOnly: true // Will be removed after battle
+        };
+        
+        // Add to current combat if in combat
+        if (this.gameController.gameState.inCombat && this.gameController.gameState.hero.underlings) {
+            // Add as temporary summon
+            if (!this.gameController.gameState.battleSummons) {
+                this.gameController.gameState.battleSummons = [];
+            }
+            this.gameController.gameState.battleSummons.push(clockwork);
+            
+            this.gameController.ui.log(`${character.name} assembles a clockwork device (${clockwork.health} HP, ${clockwork.attack} ATK) to fight alongside the party!`);
+            return true;
+        }
+        
+        this.gameController.ui.log(`${character.name} attempts to summon a clockwork device, but there's no battle to fight!`);
+        return false;
+    }
+    
+    executeFerocity(character, level) {
+        // This is triggered automatically when character reaches 0 HP
+        // Just mark that the ability is available
+        if (!character.ferocityUsed) {
+            character.ferocityUsed = true;
+            const reviveHP = 10 + Math.floor(level / 2);
+            character.health = reviveHP;
+            
+            this.gameController.ui.log(`${character.name}'s orcish ferocity surges! Revived with ${reviveHP} HP!`);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    executeRockThrow(character, level) {
+        const staminaCost = 30;
+        if (character.stamina < staminaCost) {
+            this.gameController.ui.log(`${character.name} doesn't have enough stamina to throw a rock! (${staminaCost} required)`);
+            return false;
+        }
+        
+        character.stamina -= staminaCost;
+        const bonusDamage = 15 + (level * 3); // Base +15 damage, +3 per level
+        
+        // This ability modifies the next attack - store the bonus
+        character.nextAttackBonus = bonusDamage;
+        character.nextAttackType = 'rock_throw';
+        
+        this.gameController.ui.log(`${character.name} hurls a massive rock! Next attack deals +${bonusDamage} damage!`);
+        return true;
+    }
+    
+    executeBrute(character, level) {
+        // This affects up to 3 enemies in combat
+        if (!this.gameController.gameState.inCombat || !this.gameController.gameState.currentEnemies) {
+            this.gameController.ui.log(`${character.name} can only use Brute during combat!`);
+            return false;
+        }
+        
+        const targets = this.gameController.gameState.currentEnemies.slice(0, 3);
+        const baseSuccessChance = 90;
+        let knockedDown = 0;
+        
+        targets.forEach(enemy => {
+            const enemyStr = enemy.strength || 5;
+            const successChance = Math.max(10, baseSuccessChance - (enemyStr * 5));
+            
+            if (Math.random() * 100 < successChance) {
+                if (!enemy.statusEffects) enemy.statusEffects = {};
+                enemy.statusEffects.knocked_down = {
+                    value: 1,
+                    duration: 1 // Lose next turn
+                };
+                knockedDown++;
+            }
+        });
+        
+        this.gameController.ui.log(`${character.name} unleashes a brutal assault! ${knockedDown} enemies knocked down!`);
+        return true;
+    }
+    
+    executeRegeneration(character, level) {
+        // This is a passive ability that triggers each combat round
+        if (character.health < character.maxHealth) {
+            const regenAmount = Math.max(1, Math.floor(character.maxHealth * 0.05)); // 5% of max HP
+            const actualRegen = Math.min(regenAmount, character.maxHealth - character.health);
+            
+            character.health += actualRegen;
+            this.gameController.ui.log(`${character.name} regenerates ${actualRegen} HP!`);
+            return true;
+        }
+        return false;
+    }
+    
+    executeFrostBreath(character, level) {
+        if (!this.gameController.gameState.inCombat || !this.gameController.gameState.currentEnemies) {
+            this.gameController.ui.log(`${character.name} can only use Frost Breath during combat!`);
+            return false;
+        }
+        
+        const targets = this.gameController.gameState.currentEnemies.slice(0, 4);
+        const baseDamage = 15 + (level * 4); // Base 15 + 4 per level
+        let totalDamage = 0;
+        
+        targets.forEach(enemy => {
+            const damage = Math.floor(baseDamage * (0.8 + Math.random() * 0.4)); // 80-120% of base
+            enemy.health -= damage;
+            totalDamage += damage;
+        });
+        
+        this.gameController.ui.log(`${character.name} breathes freezing air, dealing ${Math.floor(totalDamage/targets.length)} average damage to ${targets.length} enemies!`);
+        return true;
+    }
+    
+    // ====== END RACIAL ABILITY SYSTEM ======
     
     // Apply stat bonuses to characters
     applyStatBonuses() {

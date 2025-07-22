@@ -3395,8 +3395,17 @@ class GameController {
                 
                 // Check if player is defeated
                 if (this.gameState.hero.health <= 0) {
-                    this.playerDefeated();
-                    return;
+                    this.gameState.hero.health = 0;
+                    
+                    // Check for racial abilities that prevent death (like orc ferocity)
+                    const survived = this.handleCharacterDeath(this.gameState.hero);
+                    
+                    if (!survived) {
+                        this.playerDefeated();
+                        return;
+                    } else {
+                        this.ui.log(`${this.gameState.hero.name} refuses to fall!`);
+                    }
                 }
             } else {
                 // Underling was attacked
@@ -3406,21 +3415,27 @@ class GameController {
                 // Check if underling is defeated
                 if (target.health <= 0) {
                     target.health = 0;
-                    target.isAlive = false;
-                    this.ui.log(`${target.name} has fallen in battle!`);
-                    this.ui.showNotification(`${target.name} defeated!`, "error");
                     
-                    // If the taunting warrior dies, clear taunt state
-                    if (this.gameState.warriorTauntActive && target === this.gameState.tauntingWarrior) {
-                        this.gameState.warriorTauntActive = false;
-                        this.gameState.tauntingWarrior = null;
-                        this.ui.log(`Protective Taunt ends as ${target.name} falls!`);
-                    }
+                    // Check for racial abilities that prevent death (like orc ferocity)
+                    const survived = this.handleCharacterDeath(target);
                     
-                    // Remove from current targets list
-                    const targetIndex = allTargets.indexOf(target);
-                    if (targetIndex > -1) {
-                        allTargets.splice(targetIndex, 1);
+                    if (!survived) {
+                        target.isAlive = false;
+                        this.ui.log(`${target.name} has fallen in battle!`);
+                        this.ui.showNotification(`${target.name} defeated!`, "error");
+                        
+                        // If the taunting warrior dies, clear taunt state
+                        if (this.gameState.warriorTauntActive && target === this.gameState.tauntingWarrior) {
+                            this.gameState.warriorTauntActive = false;
+                            this.gameState.tauntingWarrior = null;
+                            this.ui.log(`Protective Taunt ends as ${target.name} falls!`);
+                        }
+                        
+                        // Remove from current targets list
+                        const targetIndex = allTargets.indexOf(target);
+                        if (targetIndex > -1) {
+                            allTargets.splice(targetIndex, 1);
+                        }
                     }
                     
                     // Check if all party members are defeated
@@ -6194,14 +6209,16 @@ class GameController {
     }
 
     processAllStatusEffects() {
-        // Process hero status effects
+        // Process hero status effects and racial abilities
         this.updateStatusEffects(this.gameState.hero);
+        this.processRacialAbilities(this.gameState.hero);
         
-        // Process underling status effects
+        // Process underling status effects and racial abilities
         if (this.gameState.hero.underlings) {
             this.gameState.hero.underlings.forEach(underling => {
                 if (underling.isAlive) {
                     this.updateStatusEffects(underling);
+                    this.processRacialAbilities(underling);
                 }
             });
         }
@@ -6212,6 +6229,42 @@ class GameController {
                 this.updateStatusEffects(enemy);
             });
         }
+    }
+    
+    // Process passive racial abilities each combat round
+    processRacialAbilities(character) {
+        if (!character.species || !character.subspecies) return;
+        
+        const subspeciesDef = this.characterManager.getSubspeciesDefinition(character.species, character.subspecies);
+        
+        // Handle troll regeneration
+        if (subspeciesDef.name === 'Troll' && subspeciesDef.racialAbility && 
+            subspeciesDef.racialAbility.effect === 'regeneration') {
+            this.characterManager.executeRegeneration(character, character.level || 1);
+        }
+    }
+    
+    // Add method to handle character "death" and check for orc ferocity
+    handleCharacterDeath(character) {
+        if (character.health <= 0) {
+            // Check for orc ferocity
+            if (character.species === 'orc' && !character.ferocityUsed) {
+                const racialAbilities = this.characterManager.getCharacterRacialAbilities(character);
+                const ferocityAbility = racialAbilities.find(a => a.effect === 'ferocity_revival');
+                
+                if (ferocityAbility) {
+                    const success = this.characterManager.executeFerocity(character, character.level || 1);
+                    if (success) {
+                        return true; // Character survived due to ferocity
+                    }
+                }
+            }
+            
+            // Handle normal death
+            character.isAlive = false;
+            return false;
+        }
+        return true; // Character is still alive
     }
 
     // Clear all status effects from a character or all party members
@@ -6490,10 +6543,16 @@ class GameController {
             return canUseResult.canUse;
         });
         
+        // Get racial abilities
+        const racialAbilities = this.characterManager.getCharacterRacialAbilities(this.gameState.hero);
+        const availableRacialAbilities = racialAbilities.filter(ability => 
+            this.characterManager.isRacialAbilityAvailable(this.gameState.hero, ability.name)
+        );
+        
         // Get all abilities for display (including locked ones)
         const allAbilities = Object.values(heroAbilities);
 
-        if (availableAbilities.length === 0) {
+        if (availableAbilities.length === 0 && availableRacialAbilities.length === 0) {
             this.ui.showNotification("No usable abilities available!", "error");
             return;
         }
@@ -6506,9 +6565,16 @@ class GameController {
                     <label style="color: #4ecdc4; font-weight: bold; margin-bottom: 8px; display: block;">Choose Ability:</label>
                     <select id="abilitySelect" style="width: 100%; padding: 8px; background: #2a2a4a; color: white; border: 1px solid #666; border-radius: 6px; font-size: 14px;">
                         <option value="">-- Select an Ability --</option>
+                        ${availableAbilities.length > 0 ? '<optgroup label="🔮 Magic Abilities">' : ''}
                         ${availableAbilities.map(ability => 
                             `<option value="${ability.id}">${ability.icon} ${ability.name} (${ability.costs.mana || 0} MP, ${ability.costs.stamina || 0} SP)</option>`
                         ).join('')}
+                        ${availableAbilities.length > 0 ? '</optgroup>' : ''}
+                        ${availableRacialAbilities.length > 0 ? '<optgroup label="🧬 Racial Abilities">' : ''}
+                        ${availableRacialAbilities.map(ability => 
+                            `<option value="racial_${ability.name}">🧬 ${ability.name} (Racial)</option>`
+                        ).join('')}
+                        ${availableRacialAbilities.length > 0 ? '</optgroup>' : ''}
                     </select>
                 </div>
                 
@@ -6523,6 +6589,18 @@ class GameController {
                                     <span>${ability.icon} ${ability.name}</span>
                                     <span style="font-size: 12px;">
                                         ${isLocked ? `🔒 Level ${ability.usageRestrictions.level}` : (canUse ? '✅ Available' : '❌ Insufficient Resources')}
+                                    </span>
+                                </div>
+                            `;
+                        }).join('')}
+                        ${racialAbilities.length > 0 ? '<hr style="border: 1px solid #666; margin: 10px 0;">' : ''}
+                        ${racialAbilities.map(ability => {
+                            const isAvailable = this.characterManager.isRacialAbilityAvailable(this.gameState.hero, ability.name);
+                            return `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; color: ${isAvailable ? '#4ecdc4' : '#888'};">
+                                    <span>🧬 ${ability.name} (Racial)</span>
+                                    <span style="font-size: 12px;">
+                                        ${isAvailable ? '✅ Available' : '❌ On Cooldown'}
                                     </span>
                                 </div>
                             `;
@@ -6548,39 +6626,69 @@ class GameController {
                     </button>
                     <button onclick="document.querySelector('.docked-modal').remove()" 
                             style="padding: 10px 20px; background: linear-gradient(45deg, #666, #888); border: 2px solid #aaa; color: white; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                        ❌ Cancel
+                        Cancel
                     </button>
                 </div>
             </div>
         `;
 
-        this.createDockedModal("Hero Abilities", abilityContent, []);
+        // Create a docked modal
+        this.ui.createDockedModal("Hero Abilities", abilityContent);
 
-        // Set up ability selection change handler
+        // Add event listener for ability selection
         setTimeout(() => {
             const abilitySelect = document.getElementById('abilitySelect');
-            const abilityDescription = document.getElementById('abilityDescription');
-            const targetSelection = document.getElementById('targetSelection');
+            const descriptionDiv = document.getElementById('abilityDescription');
+            const targetDiv = document.getElementById('targetSelection');
             const targetSelect = document.getElementById('targetSelect');
 
-            if (abilitySelect) {
+            if (abilitySelect && descriptionDiv) {
                 abilitySelect.addEventListener('change', () => {
-                    const selectedAbilityId = abilitySelect.value;
-                    if (selectedAbilityId) {
-                        const ability = availableAbilities.find(a => a.id === selectedAbilityId);
-                        if (ability) {
-                            abilityDescription.innerHTML = `
-                                <strong>${ability.name}</strong><br>
-                                ${ability.description}<br>
-                                <span style="color: #ffd93d;">Costs: ${ability.costs.mana || 0} MP${ability.costs.stamina ? `, ${ability.costs.stamina} SP` : ''}</span>
-                            `;
+                    const selectedValue = abilitySelect.value;
+                    if (!selectedValue) {
+                        descriptionDiv.innerHTML = 'Select an ability to see its description...';
+                        targetDiv.style.display = 'none';
+                        return;
+                    }
 
-                            // Show target selection based on ability targeting
-                            this.updateTargetSelection(ability, targetSelection, targetSelect);
-                        }
+                    let selectedAbility = null;
+                    let isRacial = false;
+                    
+                    if (selectedValue.startsWith('racial_')) {
+                        const racialName = selectedValue.replace('racial_', '');
+                        selectedAbility = racialAbilities.find(a => a.name === racialName);
+                        isRacial = true;
                     } else {
-                        abilityDescription.innerHTML = 'Select an ability to see its description...';
-                        targetSelection.style.display = 'none';
+                        selectedAbility = heroAbilities[selectedValue];
+                    }
+
+                    if (selectedAbility) {
+                        if (isRacial) {
+                            descriptionDiv.innerHTML = `<strong style="color: #d4af37;">🧬 ${selectedAbility.name}</strong><br>${selectedAbility.description}`;
+                            targetDiv.style.display = 'none'; // Most racial abilities are self-target or automatic
+                        } else {
+                            descriptionDiv.innerHTML = `<strong style="color: #d4af37;">${selectedAbility.icon} ${selectedAbility.name}</strong><br>${selectedAbility.description}`;
+                            
+                            // Show target selection for abilities that need targets
+                            if (selectedAbility.targetType === 'single_enemy' || selectedAbility.targetType === 'single_ally') {
+                                targetDiv.style.display = 'block';
+                                targetSelect.innerHTML = '<option value="">-- Select Target --</option>';
+                                
+                                if (selectedAbility.targetType === 'single_enemy') {
+                                    this.gameState.currentEnemies.forEach((enemy, index) => {
+                                        targetSelect.innerHTML += `<option value="enemy_${index}">${enemy.name} (${enemy.health}/${enemy.maxHealth} HP)</option>`;
+                                    });
+                                } else if (selectedAbility.targetType === 'single_ally') {
+                                    const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+                                    targetSelect.innerHTML += `<option value="hero">${this.gameState.hero.name || 'Hero'} (${this.gameState.hero.health}/${this.gameState.hero.maxHealth} HP)</option>`;
+                                    aliveUnderlings.forEach((underling, index) => {
+                                        targetSelect.innerHTML += `<option value="ally_${index}">${underling.name} (${underling.health}/${underling.maxHealth} HP)</option>`;
+                                    });
+                                }
+                            } else {
+                                targetDiv.style.display = 'none';
+                            }
+                        }
                     }
                 });
             }
@@ -6653,6 +6761,48 @@ class GameController {
         }
         
         const selectedAbilityId = abilitySelect.value;
+        
+        // Check if this is a racial ability
+        if (selectedAbilityId.startsWith('racial_')) {
+            const racialAbilityName = selectedAbilityId.replace('racial_', '');
+            
+            // Use racial ability
+            const success = this.characterManager.useRacialAbility(this.gameState.hero, racialAbilityName);
+            
+            if (success) {
+                this.ui.showNotification("Racial ability used successfully!", "success");
+                
+                // Close the docked modal
+                const modal = document.querySelector('.docked-modal');
+                if (modal) {
+                    modal.remove();
+                }
+                
+                // Update combat interface
+                this.updateCombatChatDisplay();
+                
+                // Check for defeated enemies after racial ability
+                this.checkAndProcessDefeatedEnemies();
+                
+                // Check if all enemies are defeated
+                if (this.gameState.currentEnemies.length === 0) {
+                    this.ui.log("All enemies defeated! You can continue deeper or exit the dungeon.");
+                    this.checkLevelUp();
+                    this.ui.render();
+                    this.showVictoryConfirmation();
+                    return;
+                }
+                
+                // Continue combat
+                this.enemiesAttack();
+                setTimeout(() => this.showCombatInterface(), 1000);
+            } else {
+                this.ui.showNotification("Failed to use racial ability!", "error");
+            }
+            return;
+        }
+        
+        // Handle regular hero abilities
         const heroAbilities = this.getHeroAbilities();
         const ability = heroAbilities[selectedAbilityId];
         
@@ -6802,6 +6952,45 @@ class GameController {
             return false;
         }
 
+        // First check if we should skip ability usage (only when single enemy with low health)
+        const enemyCount = this.gameState.currentEnemies ? this.gameState.currentEnemies.length : 0;
+        if (enemyCount === 1) {
+            const singleEnemy = this.gameState.currentEnemies[0];
+            const enemyHealthPercent = singleEnemy.health / singleEnemy.maxHealth;
+            if (enemyHealthPercent < 0.33) {
+                // Skip ability usage when single enemy has <33% health
+                return false;
+            }
+        }
+
+        // Try racial abilities first (50% chance - increased for testing)
+        if (Math.random() < 0.5) {
+            const racialAbilities = this.characterManager.getCharacterRacialAbilities(underling);
+            const availableRacialAbilities = racialAbilities.filter(ability => 
+                this.characterManager.isRacialAbilityAvailable(underling, ability.name)
+            );
+            
+            console.log(`[AI] ${underling.name} checking racial abilities:`, availableRacialAbilities.map(a => a.name));
+            
+            if (availableRacialAbilities.length > 0) {
+                const selectedRacial = availableRacialAbilities[Math.floor(Math.random() * availableRacialAbilities.length)];
+                
+                console.log(`[AI] ${underling.name} considering racial ability: ${selectedRacial.name}`);
+                
+                // Check if racial ability should be used based on conditions
+                const shouldUse = this.shouldUseRacialAbility(underling, selectedRacial);
+                console.log(`[AI] Should use ${selectedRacial.name}:`, shouldUse);
+                
+                if (shouldUse) {
+                    const success = this.characterManager.useRacialAbility(underling, selectedRacial.name);
+                    if (success) {
+                        this.ui.log(`🧬 ${underling.name} uses racial ability: ${selectedRacial.name}!`);
+                        return true;
+                    }
+                }
+            }
+        }
+
         // Map underling types to ability classes
         const typeMapping = {
             'ranged': 'skirmisher',
@@ -6819,22 +7008,6 @@ class GameController {
         if (!abilities || abilities.length === 0) {
             return false;
         }
-
-        // Check if we should skip ability usage (only when single enemy with low health)
-        const enemyCount = this.gameState.currentEnemies ? this.gameState.currentEnemies.length : 0;
-        if (enemyCount === 1) {
-            const singleEnemy = this.gameState.currentEnemies[0];
-            const enemyHealthPercent = singleEnemy.health / singleEnemy.maxHealth;
-            if (enemyHealthPercent < 0.33) {
-                // Skip ability usage when single enemy has <33% health
-                return false;
-            }
-        }
-
-        // Otherwise, always try to use an ability (100% chance)
-        // if (Math.random() > 0.3) {
-        //     return false;
-        // }
 
         // Find a usable ability
         const usableAbilities = abilities.filter(ability => {
@@ -6927,6 +7100,67 @@ class GameController {
         }
         
         return true;
+    }
+    
+    // Helper method to decide if underling should use racial ability
+    shouldUseRacialAbility(character, ability) {
+        console.log(`[AI] Evaluating racial ability ${ability.name} with effect: ${ability.effect}`);
+        
+        switch(ability.effect) {
+            case 'stone_bulwark_defense':
+                // Use if character has no defense buff or health is below 70%
+                const hasDefenseBuff = character.statusEffects && character.statusEffects.stone_bulwark;
+                const healthPercent = character.health / character.maxHealth;
+                const shouldUse1 = !hasDefenseBuff && healthPercent < 0.8; // Increased threshold
+                console.log(`[AI] Stone Bulwark check: hasDefenseBuff=${hasDefenseBuff}, healthPercent=${healthPercent}, shouldUse=${shouldUse1}`);
+                return shouldUse1;
+                
+            case 'meditate_restore':
+                // Use if mana or stamina is below 60%
+                const manaPercent = character.mana / character.maxMana;
+                const staminaPercent = character.stamina / character.maxStamina;
+                const shouldUse2 = manaPercent < 0.6 || staminaPercent < 0.6; // Increased threshold
+                console.log(`[AI] Meditate check: mana=${manaPercent}, stamina=${staminaPercent}, shouldUse=${shouldUse2}`);
+                return shouldUse2;
+                
+            case 'clockwork_summon':
+                // Use if there are multiple enemies and no summons active
+                const enemyCount = this.gameState.currentEnemies ? this.gameState.currentEnemies.length : 0;
+                const hasSummons = this.gameState.battleSummons && this.gameState.battleSummons.length > 0;
+                const shouldUse3 = enemyCount >= 1 && !hasSummons; // Lowered threshold
+                console.log(`[AI] Clockwork check: enemies=${enemyCount}, hasSummons=${hasSummons}, shouldUse=${shouldUse3}`);
+                return shouldUse3;
+                
+            case 'rock_throw':
+                // Use if stamina is above 40% and there's an enemy
+                const hasStamina = character.stamina >= 20; // Lowered requirement
+                const hasEnemies = this.gameState.currentEnemies && this.gameState.currentEnemies.length > 0;
+                const shouldUse4 = hasStamina && hasEnemies;
+                console.log(`[AI] Rock Throw check: stamina=${character.stamina}, hasEnemies=${hasEnemies}, shouldUse=${shouldUse4}`);
+                return shouldUse4;
+                
+            case 'knockdown_multiple':
+                // Use if there are 1+ enemies
+                const shouldUse5 = (this.gameState.currentEnemies ? this.gameState.currentEnemies.length : 0) >= 1;
+                console.log(`[AI] Brute check: shouldUse=${shouldUse5}`);
+                return shouldUse5;
+                
+            case 'frost_breath_aoe':
+                // Use if there are 1+ enemies
+                const shouldUse6 = (this.gameState.currentEnemies ? this.gameState.currentEnemies.length : 0) >= 1;
+                console.log(`[AI] Frost Breath check: shouldUse=${shouldUse6}`);
+                return shouldUse6;
+                
+            case 'ferocity_revival':
+            case 'regeneration':
+                // These are passive/automatic, don't actively use
+                console.log(`[AI] Passive ability ${ability.name}, skipping`);
+                return false;
+                
+            default:
+                console.log(`[AI] Unknown ability effect: ${ability.effect}, using 75% chance`);
+                return Math.random() < 0.75; // Increased chance for unknown abilities
+        }
     }
 
     // Monster ability usage system

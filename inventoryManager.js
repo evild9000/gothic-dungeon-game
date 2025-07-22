@@ -531,6 +531,22 @@ class InventoryManager {
         `).join('');
     }
     
+    // Check if an item is a weapon
+    isWeapon(item) {
+        const itemType = item.type ? item.type.toLowerCase() : '';
+        const itemName = item.name ? item.name.toLowerCase() : '';
+        
+        // Check item type
+        const weaponTypes = ['sword', 'bow', 'staff', 'wand', 'weapon', 'dagger', 'axe', 'mace', 'spear'];
+        if (weaponTypes.includes(itemType)) {
+            return true;
+        }
+        
+        // Check item name for weapon keywords
+        const weaponKeywords = ['sword', 'bow', 'staff', 'wand', 'weapon', 'dagger', 'axe', 'mace', 'spear', 'blade', 'club'];
+        return weaponKeywords.some(keyword => itemName.includes(keyword));
+    }
+    
     // Helper methods for UI interaction
     // Equipment slot compatibility - determines which slots an item can be equipped to
     getItemSlotCompatibility(item) {
@@ -542,19 +558,29 @@ class InventoryManager {
         
         // FIRST: Check if item has a specific slot property (highest priority)
         if (item.slot) {
+            // For hand2 (offhand) slot, ensure it's not a weapon
+            if (item.slot === 'hand2' && this.isWeapon(item)) {
+                console.log(`[Equipment] Weapon ${item.name} cannot be equipped in offhand slot`);
+                return [];
+            }
             console.log(`[Equipment] Found specific slot property: ${item.slot} -> [${item.slot}]`);
             return [item.slot];
         }
         
         // Map item types to equipment slots (order matters - more specific first)
         const slotMap = {
-            // Weapons (specific first)
-            'sword': ['hand1', 'hand2'],
+            // Weapons (main hand only - no more dual wielding)
+            'sword': ['hand1'],
             'bow': ['hand1'],
             'staff': ['hand1'],
             'wand': ['hand1'],
+            'weapon': ['hand1'],
+            'dagger': ['hand1'],
+            'axe': ['hand1'],
+            'mace': ['hand1'],
+            'spear': ['hand1'],
+            // Offhand only items
             'shield': ['hand2'],
-            'weapon': ['hand1', 'hand2'],
             
             // Head equipment
             'helmet': ['head'],
@@ -626,6 +652,12 @@ class InventoryManager {
         for (const [keyword, slots] of sortedKeywords) {
             if (itemName.includes(keyword)) {
                 console.log(`[Equipment] Found name keyword match: "${keyword}" in "${itemName}" -> ${slots}`);
+                // Filter out hand2 for weapons
+                if (this.isWeapon(item)) {
+                    const filteredSlots = slots.filter(slot => slot !== 'hand2');
+                    console.log(`[Equipment] Weapon slots filtered to: ${filteredSlots}`);
+                    return filteredSlots;
+                }
                 return slots;
             }
         }
@@ -636,7 +668,7 @@ class InventoryManager {
         
         // Default slots for generic items
         if (itemType === 'weapon' || itemName.includes('weapon')) {
-            return ['hand1', 'hand2'];
+            return ['hand1']; // Weapons only in main hand
         }
         if (itemType === 'armor' || itemName.includes('armor')) {
             return ['chest'];
@@ -941,22 +973,8 @@ class InventoryManager {
     }
     
     getUnderlingEquippedItemsSummary(underling) {
-        if (!underling.equipment || underling.equipment.filter(item => item.equipped).length === 0) {
-            return ''; // Remove "No equipped items" text
-        }
-        
-        const equippedItems = underling.equipment.filter(item => item.equipped);
-        const itemCount = equippedItems.length;
-        const totalDefense = equippedItems.reduce((total, item) => total + (item.stats?.defense || 0), 0);
-        const totalAttack = equippedItems.reduce((total, item) => total + (item.stats?.attack || 0), 0);
-        
-        return `
-            <div style="color: #ccc; margin-top: 3px;">
-                ${itemCount} items equipped<br>
-                ${totalAttack > 0 ? `+${totalAttack} Attack ` : ''}
-                ${totalDefense > 0 ? `+${totalDefense} Defense` : ''}
-            </div>
-        `;
+        // Don't show equipped items summary for underlings in main inventory view
+        return '';
     }
     
     // Open detailed equipment manager for a specific underling
