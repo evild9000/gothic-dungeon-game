@@ -97,9 +97,11 @@ class TrapManager {
      * Display trap encounter interface
      */
     showTrap(trap) {
-        const hasSkirmisher = this.gameState.party.some(member => 
-            member.class === 'Skirmisher' && member.currentHP > 0
-        );
+        // Check if there are skirmishers among underlings
+        const hasSkirmisher = this.gameState.hero && this.gameState.hero.underlings && 
+            this.gameState.hero.underlings.some(member => 
+                member.class === 'Skirmisher' && member.currentHP > 0
+            );
         
         const hasAntiTrapTools = this.gameController.inventoryManager && 
             this.gameController.inventoryManager.hasItem("Anti-Trap Tools");
@@ -152,10 +154,15 @@ class TrapManager {
         const trap = JSON.parse(trapJSON.replace(/&quot;/g, '"'));
         const damage = Math.floor(Math.random() * (trap.damage[1] - trap.damage[0] + 1)) + trap.damage[0];
         
-        // Apply damage to random party member
-        const aliveMembters = this.gameState.party.filter(member => member.currentHP > 0);
-        if (aliveMembters.length > 0) {
-            const victim = aliveMembters[Math.floor(Math.random() * aliveMembters.length)];
+        // Apply damage to random party member (hero + alive underlings)
+        const aliveMembers = [this.gameState.hero];
+        if (this.gameState.hero.underlings) {
+            const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.currentHP > 0);
+            aliveMembers.push(...aliveUnderlings);
+        }
+        
+        if (aliveMembers.length > 0) {
+            const victim = aliveMembers[Math.floor(Math.random() * aliveMembers.length)];
             victim.currentHP = Math.max(0, victim.currentHP - damage);
             
             this.ui.log(`💥 ${victim.name} triggers the ${trap.name}!`);
@@ -175,9 +182,10 @@ class TrapManager {
      */
     attemptDisarm(trapJSON, withTools) {
         const trap = JSON.parse(trapJSON.replace(/&quot;/g, '"'));
-        const skirmisher = this.gameState.party.find(member => 
-            member.class === 'Skirmisher' && member.currentHP > 0
-        );
+        const skirmisher = this.gameState.hero && this.gameState.hero.underlings ?
+            this.gameState.hero.underlings.find(member => 
+                member.class === 'Skirmisher' && member.currentHP > 0
+            ) : null;
         
         if (!skirmisher) {
             this.ui.log("No conscious Skirmisher available to disarm traps!");

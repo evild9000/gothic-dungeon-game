@@ -1158,11 +1158,14 @@ class GameController {
     }
 
     enterDungeon() {
+        console.log('enterDungeon called, current inDungeon state:', this.gameState.inDungeon);
+        
         if (this.gameState.inDungeon) {
             this.ui.log("You are already in a dungeon!");
             return;
         }
 
+        console.log('Setting inDungeon to true and entering...');
         this.gameState.inDungeon = true;
         this.gameState.currentScreen = 'dungeon';
         
@@ -1171,8 +1174,10 @@ class GameController {
         
         // Use encounter manager if available
         if (this.encounterManager) {
+            console.log('Using encounter manager for dungeon entry');
             this.encounterManager.triggerEncounter(this.gameState.dungeonLevel, 'enter_dungeon');
         } else {
+            console.log('Falling back to old system - no encounter manager');
             // Fallback to old system
             this.gameState.inCombat = true;
             this.generateEnemies();
@@ -1187,12 +1192,18 @@ class GameController {
         // Reset combat round when new enemies are generated
         this.gameState.combatRound = 0;
         
-        // Reset used abilities for all party members at start of new combat
-        this.gameState.party.forEach(member => {
-            if (member.usedAbilities) {
-                member.usedAbilities = [];
-            }
-        });
+        // Reset used abilities for hero and all underlings at start of new combat
+        if (this.gameState.hero && this.gameState.hero.usedAbilities) {
+            this.gameState.hero.usedAbilities = [];
+        }
+        
+        if (this.gameState.hero && this.gameState.hero.underlings) {
+            this.gameState.hero.underlings.forEach(underling => {
+                if (underling.usedAbilities) {
+                    underling.usedAbilities = [];
+                }
+            });
+        }
         
         // Dynamic enemy count based on dungeon level
         // Level 1-2: 1-3 enemies, Level 3+: 1 to (dungeon level) enemies, max 7

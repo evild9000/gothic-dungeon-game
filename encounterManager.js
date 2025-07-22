@@ -18,9 +18,12 @@ class EncounterManager {
         
         // Use event manager to determine encounter type
         if (this.gameController.eventManager) {
+            console.log('Using event manager to determine encounter type');
             const eventType = this.gameController.eventManager.determineRandomEvent(dungeonLevel);
+            console.log('Event type determined:', eventType);
             this.gameController.eventManager.handleRandomEvent(eventType, dungeonLevel);
         } else {
+            console.log('No event manager available, falling back to combat');
             // Fallback to combat
             this.startCombatEncounter(dungeonLevel);
         }
