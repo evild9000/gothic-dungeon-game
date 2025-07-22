@@ -229,8 +229,25 @@ class EncounterManager {
      * Close all open modals
      */
     closeAllModals() {
+        // Close modal overlays
         const modals = document.querySelectorAll('.modal-overlay');
         modals.forEach(modal => modal.remove());
+        
+        // Close enhanced combat modal specifically
+        const combatModal = document.getElementById('enhanced-combat-modal');
+        if (combatModal) {
+            combatModal.remove();
+        }
+        
+        // Close any other modals that might be open
+        const victoryOverlay = document.getElementById('victory-confirmation-overlay');
+        if (victoryOverlay) {
+            victoryOverlay.remove();
+        }
+        
+        // Close any docked modal overlays (like trap modals)
+        const dockedModals = document.querySelectorAll('.docked-modal-overlay');
+        dockedModals.forEach(modal => modal.remove());
     }
 
     /**
