@@ -298,6 +298,13 @@ class TrapManager {
         
         if (!modal || !header) return;
         
+        // Set initial position to ensure it starts at the top
+        modal.style.position = 'fixed';
+        modal.style.top = '20px';
+        modal.style.left = '50%';
+        modal.style.transform = 'translateX(-50%)';
+        modal.style.zIndex = '999999';
+        
         let isDragging = false;
         let currentX;
         let currentY;
@@ -313,12 +320,18 @@ class TrapManager {
         function dragStart(e) {
             if (e.target.classList.contains('close-btn')) return;
             
+            // Get current position
+            const rect = modal.getBoundingClientRect();
+            xOffset = rect.left - (window.innerWidth / 2 - modal.offsetWidth / 2);
+            yOffset = rect.top - 20;
+            
             initialX = e.clientX - xOffset;
             initialY = e.clientY - yOffset;
 
             if (e.target === header || header.contains(e.target)) {
                 isDragging = true;
                 header.style.cursor = 'grabbing';
+                modal.style.transition = 'none'; // Disable transition during drag
             }
         }
 
@@ -331,7 +344,11 @@ class TrapManager {
                 xOffset = currentX;
                 yOffset = currentY;
 
-                modal.style.transform = `translate(${currentX}px, ${currentY}px)`;
+                // Use fixed positioning for dragging
+                modal.style.position = 'fixed';
+                modal.style.left = `${window.innerWidth / 2 - modal.offsetWidth / 2 + currentX}px`;
+                modal.style.top = `${Math.max(0, 20 + currentY)}px`; // Prevent dragging above screen
+                modal.style.transform = 'none';
             }
         }
 
@@ -340,6 +357,7 @@ class TrapManager {
             initialY = currentY;
             isDragging = false;
             header.style.cursor = 'grab';
+            modal.style.transition = ''; // Re-enable transitions
         }
     }
 }

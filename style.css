@@ -1653,15 +1653,17 @@ body.combat-panel-active #chat-log {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.3);
-    z-index: 10000;
+    z-index: 999999;  /* Increased z-index to ensure it's above everything */
     pointer-events: auto;
+    display: flex;
+    align-items: flex-start;  /* Align to top */
+    justify-content: center;  /* Center horizontally */
+    padding-top: 20px;  /* Add padding from top */
+    box-sizing: border-box;
 }
 
 .docked-modal-content {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    position: relative;  /* Changed from fixed to relative */
     background: linear-gradient(135deg, #2d1810, #1a1a2a);
     border: 3px solid #8b4513;
     border-radius: 15px;
@@ -1670,6 +1672,7 @@ body.combat-panel-active #chat-log {
         0 0 50px rgba(139, 69, 19, 0.3);
     max-width: 600px;
     min-width: 400px;
+    width: 90%;  /* Responsive width */
     font-family: 'Cinzel', serif;
     color: #d4af37;
     overflow: hidden;
