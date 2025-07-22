@@ -226,6 +226,13 @@ body {
     pointer-events: none;
     -webkit-user-select: none;
     user-select: none;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+/* Hide game title when game is active */
+body.game-active #game-title {
+    opacity: 0;
+    visibility: hidden;
 }
 
 #main-title {
@@ -483,7 +490,7 @@ body {
     border-top: 3px solid #8b4513;
     border-image: linear-gradient(90deg, #8b4513, #d4af37, #8b4513) 1;
     padding: 15px;
-    height: 280px; /* Increased from 180px to 280px for better visibility */
+    height: 350px; /* Increased from 280px to 350px for better visibility */
     overflow-y: auto;
     font-family: 'Metal Mania', cursive;
     font-size: 16px;
@@ -1131,7 +1138,7 @@ body {
     }
     
     #chat-log {
-        height: 140px; /* Reduced from 180px to 140px for tablets */
+        height: 200px; /* Increased from 140px to 200px for tablets - proportional to main increase */
         font-size: 10px; /* Reduced from 12px to 10px */
         padding: 8px; /* Reduced from 12px to 8px */
     }
@@ -1643,6 +1650,185 @@ body.combat-panel-active #chat-log {
     border-radius: 15px !important;
     box-shadow: 0 0 30px rgba(139, 69, 19, 0.5) !important;
     max-width: 600px !important;
+}
+
+/* Top-Docked Modal Styles for "What's Next?" Dialog */
+.top-docked-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 999999;
+    pointer-events: auto;
+}
+
+.top-docked-modal-content {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #2d1810, #1a1a2a);
+    border: 3px solid #8b4513;
+    border-radius: 15px;
+    box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.8),
+        0 0 50px rgba(139, 69, 19, 0.3);
+    max-width: 600px;
+    min-width: 450px;
+    width: 90%;
+    font-family: 'Cinzel', serif;
+    color: #d4af37;
+    overflow: hidden;
+    pointer-events: auto;
+    z-index: 1000000;
+}
+
+.top-docked-modal-header {
+    background: linear-gradient(135deg, #8b4513, #a0522d);
+    padding: 15px 20px;
+    border-bottom: 2px solid #d4af37;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: move;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.top-docked-modal-header:active {
+    cursor: grabbing;
+}
+
+.top-docked-modal-header h2 {
+    margin: 0;
+    color: #d4af37;
+    font-size: 18px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    font-family: 'Metal Mania', cursive;
+}
+
+.modal-close-btn {
+    background: #8b0000;
+    border: 2px solid #ff4444;
+    border-radius: 50%;
+    color: white;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.modal-close-btn:hover {
+    background: #ff4444;
+    transform: scale(1.1);
+}
+
+.top-docked-modal-body {
+    padding: 20px;
+}
+
+.top-docked-modal-body p {
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 16px;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+}
+
+.action-button {
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: 2px solid;
+    background: linear-gradient(135deg, #2a2a4a, #1a1a3a);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 200px;
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+}
+
+.action-button.primary-btn {
+    border-color: #4ecdc4;
+    color: #4ecdc4;
+}
+
+.action-button.primary-btn:hover {
+    background: linear-gradient(135deg, #4ecdc4, #3aa8a0);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(78, 205, 196, 0.3);
+}
+
+.action-button.secondary-btn {
+    border-color: #d4af37;
+    color: #d4af37;
+}
+
+.action-button.secondary-btn:hover {
+    background: linear-gradient(135deg, #d4af37, #b8941f);
+    color: #2d1810;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(212, 175, 55, 0.3);
+}
+
+.action-button.danger-btn {
+    border-color: #ff4444;
+    color: #ff6666;
+}
+
+.action-button.danger-btn:hover {
+    background: linear-gradient(135deg, #ff4444, #cc3333);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 68, 68, 0.3);
+}
+
+/* Mobile responsive for top-docked modal */
+@media (max-width: 768px) {
+    .top-docked-modal-content {
+        top: 10px;
+        min-width: 320px;
+        width: 95%;
+    }
+    
+    .top-docked-modal-header {
+        padding: 12px 15px;
+    }
+    
+    .top-docked-modal-header h2 {
+        font-size: 16px;
+    }
+    
+    .top-docked-modal-body {
+        padding: 15px;
+    }
+    
+    .action-buttons {
+        gap: 10px;
+    }
+    
+    .action-button {
+        min-width: 180px;
+        padding: 10px 20px;
+        font-size: 13px;
+    }
 }
 
 /* Docked Modal Styles for Traps */

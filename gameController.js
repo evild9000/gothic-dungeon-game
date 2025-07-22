@@ -807,6 +807,9 @@ class GameController {
             this.ui.showNotification(`Welcome ${heroName} the ${speciesName}!`, "success");
         }
         
+        // Add game-active class to hide title
+        document.body.classList.add('game-active');
+        
         console.log('New game reset complete. Hero:', heroName, heroSpecies, heroSubspecies, 'Gold:', this.gameState.hero.gold);
     }
     
@@ -1134,6 +1137,9 @@ class GameController {
             this.ui.render();
             this.ui.updateButtonStates(); // Explicitly refresh button states including shop gold display
             this.ui.showNotification(`Loaded: ${this.gameState.hero.name}`, "success");
+            
+            // Add game-active class to hide title
+            document.body.classList.add('game-active');
             
         } catch (error) {
             this.ui.log("Failed to load save file: " + error.message);

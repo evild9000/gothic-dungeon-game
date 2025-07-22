@@ -169,29 +169,84 @@ class EncounterManager {
      */
     showContinueOptions() {
         const modalHTML = `
-            <div class="modal-overlay" id="continueModal">
-                <div class="modal-content">
-                    <h2>🎯 What's Next?</h2>
-                    <p>You've completed your encounter. Choose your next action:</p>
-                    
-                    <div class="action-buttons">
-                        <button class="action-button primary-btn" onclick="encounterManager.exploreCurrentLevel()">
-                            🔍 Explore This Level
-                        </button>
+            <div class="top-docked-modal-overlay" id="continueModal">
+                <div class="top-docked-modal-content" id="whatsNextModal">
+                    <div class="top-docked-modal-header">
+                        <h2>🎯 What's Next?</h2>
+                        <button class="modal-close-btn" onclick="encounterManager.closeContinueModal()">&times;</button>
+                    </div>
+                    <div class="top-docked-modal-body">
+                        <p>You've completed your encounter. Choose your next action:</p>
                         
-                        <button class="action-button secondary-btn" onclick="encounterManager.goDeeperInDungeon()">
-                            ⬇️ Go Deeper
-                        </button>
-                        
-                        <button class="action-button danger-btn" onclick="encounterManager.exitDungeon()">
-                            🚪 Exit Dungeon
-                        </button>
+                        <div class="action-buttons">
+                            <button class="action-button primary-btn" onclick="encounterManager.exploreCurrentLevel()">
+                                🔍 Explore This Level
+                            </button>
+                            
+                            <button class="action-button secondary-btn" onclick="encounterManager.goDeeperInDungeon()">
+                                ⬇️ Go Deeper
+                            </button>
+                            
+                            <button class="action-button danger-btn" onclick="encounterManager.exitDungeon()">
+                                🚪 Exit Dungeon
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
         
         document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Make the modal draggable
+        this.makeDraggable(document.getElementById('whatsNextModal'));
+    }
+
+    /**
+     * Close the continue modal
+     */
+    closeContinueModal() {
+        const modal = document.getElementById('continueModal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    /**
+     * Make a modal draggable
+     */
+    makeDraggable(element) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        const header = element.querySelector('.top-docked-modal-header');
+        
+        if (header) {
+            header.onmousedown = dragMouseDown;
+        }
+
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
     }
 
     /**
