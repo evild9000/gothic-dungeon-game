@@ -2539,6 +2539,7 @@ class GameController {
 
     applyCharacterStatBonuses(character) {
         // Store original health/mana/stamina before applying bonuses
+        const isNewCharacter = !character.statBonusesApplied;
         const currentHealthPercent = character.health / character.maxHealth;
         const currentManaPercent = character.mana / character.maxMana;
         const currentStaminaPercent = character.stamina ? character.stamina / character.maxStamina : 1;
@@ -2576,10 +2577,17 @@ class GameController {
             character.stamina = character.maxStamina;
         }
         
-        // Maintain current health/mana/stamina percentages
-        character.health = Math.min(character.health, Math.floor(character.maxHealth * currentHealthPercent));
-        character.mana = Math.min(character.mana, Math.floor(character.maxMana * currentManaPercent));
-        character.stamina = Math.min(character.stamina, Math.floor(character.maxStamina * currentStaminaPercent));
+        // For new characters, set to full health/mana/stamina. For existing characters, maintain percentages
+        if (isNewCharacter) {
+            character.health = character.maxHealth;
+            character.mana = character.maxMana;
+            character.stamina = character.maxStamina;
+        } else {
+            // Maintain current health/mana/stamina percentages for existing characters
+            character.health = Math.min(character.health, Math.floor(character.maxHealth * currentHealthPercent));
+            character.mana = Math.min(character.mana, Math.floor(character.maxMana * currentManaPercent));
+            character.stamina = Math.min(character.stamina, Math.floor(character.maxStamina * currentStaminaPercent));
+        }
         
         // Track that bonuses have been applied
         character.statBonusesApplied = true;
@@ -6962,7 +6970,17 @@ class GameController {
                     if (selectedAbility) {
                         if (isRacial) {
                             descriptionDiv.innerHTML = `<strong style="color: #d4af37;">🧬 ${selectedAbility.name}</strong><br>${selectedAbility.description}`;
-                            targetDiv.style.display = 'none'; // Most racial abilities are self-target or automatic
+                            
+                            // Check if racial ability needs target selection
+                            if (selectedAbility.targeting && 
+                                (selectedAbility.targeting.type === 'single' || 
+                                 selectedAbility.targeting.type === 'multiple') &&
+                                selectedAbility.targeting.validTargets !== 'self') {
+                                targetDiv.style.display = 'block';
+                                this.updateRacialTargetSelection(selectedAbility, targetDiv, targetSelect);
+                            } else {
+                                targetDiv.style.display = 'none'; // Most racial abilities are self-target or automatic
+                            }
                         } else {
                             descriptionDiv.innerHTML = `<strong style="color: #d4af37;">${selectedAbility.icon} ${selectedAbility.name}</strong><br>${selectedAbility.description}`;
                             
@@ -7017,6 +7035,59 @@ class GameController {
         targetSelection.style.display = validTargets.length > 0 ? 'block' : 'none';
     }
 
+    updateRacialTargetSelection(ability, targetSelection, targetSelect) {
+        // Get valid targets based on racial ability targeting
+        let validTargets = [];
+        
+        if (ability.targeting.validTargets === 'enemies') {
+            // Get alive enemies
+            if (this.gameState.currentEnemies) {
+                validTargets = this.gameState.currentEnemies.filter(enemy => enemy.currentHP > 0);
+            }
+        } else if (ability.targeting.validTargets === 'allies') {
+            // Get alive allies (hero + underlings)
+            validTargets = [this.gameState.hero];
+            if (this.gameState.hero.underlings) {
+                const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+                validTargets.push(...aliveUnderlings);
+            }
+        } else if (ability.targeting.validTargets === 'all') {
+            // Get all characters
+            validTargets = this.getAllCombatCharacters();
+        }
+        
+        targetSelect.innerHTML = '<option value="">-- Select Target --</option>';
+        
+        if (ability.targeting.type === 'self') {
+            targetSelect.innerHTML += `<option value="hero">${this.gameState.hero.name || 'Hero'} (You)</option>`;
+        } else if (ability.targeting.type === 'all') {
+            targetSelect.innerHTML += `<option value="all">All ${ability.targeting.validTargets}</option>`;
+        } else {
+            validTargets.forEach((target, index) => {
+                let targetId, targetName;
+                
+                if (target === this.gameState.hero) {
+                    targetId = 'hero';
+                    targetName = target.name || 'Hero';
+                } else if (target.id) {
+                    targetId = target.id.toString();
+                    targetName = target.name || 'Unknown';
+                } else {
+                    // For enemies without IDs, use their index in the currentEnemies array
+                    const enemyIndex = this.gameState.currentEnemies ? this.gameState.currentEnemies.indexOf(target) : -1;
+                    targetId = enemyIndex >= 0 ? `enemy_${enemyIndex}` : `${target.name || 'unknown'}_${index}`;
+                    targetName = target.name || 'Unknown';
+                }
+                
+                const healthInfo = target.currentHP !== undefined ? `(${target.currentHP}/${target.maxHP || target.health} HP)` : 
+                                 target.health ? `(${target.health}/${target.maxHealth} HP)` : '';
+                targetSelect.innerHTML += `<option value="${targetId}">${targetName} ${healthInfo}</option>`;
+            });
+        }
+        
+        targetSelection.style.display = validTargets.length > 0 ? 'block' : 'none';
+    }
+
     getAllCombatCharacters() {
         const characters = [this.gameState.hero];
         
@@ -7054,8 +7125,38 @@ class GameController {
         if (selectedAbilityId.startsWith('racial_')) {
             const racialAbilityName = selectedAbilityId.replace('racial_', '');
             
-            // Use racial ability
-            const success = this.characterManager.useRacialAbility(this.gameState.hero, racialAbilityName);
+            // Get target if required
+            let target = null;
+            const racialAbilities = this.characterManager.getCharacterRacialAbilities(this.gameState.hero);
+            const ability = racialAbilities.find(a => a.name === racialAbilityName);
+            
+            if (ability && ability.targeting && ability.targeting.type !== 'self' && ability.targeting.type !== 'all') {
+                const selectedTargetId = targetSelect ? targetSelect.value : null;
+                if (!selectedTargetId) {
+                    this.ui.showNotification("Please select a target!", "error");
+                    return;
+                }
+                
+                // Find the target based on the selected ID
+                if (selectedTargetId === 'hero') {
+                    target = this.gameState.hero;
+                } else if (selectedTargetId.startsWith('enemy_')) {
+                    const enemyIndex = parseInt(selectedTargetId.replace('enemy_', ''));
+                    target = this.gameState.currentEnemies ? this.gameState.currentEnemies[enemyIndex] : null;
+                } else {
+                    // Try to find underling by ID
+                    const targetId = parseInt(selectedTargetId);
+                    target = this.gameState.hero.underlings ? this.gameState.hero.underlings.find(u => u.id === targetId) : null;
+                }
+                
+                if (!target) {
+                    this.ui.showNotification("Invalid target selected!", "error");
+                    return;
+                }
+            }
+            
+            // Use racial ability with target
+            const success = this.characterManager.useRacialAbility(this.gameState.hero, racialAbilityName, target);
             
             if (success) {
                 this.ui.showNotification("Racial ability used successfully!", "success");

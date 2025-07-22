@@ -168,7 +168,11 @@ class CharacterManager {
                             description: "Hurl a massive rock for devastating damage at stamina cost",
                             type: "combat",
                             cooldown: "none",
-                            effect: "rock_throw"
+                            effect: "rock_throw",
+                            targeting: {
+                                type: "single",
+                                validTargets: "enemies"
+                            }
                         }
                     }
                 },
@@ -661,8 +665,8 @@ class CharacterManager {
     }
     
     // Use a racial ability
-    useRacialAbility(character, abilityName) {
-        console.log(`[Racial Ability] ${character.name} attempting to use ${abilityName}`);
+    useRacialAbility(character, abilityName, target = null) {
+        console.log(`[Racial Ability] ${character.name} attempting to use ${abilityName}`, target ? `on ${target.name}` : '');
         
         const abilities = this.getCharacterRacialAbilities(character);
         console.log(`[Racial Ability] Available abilities:`, abilities.map(a => a.name));
@@ -689,11 +693,11 @@ class CharacterManager {
         }
         
         // Execute the ability effect
-        return this.executeRacialAbilityEffect(character, ability);
+        return this.executeRacialAbilityEffect(character, ability, target);
     }
     
     // Execute racial ability effects
-    executeRacialAbilityEffect(character, ability) {
+    executeRacialAbilityEffect(character, ability, target = null) {
         const level = character.level || 1;
         
         switch(ability.effect) {
@@ -706,7 +710,7 @@ class CharacterManager {
             case 'ferocity_revival':
                 return this.executeFerocity(character, level);
             case 'rock_throw':
-                return this.executeRockThrow(character, level);
+                return this.executeRockThrow(character, level, target);
             case 'knockdown_multiple':
                 // Check if Brute was already used this combat
                 if (character.usedAbilities && character.usedAbilities.includes('Brute')) {
@@ -807,14 +811,14 @@ class CharacterManager {
         return false;
     }
     
-    executeRockThrow(character, level) {
+    executeRockThrow(character, level, target = null) {
         const staminaCost = 30;
         
         // Debug logging
         console.log(`[Rock Throw] ${character.name} attempting rock throw:`);
         console.log(`[Rock Throw] Stamina: ${character.stamina}/${staminaCost} required`);
         console.log(`[Rock Throw] In combat: ${this.gameController.gameState.inCombat}`);
-        console.log(`[Rock Throw] Current enemies:`, this.gameController.gameState.currentEnemies);
+        console.log(`[Rock Throw] Target provided:`, target);
         
         if (character.stamina < staminaCost) {
             this.gameController.ui.log(`${character.name} doesn't have enough stamina to throw a rock! (${staminaCost} required, has ${character.stamina})`);
@@ -827,12 +831,23 @@ class CharacterManager {
             return false;
         }
 
-        // Select random enemy target
-        const enemies = this.gameController.gameState.currentEnemies.filter(enemy => enemy.currentHP > 0);
-        console.log(`[Rock Throw] Available enemies:`, enemies.length);
-        
-        if (enemies.length === 0) {
-            this.gameController.ui.log(`${character.name} has no enemies to target with rock throwing!`);
+        // Use provided target or select random enemy
+        let selectedTarget = target;
+        if (!selectedTarget) {
+            const enemies = this.gameController.gameState.currentEnemies.filter(enemy => enemy.currentHP > 0);
+            console.log(`[Rock Throw] Available enemies:`, enemies.length);
+            
+            if (enemies.length === 0) {
+                this.gameController.ui.log(`${character.name} has no enemies to target with rock throwing!`);
+                return false;
+            }
+            
+            selectedTarget = enemies[Math.floor(Math.random() * enemies.length)];
+        }
+
+        // Validate target
+        if (!selectedTarget || selectedTarget.currentHP <= 0) {
+            this.gameController.ui.log(`${character.name} cannot target ${selectedTarget ? selectedTarget.name : 'unknown target'}!`);
             return false;
         }
 
@@ -842,16 +857,15 @@ class CharacterManager {
         const baseDamage = 15 + (level * 3); // Base +15 damage, +3 per level
         const totalDamage = character.attack + baseDamage;
         
-        const target = enemies[Math.floor(Math.random() * enemies.length)];
-        const finalDamage = Math.max(1, totalDamage - target.defense);
+        const finalDamage = Math.max(1, totalDamage - (selectedTarget.defense || 0));
         
-        target.currentHP = Math.max(0, target.currentHP - finalDamage);
+        selectedTarget.currentHP = Math.max(0, selectedTarget.currentHP - finalDamage);
         
-        this.gameController.ui.log(`${character.name} hurls a massive rock at ${target.name}!`);
-        this.gameController.ui.log(`💥 ${target.name} takes ${finalDamage} damage!`);
+        this.gameController.ui.log(`${character.name} hurls a massive rock at ${selectedTarget.name}!`);
+        this.gameController.ui.log(`💥 ${selectedTarget.name} takes ${finalDamage} damage!`);
         
-        if (target.currentHP === 0) {
-            this.gameController.ui.log(`💀 ${target.name} has been defeated!`);
+        if (selectedTarget.currentHP === 0) {
+            this.gameController.ui.log(`💀 ${selectedTarget.name} has been defeated!`);
         }
         
         // Update combat display
