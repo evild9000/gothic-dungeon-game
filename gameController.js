@@ -6531,28 +6531,45 @@ class GameController {
     }
 
     showHeroAbilitySelection() {
+        console.log('[Debug] Magic button clicked - checking combat state:', this.gameState.inCombat);
+        
         if (!this.gameState.inCombat) {
             this.ui.showNotification("Can only use abilities in combat!", "error");
             return;
         }
 
+        console.log('[Debug] Character manager available:', !!this.characterManager);
+        if (!this.characterManager) {
+            this.ui.showNotification("Character system not ready!", "error");
+            return;
+        }
+
+        console.log('[Debug] Hero species:', this.gameState.hero.species, this.gameState.hero.speciesKey);
+        
         const heroAbilities = this.getHeroAbilities();
+        console.log('[Debug] Hero abilities found:', Object.keys(heroAbilities));
+        
         const availableAbilities = Object.values(heroAbilities).filter(ability => {
             // The canUse method already checks level requirements in usageRestrictions.level
             const canUseResult = ability.canUse(this.gameState.hero, this.gameState);
             return canUseResult.canUse;
         });
+        console.log('[Debug] Available regular abilities:', availableAbilities.length);
         
         // Get racial abilities
         const racialAbilities = this.characterManager.getCharacterRacialAbilities(this.gameState.hero);
+        console.log('[Debug] Racial abilities found:', racialAbilities.map(a => a.name));
+        
         const availableRacialAbilities = racialAbilities.filter(ability => 
             this.characterManager.isRacialAbilityAvailable(this.gameState.hero, ability.name)
         );
+        console.log('[Debug] Available racial abilities:', availableRacialAbilities.map(a => a.name));
         
         // Get all abilities for display (including locked ones)
         const allAbilities = Object.values(heroAbilities);
 
         if (availableAbilities.length === 0 && availableRacialAbilities.length === 0) {
+            console.log('[Debug] No abilities available - showing error notification');
             this.ui.showNotification("No usable abilities available!", "error");
             return;
         }
@@ -6632,8 +6649,17 @@ class GameController {
             </div>
         `;
 
+        console.log('[Debug] Creating ability selection modal...');
+        
         // Create a docked modal
-        this.ui.createDockedModal("Hero Abilities", abilityContent);
+        try {
+            this.ui.createDockedModal("Hero Abilities", abilityContent);
+            console.log('[Debug] Modal created successfully');
+        } catch (error) {
+            console.error('[Debug] Error creating modal:', error);
+            this.ui.showNotification("Error opening ability selection!", "error");
+            return;
+        }
 
         // Add event listener for ability selection
         setTimeout(() => {
