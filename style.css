@@ -1635,3 +1635,263 @@ body.combat-panel-active #chat-log {
         transform: translateY(0);
     }
 }
+
+/* Trap Modal Styles */
+.trap-modal {
+    background: linear-gradient(135deg, #2d1810, #1a1a2a) !important;
+    border: 3px solid #8b4513 !important;
+    border-radius: 15px !important;
+    box-shadow: 0 0 30px rgba(139, 69, 19, 0.5) !important;
+    max-width: 600px !important;
+}
+
+.trap-description {
+    background: rgba(20, 20, 40, 0.7);
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border-left: 4px solid #ff4444;
+}
+
+.trap-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.trap-actions .action-button {
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: 2px solid;
+    background: linear-gradient(135deg, #2a2a4a, #1a1a3a);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 120px;
+    text-align: center;
+}
+
+.trap-actions .danger-btn {
+    border-color: #ff4444;
+    color: #ff6666;
+}
+
+.trap-actions .danger-btn:hover {
+    background: linear-gradient(135deg, #ff4444, #cc3333);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 68, 68, 0.3);
+}
+
+.trap-actions .skill-btn {
+    border-color: #4ecdc4;
+    color: #4ecdc4;
+}
+
+.trap-actions .skill-btn:hover {
+    background: linear-gradient(135deg, #4ecdc4, #3aa8a0);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(78, 205, 196, 0.3);
+}
+
+.trap-actions .success-btn {
+    border-color: #51cf66;
+    color: #51cf66;
+}
+
+.trap-actions .success-btn:hover {
+    background: linear-gradient(135deg, #51cf66, #3ba34a);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(81, 207, 102, 0.3);
+}
+
+.trap-actions .secondary-btn {
+    border-color: #888;
+    color: #aaa;
+}
+
+.trap-actions .secondary-btn:hover {
+    background: linear-gradient(135deg, #666, #555);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(136, 136, 136, 0.3);
+}
+
+.trap-stats {
+    text-align: center;
+    color: #888;
+    font-style: italic;
+}
+
+/* Safecracker Vault Styles */
+.safecracker-vault {
+    background: linear-gradient(135deg, #2d1810, #1a1010);
+    border: 3px solid #8b4513;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 
+        inset 0 0 20px rgba(139, 69, 19, 0.3),
+        0 0 30px rgba(212, 175, 55, 0.2);
+}
+
+.safecracker-vault input[type="number"] {
+    background: linear-gradient(135deg, #0a0a0a, #1a1a1a) !important;
+    border: 3px solid #8b4513 !important;
+    color: #d4af37 !important;
+    font-family: 'Cinzel', serif !important;
+    text-shadow: 0 0 5px rgba(212, 175, 55, 0.5) !important;
+    transition: all 0.3s ease !important;
+}
+
+.safecracker-vault input[type="number"]:focus {
+    border-color: #d4af37 !important;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.5) !important;
+    outline: none !important;
+}
+
+.safecracker-vault button {
+    background: linear-gradient(135deg, #8b4513, #654321) !important;
+    border: 2px solid #d4af37 !important;
+    color: #d4af37 !important;
+    font-family: 'Cinzel', serif !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
+    transition: all 0.3s ease !important;
+}
+
+.safecracker-vault button:hover {
+    background: linear-gradient(135deg, #d4af37, #b8941f) !important;
+    color: #2d1810 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4) !important;
+}
+
+#safecrackerHistory {
+    scrollbar-width: thin;
+    scrollbar-color: #8b4513 #1a1a1a;
+}
+
+#safecrackerHistory::-webkit-scrollbar {
+    width: 8px;
+}
+
+#safecrackerHistory::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 4px;
+}
+
+#safecrackerHistory::-webkit-scrollbar-thumb {
+    background: #8b4513;
+    border-radius: 4px;
+}
+
+#safecrackerHistory::-webkit-scrollbar-thumb:hover {
+    background: #d4af37;
+}
+
+/* Animation for safecracker success */
+@keyframes vaultOpen {
+    0% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.05) rotate(1deg); }
+    50% { transform: scale(1.1) rotate(-1deg); }
+    75% { transform: scale(1.05) rotate(0.5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+.vault-opening {
+    animation: vaultOpen 1s ease-in-out;
+}
+
+/* Tile Slider Puzzle Styles */
+.tile-color {
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+.tile-color:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4) !important;
+    border-color: #d4af37 !important;
+}
+
+.tile-empty {
+    background: radial-gradient(circle, #1a1a1a, #0a0a0a) !important;
+    border: 2px dashed #666 !important;
+    position: relative !important;
+}
+
+.tile-empty::before {
+    content: '⊕';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #444;
+    font-size: 20px;
+    opacity: 0.5;
+}
+
+/* Tile slider grid animations */
+@keyframes tileSlide {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+.tile-moving {
+    animation: tileSlide 0.2s ease-in-out;
+}
+
+/* Timer warning colors */
+.timer-warning {
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* Success animation for completed tile slider */
+@keyframes tileSuccess {
+    0% { transform: scale(1) rotate(0deg); border-color: #666; }
+    25% { transform: scale(1.05) rotate(1deg); border-color: #51cf66; }
+    50% { transform: scale(1.1) rotate(-1deg); border-color: #d4af37; }
+    75% { transform: scale(1.05) rotate(0.5deg); border-color: #51cf66; }
+    100% { transform: scale(1) rotate(0deg); border-color: #d4af37; }
+}
+
+.tiles-success {
+    animation: tileSuccess 1s ease-in-out;
+}
+
+/* Grid container hover effects */
+#currentGrid {
+    transition: all 0.3s ease;
+}
+
+#currentGrid:hover {
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+}
+
+/* Target grid styling */
+#targetGrid {
+    box-shadow: inset 0 0 10px rgba(78, 205, 196, 0.2);
+    border: 1px solid #4ecdc4;
+}
+
+/* Responsive tile sizing */
+@media (max-width: 600px) {
+    #currentGrid, #targetGrid {
+        max-width: 250px !important;
+    }
+    
+    .tile-color, .tile-empty {
+        font-size: 12px !important;
+    }
+}

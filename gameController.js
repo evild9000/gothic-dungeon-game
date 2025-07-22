@@ -230,6 +230,39 @@ class GameController {
                 this.inventoryManager.initializeAllCharacterEquipment();
             }
             
+            // Initialize puzzle manager (for future expansion)
+            console.log('Initializing PuzzleManager...');
+            if (typeof PuzzleManager === 'undefined') {
+                console.warn('PuzzleManager class not found. Check if puzzles.js is loaded.');
+            } else {
+                if (!this.puzzleManager) {
+                    this.puzzleManager = new PuzzleManager(this.gameState, this);
+                    console.log('PuzzleManager initialized successfully');
+                }
+            }
+            
+            // Initialize event manager
+            console.log('Initializing EventManager...');
+            if (typeof EventManager === 'undefined') {
+                console.warn('EventManager class not found. Check if events.js is loaded.');
+            } else {
+                if (!this.eventManager) {
+                    this.eventManager = new EventManager(this);
+                    console.log('EventManager initialized successfully');
+                }
+            }
+            
+            // Initialize trap manager
+            console.log('Initializing TrapManager...');
+            if (typeof TrapManager === 'undefined') {
+                console.warn('TrapManager class not found. Check if traps.js is loaded.');
+            } else {
+                if (!this.trapManager) {
+                    this.trapManager = new TrapManager(this);
+                    console.log('TrapManager initialized successfully');
+                }
+            }
+            
             // Apply initial stat bonuses only if character manager is available
             if (this.characterManager) {
                 this.characterManager.applyStatBonuses();
@@ -239,11 +272,17 @@ class GameController {
             // Make managers globally accessible for debugging
             window.inventoryManager = this.inventoryManager;
             window.characterManager = this.characterManager;
+            window.puzzleManager = this.puzzleManager;
+            window.eventManager = this.eventManager;
+            window.trapManager = this.trapManager;
             
             // Also make them accessible through window.game for UI callbacks
             if (window.game) {
                 window.game.inventoryManager = this.inventoryManager;
                 window.game.characterManager = this.characterManager;
+                window.game.puzzleManager = this.puzzleManager;
+                window.game.eventManager = this.eventManager;
+                window.game.trapManager = this.trapManager;
             }
             
             // Add debug helper to window
@@ -2023,11 +2062,14 @@ class GameController {
         loot.push(...materialDrops);
         
         // Improved chance for crafting recipe discovery
-        if (Math.random() < 0.25) { // Increased to 25% chance
-            const recipe = this.discoverCraftingRecipe(enemy.level);
-            if (recipe) {
-                loot.push(`Recipe: ${recipe}`);
-                console.log(`Recipe discovered: ${recipe} from ${enemy.name} (level ${enemy.level})`);
+        if (Math.random() < 0.25) { // 25% chance for testing
+            const recipeData = this.discoverCraftingRecipe(enemy.level);
+            if (recipeData) {
+                loot.push(`Recipe: ${recipeData.name}`);
+                console.log(`Recipe discovered: ${recipeData.name} from ${enemy.name} (level ${enemy.level})`);
+                
+                // Store the recipe data for enhanced logging
+                loot.recipeData = recipeData;
             }
         }
         
@@ -2117,7 +2159,57 @@ class GameController {
         recipe.unlocked = true;
         
         console.log(`Recipe unlocked: ${recipeName}`);
-        return recipeName;
+        return { name: recipeName, recipe: recipe };
+    }
+
+    getRecipeDescription(recipeName, recipe) {
+        // Helper function to get an exciting description of what the recipe creates
+        const weaponDescriptions = {
+            'Iron Sword': 'a reliable blade for aspiring warriors',
+            'Elven Bow': 'an elegant ranged weapon favored by scouts',
+            'Arcane Wand': 'a mystical focus for magical energies',
+            'Divine Staff': 'a holy weapon blessed with divine power',
+            'Shamanic Ritual Staff': 'a powerful tribal weapon infused with ancient spirits',
+            'Venomous Scout Bow': 'a deadly bow that strikes with poison',
+            'Mighty Hammer': 'a crushing weapon of tremendous force',
+            'Raging Axe': 'a berserker\'s weapon that feeds on fury',
+            'Razor Spear': 'a precision weapon for skilled hunters',
+            'Cracked Bone Staff': 'a necromantic focus crackling with dark energy',
+            'Foul Staff': 'a twisted staff of pure malevolence',
+            'Dark Demon Blade': 'a terrifying weapon forged in the fires of hell'
+        };
+        
+        const armorDescriptions = {
+            'Silk Robe': 'elegant robes woven from spider silk',
+            'Leather Helm': 'sturdy headgear crafted from beast hide',
+            'Bone Arm Guards': 'protective guards carved from ancient bones',
+            'Chitin Shell Helm': 'a helmet made from insect carapace'
+        };
+        
+        const categoryDescriptions = {
+            'rings': 'a mystical ring of power',
+            'cloaks': 'a protective cloak',
+            'necks': 'an enchanted amulet',
+            'offhands': 'a magical offhand item'
+        };
+        
+        // Try weapon descriptions first
+        if (weaponDescriptions[recipeName]) {
+            return weaponDescriptions[recipeName];
+        }
+        
+        // Try armor descriptions
+        if (armorDescriptions[recipeName]) {
+            return armorDescriptions[recipeName];
+        }
+        
+        // Try category descriptions for craftable loot
+        if (recipe.category && categoryDescriptions[recipe.category]) {
+            return categoryDescriptions[recipe.category];
+        }
+        
+        // Default description
+        return 'a powerful craftable item';
     }
 
     dropLoot(enemy) {
@@ -2141,8 +2233,28 @@ class GameController {
                     if (!this.gameState.hero.discoveredRecipes.includes(recipeName)) {
                         this.gameState.hero.discoveredRecipes.push(recipeName);
                     }
-                    this.ui.log(`${enemy.name} dropped ${loot}!`);
-                    this.ui.showNotification(`Discovered ${recipeName} crafting recipe!`, "legendary");
+                    
+                    // Get recipe data for enhanced description
+                    const recipeInfo = lootItems.recipeData;
+                    if (recipeInfo) {
+                        const description = this.getRecipeDescription(recipeInfo.name, recipeInfo.recipe);
+                        
+                        // Create exciting, bold log message
+                        this.ui.log(`🎉 **RARE RECIPE DISCOVERED!** 🎉 ${enemy.name} revealed the secrets of crafting **${recipeName}** - ${description}!`);
+                        this.ui.showNotification(`🔥 RECIPE DISCOVERED: ${recipeName}! 🔥`, "legendary");
+                        
+                        // Add materials info to log
+                        if (recipeInfo.recipe.materials) {
+                            const materialList = Object.entries(recipeInfo.recipe.materials)
+                                .map(([material, amount]) => `${amount} ${material}`)
+                                .join(', ');
+                            this.ui.log(`📋 **Recipe Requirements:** ${materialList}`);
+                        }
+                    } else {
+                        // Fallback to basic message if no recipe data
+                        this.ui.log(`🎉 **RECIPE DISCOVERED!** ${enemy.name} dropped ${loot}!`);
+                        this.ui.showNotification(`Discovered ${recipeName} crafting recipe!`, "legendary");
+                    }
                 } else {
                     // Handle special named items
                     this.addItemToInventory(loot);
@@ -2564,7 +2676,7 @@ class GameController {
                         </button>
                         <button class="enhanced-combat-btn magic-btn" onclick="window.game.controller.showHeroAbilitySelection()" 
                                 style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #4a2d7a, #6b3fa0); border: 2px solid #9966cc; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                            ✨ Magic
+                            ⚡ Powers
                         </button>
                         <button class="enhanced-combat-btn item-btn" onclick="window.game.controller.showCombatItemSelection()" 
                                 style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #4a4a2d, #7a7a3a); border: 2px solid #ffd93d; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px;">
@@ -3967,26 +4079,30 @@ class GameController {
     }
 
     exploreCurrentLevel() {
-        // Close any existing combat modals before starting new combat
+        // Close any existing combat modals before starting new encounter
         this.closeEnhancedCombatModal();
         
         // Close any open modals
         const existingModals = document.querySelectorAll('.modal-overlay');
         existingModals.forEach(modal => modal.remove());
         
-        // Generate new enemies on the same level
-        this.gameState.inCombat = true;
-        this.generateEnemies();
-        
         this.ui.log(`🔍 Exploring deeper into dungeon level ${this.gameState.dungeonLevel}...`);
-        this.ui.log("New enemies block your path!");
-        // Removed ui.render() to prevent old sprite display from showing
         
-        setTimeout(() => this.showCombatInterface(), 500);
+        // Use event manager to determine what happens
+        if (this.eventManager) {
+            const eventType = this.eventManager.determineRandomEvent(this.gameState.dungeonLevel);
+            this.eventManager.handleRandomEvent(eventType, this.gameState.dungeonLevel);
+        } else {
+            // Fallback to old system if event manager not available
+            this.gameState.inCombat = true;
+            this.generateEnemies();
+            this.ui.log("New enemies block your path!");
+            setTimeout(() => this.showCombatInterface(), 500);
+        }
     }
 
     goDeeperInDungeon() {
-        // Close any existing combat modals before starting new combat
+        // Close any existing combat modals before starting new encounter
         this.closeEnhancedCombatModal();
         
         // Close any other open modals
@@ -3994,17 +4110,22 @@ class GameController {
         existingModals.forEach(modal => modal.remove());
         
         this.gameState.dungeonLevel++;
-        this.gameState.inCombat = true;
         this.ui.log(`Descending to dungeon level ${this.gameState.dungeonLevel}...`);
-        this.generateEnemies();
         
         // Change to a different random dungeon background
         this.ui.setBackground('dungeon');
         
-        this.ui.log("New enemies block your path!");
-        // Removed ui.render() to prevent old sprite display from showing
-        
-        setTimeout(() => this.showCombatInterface(), 500);
+        // Use event manager to determine what happens
+        if (this.eventManager) {
+            const eventType = this.eventManager.determineRandomEvent(this.gameState.dungeonLevel);
+            this.eventManager.handleRandomEvent(eventType, this.gameState.dungeonLevel);
+        } else {
+            // Fallback to old system if event manager not available
+            this.gameState.inCombat = true;
+            this.generateEnemies();
+            this.ui.log("New enemies block your path!");
+            setTimeout(() => this.showCombatInterface(), 500);
+        }
     }
 
     exitDungeon() {
@@ -5495,6 +5616,13 @@ class GameController {
                 cost: 25, 
                 description: 'Provides 7 uses for resting in dungeons',
                 type: 'supply'
+            },
+            { 
+                id: 'anti_trap_tools', 
+                name: 'Anti-Trap Tools', 
+                cost: 150, 
+                description: 'Professional kit for disarming traps (10 uses)',
+                type: 'tool'
             }
         ];
         
@@ -5585,6 +5713,21 @@ class GameController {
                 }
                 this.gameState.hero.rations += 7;
                 this.ui.log("Bought Rations! You now have " + this.gameState.hero.rations + " rations.");
+                break;
+            case 'anti_trap_tools':
+                // Add anti-trap tools to inventory
+                if (this.inventoryManager) {
+                    this.inventoryManager.addItem("Anti-Trap Tools", 1);
+                } else {
+                    // Fallback to equipment if no inventory manager
+                    this.gameState.hero.equipment.push({
+                        name: "Anti-Trap Tools",
+                        type: "tool",
+                        uses: 10,
+                        description: "Professional kit for disarming traps"
+                    });
+                }
+                this.ui.log("Bought Anti-Trap Tools! Perfect for dungeon exploration.");
                 break;
         }
 
@@ -6534,7 +6677,7 @@ class GameController {
         console.log('[Debug] Magic button clicked - checking combat state:', this.gameState.inCombat);
         
         if (!this.gameState.inCombat) {
-            this.ui.showNotification("Can only use abilities in combat!", "error");
+            this.ui.showNotification("Can only use powers in combat!", "error");
             return;
         }
 
@@ -6570,24 +6713,24 @@ class GameController {
 
         if (availableAbilities.length === 0 && availableRacialAbilities.length === 0) {
             console.log('[Debug] No abilities available - showing error notification');
-            this.ui.showNotification("No usable abilities available!", "error");
+            this.ui.showNotification("No usable powers available!", "error");
             return;
         }
 
         const abilityContent = `
             <div style="background: rgba(20, 20, 40, 0.9); padding: 20px; border-radius: 12px; border: 2px solid #9966cc;">
-                <h3 style="color: #d4af37; margin-bottom: 15px; text-align: center;">✨ Hero Abilities ✨</h3>
+                <h3 style="color: #d4af37; margin-bottom: 15px; text-align: center;">⚡ Hero Powers ⚡</h3>
                 
                 <div style="margin-bottom: 15px;">
-                    <label style="color: #4ecdc4; font-weight: bold; margin-bottom: 8px; display: block;">Choose Ability:</label>
+                    <label style="color: #4ecdc4; font-weight: bold; margin-bottom: 8px; display: block;">Choose Power:</label>
                     <select id="abilitySelect" style="width: 100%; padding: 8px; background: #2a2a4a; color: white; border: 1px solid #666; border-radius: 6px; font-size: 14px;">
-                        <option value="">-- Select an Ability --</option>
-                        ${availableAbilities.length > 0 ? '<optgroup label="🔮 Magic Abilities">' : ''}
+                        <option value="">-- Select a Power --</option>
+                        ${availableAbilities.length > 0 ? '<optgroup label="🔮 Magic Powers">' : ''}
                         ${availableAbilities.map(ability => 
                             `<option value="${ability.id}">${ability.icon} ${ability.name} (${ability.costs.mana || 0} MP, ${ability.costs.stamina || 0} SP)</option>`
                         ).join('')}
                         ${availableAbilities.length > 0 ? '</optgroup>' : ''}
-                        ${availableRacialAbilities.length > 0 ? '<optgroup label="🧬 Racial Abilities">' : ''}
+                        ${availableRacialAbilities.length > 0 ? '<optgroup label="🧬 Racial Powers">' : ''}
                         ${availableRacialAbilities.map(ability => 
                             `<option value="racial_${ability.name}">🧬 ${ability.name} (Racial)</option>`
                         ).join('')}
@@ -6596,7 +6739,7 @@ class GameController {
                 </div>
                 
                 <div style="margin-bottom: 15px;">
-                    <h4 style="color: #d4af37; margin-bottom: 10px;">📚 All Abilities (Level Requirements)</h4>
+                    <h4 style="color: #d4af37; margin-bottom: 10px;">📚 All Powers (Level Requirements)</h4>
                     <div style="background: rgba(42, 42, 58, 0.6); padding: 10px; border-radius: 6px; max-height: 200px; overflow-y: auto;">
                         ${allAbilities.map(ability => {
                             const isLocked = ability.usageRestrictions && ability.usageRestrictions.level && this.gameState.hero.level < ability.usageRestrictions.level;
@@ -6626,7 +6769,7 @@ class GameController {
                 </div>
                 
                 <div id="abilityDescription" style="margin-bottom: 15px; padding: 10px; background: rgba(42, 42, 58, 0.6); border-radius: 6px; min-height: 40px; color: #ccc; font-style: italic;">
-                    Select an ability to see its description...
+                    Select a power to see its description...
                 </div>
                 
                 <div id="targetSelection" style="display: none; margin-bottom: 15px;">
@@ -6635,25 +6778,27 @@ class GameController {
                         <option value="">-- Select Target --</option>
                     </select>
                 </div>
-                
-                <div style="display: flex; gap: 10px; justify-content: center;">
-                    <button onclick="window.game.controller.castHeroAbility()" 
-                            style="padding: 10px 20px; background: linear-gradient(45deg, #4a2d7a, #6b3fa0); border: 2px solid #9966cc; color: white; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                        ✨ Cast Ability
-                    </button>
-                    <button onclick="document.querySelector('.docked-modal').remove()" 
-                            style="padding: 10px 20px; background: linear-gradient(45deg, #666, #888); border: 2px solid #aaa; color: white; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                        Cancel
-                    </button>
-                </div>
             </div>
         `;
 
         console.log('[Debug] Creating ability selection modal...');
         
-        // Create a docked modal
+        // Create a modal with cast/cancel buttons
+        const modalButtons = [
+            {
+                text: "⚡ Cast Power",
+                onClick: () => this.castHeroAbility()
+            },
+            {
+                text: "Cancel",
+                onClick: () => {
+                    // Modal will be closed automatically by the UI system
+                }
+            }
+        ];
+        
         try {
-            this.ui.createDockedModal("Hero Abilities", abilityContent);
+            this.ui.createModal("Hero Powers", abilityContent, modalButtons);
             console.log('[Debug] Modal created successfully');
         } catch (error) {
             console.error('[Debug] Error creating modal:', error);
@@ -6672,7 +6817,7 @@ class GameController {
                 abilitySelect.addEventListener('change', () => {
                     const selectedValue = abilitySelect.value;
                     if (!selectedValue) {
-                        descriptionDiv.innerHTML = 'Select an ability to see its description...';
+                        descriptionDiv.innerHTML = 'Select a power to see its description...';
                         targetDiv.style.display = 'none';
                         return;
                     }
