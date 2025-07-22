@@ -43,7 +43,7 @@ class CharacterManager {
                 }],
                 equipmentSlots: "human", // Uses human equipment slots for now
                 description: "Graceful and magical forest dwellers",
-                baseStats: { strength: 4, dexterity: 7, constitution: 4, intelligence: 6, willpower: 6, size: 4 }
+                baseStats: { strength: 5, dexterity: 5, constitution: 5, intelligence: 5, willpower: 5, size: 5 }
             },
             dwarf: {
                 name: "Dwarf",
@@ -65,7 +65,7 @@ class CharacterManager {
                 }],
                 equipmentSlots: "human",
                 description: "Stout and resilient mountain folk",
-                baseStats: { strength: 6, dexterity: 4, constitution: 7, intelligence: 5, willpower: 6, size: 4 }
+                baseStats: { strength: 5, dexterity: 5, constitution: 5, intelligence: 5, willpower: 5, size: 5 }
             },
             gnome: {
                 name: "Gnome",
@@ -87,7 +87,7 @@ class CharacterManager {
                 }],
                 equipmentSlots: "human",
                 description: "Small, clever folk with natural cunning",
-                baseStats: { strength: 3, dexterity: 7, constitution: 5, intelligence: 6, willpower: 6, size: 3 }
+                baseStats: { strength: 5, dexterity: 5, constitution: 5, intelligence: 5, willpower: 5, size: 5 }
             },
             orc: {
                 name: "Orc",
@@ -109,12 +109,12 @@ class CharacterManager {
                 }],
                 equipmentSlots: "human",
                 description: "Powerful and aggressive warriors",
-                baseStats: { strength: 7, dexterity: 5, constitution: 6, intelligence: 4, willpower: 5, size: 6 }
+                baseStats: { strength: 5, dexterity: 5, constitution: 5, intelligence: 5, willpower: 5, size: 5 }
             },
             goblin: {
                 name: "Goblin",
                 displayName: "Goblin",
-                statModifiers: { strength: -1, dexterity: 2, constitution: 1, intelligence: 0, willpower: 0, size: -1 },
+                statModifiers: { strength: -1, dexterity: 2, constitution: 1, intelligence: -1, willpower: 0, size: -1 },
                 subspecies: {
                     cave: {
                         name: "Cave Goblin",
@@ -125,7 +125,7 @@ class CharacterManager {
                 racialAbilities: [],
                 equipmentSlots: "human",
                 description: "Quick and cunning small humanoids",
-                baseStats: { strength: 4, dexterity: 7, constitution: 6, intelligence: 5, willpower: 5, size: 4 }
+                baseStats: { strength: 5, dexterity: 5, constitution: 5, intelligence: 5, willpower: 5, size: 5 }
             },
             giantkin: {
                 name: "Giantkin",
@@ -136,7 +136,7 @@ class CharacterManager {
                         name: "Ogre",
                         statModifiers: { strength: 0, dexterity: 0, constitution: 0, intelligence: 0, willpower: 0, size: 0 },
                         description: "Powerful brutes with devastating knockout attacks",
-                        baseStats: { strength: 9, dexterity: 4, constitution: 7, intelligence: 3, willpower: 4, size: 9 },
+                        baseStats: { strength: 5, dexterity: 5, constitution: 5, intelligence: 5, willpower: 5, size: 5 },
                         racialAbility: {
                             name: "Brute",
                             description: "Knock down up to three foes with a resistance check",
@@ -149,7 +149,7 @@ class CharacterManager {
                         name: "Troll",
                         statModifiers: { strength: -1, dexterity: 0, constitution: 1, intelligence: 0, willpower: -1, size: 0 },
                         description: "Regenerating giants with incredible endurance",
-                        baseStats: { strength: 8, dexterity: 5, constitution: 8, intelligence: 3, willpower: 3, size: 9 },
+                        baseStats: { strength: 5, dexterity: 5, constitution: 5, intelligence: 5, willpower: 5, size: 5 },
                         racialAbility: {
                             name: "Regenerate",
                             description: "Regenerate 5% of max HP every combat round",
@@ -160,9 +160,9 @@ class CharacterManager {
                     },
                     giant: {
                         name: "Giant",
-                        statModifiers: { strength: 3, dexterity: -1, constitution: 1, intelligence: 0, willpower: 0, size: 1 },
+                        statModifiers: { strength: 3, dexterity: -1, constitution: 3, intelligence: 1, willpower: 0, size: 1 },
                         description: "Massive beings capable of hurling devastating rocks",
-                        baseStats: { strength: 12, dexterity: 3, constitution: 10, intelligence: 4, willpower: 4, size: 10 },
+                        baseStats: { strength: 5, dexterity: 5, constitution: 5, intelligence: 5, willpower: 5, size: 5 },
                         racialAbility: {
                             name: "Rock Throwing",
                             description: "Hurl a massive rock for devastating damage at stamina cost",
@@ -175,7 +175,7 @@ class CharacterManager {
                 racialAbilities: [],
                 equipmentSlots: "human",
                 description: "Massive humanoids of incredible strength and size",
-                baseStats: { strength: 9, dexterity: 4, constitution: 7, intelligence: 3, willpower: 4, size: 9 }
+                baseStats: { strength: 5, dexterity: 5, constitution: 5, intelligence: 5, willpower: 5, size: 5 }
             },
             yeti: {
                 name: "Yeti",
@@ -197,7 +197,7 @@ class CharacterManager {
                 }],
                 equipmentSlots: "human",
                 description: "Massive arctic creatures with devastating frost abilities",
-                baseStats: { strength: 8, dexterity: 4, constitution: 6, intelligence: 4, willpower: 6, size: 6 }
+                baseStats: { strength: 5, dexterity: 5, constitution: 5, intelligence: 5, willpower: 5, size: 5 }
             }
             // Framework ready for additional species like spiders, centaurs, etc.
         };
@@ -262,6 +262,30 @@ class CharacterManager {
         return speciesDef.subspecies[subspecies] || speciesDef.subspecies[this.defaultSubspecies];
     }
     
+    // Apply class stat bonuses to character
+    applyClassBonuses(character) {
+        if (!character.class) return;
+        
+        const className = character.class.toLowerCase();
+        
+        // Class bonuses based on the user's requirements
+        const classModifiers = {
+            warrior: { strength: 3, dexterity: -1, constitution: 3, intelligence: -1, willpower: 1 },
+            skirmisher: { strength: -1, dexterity: 3, constitution: 1, intelligence: 1, willpower: 1 },
+            mage: { strength: -2, dexterity: 2, constitution: -1, intelligence: 3, willpower: 3 },
+            priest: { strength: -2, dexterity: 0, constitution: 1, intelligence: 2, willpower: 4 }
+        };
+        
+        const modifiers = classModifiers[className];
+        if (modifiers) {
+            Object.entries(modifiers).forEach(([stat, modifier]) => {
+                if (character[stat] !== undefined) {
+                    character[stat] = Math.max(1, character[stat] + modifier);
+                }
+            });
+        }
+    }
+    
     // Apply species stat modifiers to character
     applySpeciesModifiers(character) {
         if (!character.species || !character.subspecies) return;
@@ -269,11 +293,11 @@ class CharacterManager {
         const speciesDef = this.getSpeciesDefinition(character.species);
         const subspeciesDef = this.getSubspeciesDefinition(character.species, character.subspecies);
         
-        // Apply base species modifiers
+        // Apply base species modifiers (to stats that already include class bonuses)
         if (speciesDef.statModifiers) {
             Object.entries(speciesDef.statModifiers).forEach(([stat, modifier]) => {
                 if (character[stat] !== undefined) {
-                    character[stat] = Math.max(1, (character.baseStats?.[stat] || 5) + modifier);
+                    character[stat] = Math.max(1, character[stat] + modifier);
                 }
             });
         }
@@ -288,34 +312,39 @@ class CharacterManager {
         }
     }
     
-    // Initialize character with species data
-    initializeCharacterSpecies(character, species = null, subspecies = null) {
+    // Initialize character with species data and optional class bonuses
+    initializeCharacterSpecies(character, species = null, subspecies = null, characterClass = null) {
         // Set species and subspecies
         character.species = species || this.defaultSpecies;
         character.subspecies = subspecies || this.defaultSubspecies;
         
-        // Get species definition to use racial base stats
-        const speciesDef = this.getSpeciesDefinition(character.species);
+        // Store the character class if provided
+        if (characterClass) {
+            character.class = characterClass;
+        }
         
-        // Store base stats using racial base stats if available, otherwise use character's current stats
+        // Start with universal base stats of 5
         if (!character.baseStats) {
             character.baseStats = {
-                strength: speciesDef.baseStats?.strength || character.strength || 5,
-                dexterity: speciesDef.baseStats?.dexterity || character.dexterity || 5,
-                constitution: speciesDef.baseStats?.constitution || character.constitution || 5,
-                intelligence: speciesDef.baseStats?.intelligence || character.intelligence || 5,
-                willpower: speciesDef.baseStats?.willpower || character.willpower || 5,
-                size: speciesDef.baseStats?.size || character.size || 5
+                strength: 5,
+                dexterity: 5,
+                constitution: 5,
+                intelligence: 5,
+                willpower: 5,
+                size: 5
             };
         }
         
-        // Set character stats to racial base stats (before modifiers)
+        // Set character stats to base stats
         character.strength = character.baseStats.strength;
         character.dexterity = character.baseStats.dexterity;
         character.constitution = character.baseStats.constitution;
         character.intelligence = character.baseStats.intelligence;
         character.willpower = character.baseStats.willpower;
         character.size = character.baseStats.size;
+        
+        // Apply class bonuses if class is specified
+        this.applyClassBonuses(character);
         
         // Apply species modifiers
         this.applySpeciesModifiers(character);

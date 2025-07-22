@@ -5559,13 +5559,13 @@ class GameController {
                 stamina: 80,
                 attack: 15, 
                 defense: 5,
-                // Skirmisher stats - focused on dexterity and intelligence 
-                strength: 4,
-                dexterity: 8,
+                // Starting with base stats - bonuses will be applied via class and species modifiers
+                strength: 5,
+                dexterity: 5,
                 constitution: 5,
-                intelligence: 6,
-                willpower: 5
-                // Size removed - will be set by racial characteristics only
+                intelligence: 5,
+                willpower: 5,
+                size: 5
             },
             warrior: { 
                 name: "Warrior", 
@@ -5576,13 +5576,13 @@ class GameController {
                 stamina: 100,
                 attack: 12, 
                 defense: 10,
-                // Warrior stats - focused on strength and constitution
-                strength: 8,
-                dexterity: 4,
-                constitution: 8,
-                intelligence: 4,
-                willpower: 6
-                // Size removed - will be set by racial characteristics only
+                // Starting with base stats - bonuses will be applied via class and species modifiers
+                strength: 5,
+                dexterity: 5,
+                constitution: 5,
+                intelligence: 5,
+                willpower: 5,
+                size: 5
             },
             mage: { 
                 name: "Mage", 
@@ -5593,13 +5593,13 @@ class GameController {
                 stamina: 60,
                 attack: 20, 
                 defense: 3,
-                // Mage stats - focused on intelligence and willpower
-                strength: 3,
+                // Starting with base stats - bonuses will be applied via class and species modifiers
+                strength: 5,
                 dexterity: 5,
-                constitution: 4,
-                intelligence: 8,
-                willpower: 8
-                // Size removed - will be set by racial characteristics only
+                constitution: 5,
+                intelligence: 5,
+                willpower: 5,
+                size: 5
             },
             priest: { 
                 name: "Priest", 
@@ -5610,13 +5610,13 @@ class GameController {
                 stamina: 70, 
                 attack: 8, 
                 defense: 6,
-                // Priest stats - focused on willpower and intelligence
-                strength: 3,
+                // Starting with base stats - bonuses will be applied via class and species modifiers
+                strength: 5,
                 dexterity: 5,
-                constitution: 6,
-                intelligence: 7,
-                willpower: 9
-                // Size removed - will be set by racial characteristics only
+                constitution: 5,
+                intelligence: 5,
+                willpower: 5,
+                size: 5
             }
         };
 
@@ -5645,7 +5645,7 @@ class GameController {
 
         // Initialize character species data and apply modifiers
         const subspecies = this.getDefaultSubspeciesForSpecies(speciesKey);
-        this.characterManager.initializeCharacterSpecies(underling, speciesKey, subspecies);
+        this.characterManager.initializeCharacterSpecies(underling, speciesKey, subspecies, type);
 
         this.gameState.hero.underlings.push(underling);
         
