@@ -1049,7 +1049,7 @@ class GameController {
                         underling.constitution = 5;
                         underling.intelligence = 5;
                         underling.willpower = 5;
-                        underling.size = 5;
+                        // Don't set size here - let species initialization handle it
                     }
                     
                     // Add species data if missing (backward compatibility)
@@ -1060,6 +1060,12 @@ class GameController {
                         // Extract base class from name if possible
                         const nameParts = underling.name.split(' ');
                         underling.baseClass = nameParts.length > 1 ? nameParts[nameParts.length - 1] : underling.name;
+                    }
+                    
+                    // Initialize species data if size is missing (ensures racial size is applied)
+                    if (underling.size === undefined && underling.speciesKey) {
+                        const subspecies = this.getDefaultSubspeciesForSpecies(underling.speciesKey);
+                        this.characterManager.initializeCharacterSpecies(underling, underling.speciesKey, subspecies);
                     }
                 });
             }
@@ -1076,7 +1082,7 @@ class GameController {
                 this.gameState.hero.constitution = 5;
                 this.gameState.hero.intelligence = 5;
                 this.gameState.hero.willpower = 5;
-                this.gameState.hero.size = 5;
+                // Don't set size here - let species initialization handle it
             }
             
             // Ensure all stats are numbers and not undefined/null
@@ -2916,7 +2922,11 @@ class GameController {
             this.gameState.hero.willpower = 5;
         }
         if (!this.gameState.hero.size || this.gameState.hero.size === undefined) {
-            this.gameState.hero.size = 5;
+            // Don't force size to 5 - let species initialization handle it
+            // This is for backward compatibility but should respect racial characteristics
+            if (!this.gameState.hero.species) {
+                this.gameState.hero.size = 5; // Only set to 5 if no species (i.e., human default)
+            }
         }
     }
 
@@ -5554,8 +5564,8 @@ class GameController {
                 dexterity: 8,
                 constitution: 5,
                 intelligence: 6,
-                willpower: 5,
-                size: 5
+                willpower: 5
+                // Size removed - will be set by racial characteristics only
             },
             warrior: { 
                 name: "Warrior", 
@@ -5571,8 +5581,8 @@ class GameController {
                 dexterity: 4,
                 constitution: 8,
                 intelligence: 4,
-                willpower: 6,
-                size: 4  // Changed from 5 to 4 to match dwarf base size
+                willpower: 6
+                // Size removed - will be set by racial characteristics only
             },
             mage: { 
                 name: "Mage", 
@@ -5588,8 +5598,8 @@ class GameController {
                 dexterity: 5,
                 constitution: 4,
                 intelligence: 8,
-                willpower: 8,
-                size: 5
+                willpower: 8
+                // Size removed - will be set by racial characteristics only
             },
             priest: { 
                 name: "Priest", 
@@ -5605,8 +5615,8 @@ class GameController {
                 dexterity: 5,
                 constitution: 6,
                 intelligence: 7,
-                willpower: 9,
-                size: 5
+                willpower: 9
+                // Size removed - will be set by racial characteristics only
             }
         };
 

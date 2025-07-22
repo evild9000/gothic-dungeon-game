@@ -294,17 +294,28 @@ class CharacterManager {
         character.species = species || this.defaultSpecies;
         character.subspecies = subspecies || this.defaultSubspecies;
         
-        // Store base stats before modifiers
+        // Get species definition to use racial base stats
+        const speciesDef = this.getSpeciesDefinition(character.species);
+        
+        // Store base stats using racial base stats if available, otherwise use character's current stats
         if (!character.baseStats) {
             character.baseStats = {
-                strength: character.strength || 5,
-                dexterity: character.dexterity || 5,
-                constitution: character.constitution || 5,
-                intelligence: character.intelligence || 5,
-                willpower: character.willpower || 5,
-                size: character.size || 5
+                strength: speciesDef.baseStats?.strength || character.strength || 5,
+                dexterity: speciesDef.baseStats?.dexterity || character.dexterity || 5,
+                constitution: speciesDef.baseStats?.constitution || character.constitution || 5,
+                intelligence: speciesDef.baseStats?.intelligence || character.intelligence || 5,
+                willpower: speciesDef.baseStats?.willpower || character.willpower || 5,
+                size: speciesDef.baseStats?.size || character.size || 5
             };
         }
+        
+        // Set character stats to racial base stats (before modifiers)
+        character.strength = character.baseStats.strength;
+        character.dexterity = character.baseStats.dexterity;
+        character.constitution = character.baseStats.constitution;
+        character.intelligence = character.baseStats.intelligence;
+        character.willpower = character.baseStats.willpower;
+        character.size = character.baseStats.size;
         
         // Apply species modifiers
         this.applySpeciesModifiers(character);
