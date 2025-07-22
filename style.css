@@ -1770,10 +1770,7 @@ body.combat-panel-active #chat-log {
     box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4) !important;
 }
 
-#safecrackerHistory {
-    scrollbar-width: thin;
-    scrollbar-color: #8b4513 #1a1a1a;
-}
+/* Custom scrollbar styling for #safecrackerHistory is handled below for better browser compatibility */
 
 #safecrackerHistory::-webkit-scrollbar {
     width: 8px;

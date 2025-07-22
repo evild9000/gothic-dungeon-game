@@ -657,6 +657,11 @@ class CharacterManager {
             case 'rock_throw':
                 return this.executeRockThrow(character, level);
             case 'knockdown_multiple':
+                // Check if Brute was already used this combat
+                if (character.usedAbilities && character.usedAbilities.includes('Brute')) {
+                    this.gameController.ui.log(`${character.name} has already used Brute this combat!`);
+                    return false;
+                }
                 return this.executeBrute(character, level);
             case 'regeneration':
                 return this.executeRegeneration(character, level);
@@ -805,8 +810,11 @@ class CharacterManager {
         const targets = this.gameController.gameState.currentEnemies.slice(0, 3);
         const baseSuccessChance = 90;
         let knockedDown = 0;
+        let resisted = 0;
         
-        targets.forEach(enemy => {
+        this.gameController.ui.log(`💥 ${character.name} unleashes a brutal assault!`);
+        
+        targets.forEach((enemy, index) => {
             const enemyStr = enemy.strength || 5;
             const successChance = Math.max(10, baseSuccessChance - (enemyStr * 5));
             
@@ -814,13 +822,23 @@ class CharacterManager {
                 if (!enemy.statusEffects) enemy.statusEffects = {};
                 enemy.statusEffects.knocked_down = {
                     value: 1,
-                    duration: 1 // Lose next turn
+                    duration: 1, // Lose next turn
+                    icon: "🔻" // Knocked down icon
                 };
                 knockedDown++;
+                this.gameController.ui.log(`   ✅ ${enemy.name} is knocked down and will lose their next turn!`);
+            } else {
+                resisted++;
+                this.gameController.ui.log(`   ❌ ${enemy.name} resists the knockdown attempt (STR: ${enemyStr})!`);
             }
         });
         
-        this.gameController.ui.log(`${character.name} unleashes a brutal assault! ${knockedDown} enemies knocked down!`);
+        this.gameController.ui.log(`📊 Result: ${knockedDown} knocked down, ${resisted} resisted`);
+        
+        // Mark ability as used for this combat
+        if (!character.usedAbilities) character.usedAbilities = [];
+        character.usedAbilities.push('Brute');
+        
         return true;
     }
     

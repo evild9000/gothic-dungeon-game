@@ -5,12 +5,25 @@ future todo:
 - expand -give some little icons near the  name for status effects, such as stunned, webbed, poisoned, burning, etc review all spells, abilities, powers and if there is an ongoing status effect positive or negative give an icon for it to 2. the affected target with a hover over tooltip showing rounds remaining of the effect and information about it.
 - 
 =============
-test - offhand items should only be shields and stuff that is not weapons
-test - underlings in inventory management dont need the 'equipped items' shown
+new issues:  
+1. ogre brute power - include in the combat if enemy was able to resist or not, if it was knocked down make sure it is losing its turn, and apply a debuff icon to its entity
+2. ogre brute power - the power wasnt usable in the next combat after using it once in a prior combat
+3. a combat should start with ROUND 1 in the log, and a round should advance even when the hero uses a power, it seems like the round indicator is not always advancing, its seems maybe like it is attached only to attacking possibly.
+4. i had a skirmister equip a bow and then it attempted to equip a staff, and then instead of unequipping the other item first and 'swapping' them it simply overwrote the bow and the bow disappeared entirely and was gone. it should not delete the item.  the staff was equipped successfully.
+5. when encountering other special things within the dungeon such as for example a hidden treasure cache (perhaps provide a fun gif or graphic appearing on the screen for this) then also supply the pop up modal to explore the dungeon further or exit, etc that you would normally offer, as at that point the only option is to exit the dungeon.
+6. change the mechanics of dungeon encounters to be run by an overall encounter manager so that when entering the dungeon from the village or chosing 'go deeper' or 'explore this level' the encounter manager decides if the party encounters another battle, a puzzle, a trap or some other special event.  you may already have some of this in place, but this needs to be more consistent from all three of these button choices as well as a funnel point back from any one of these after encountering a trap, puzzle, or other mystery etc.  please get this organized.  
+7. remove the riddles from puzzles
+8. 'i notice something 'suspicious ahead' doesnt do anything, i do not see a trap interface loaded, is there some modal that is supposed to load?  perhaps this needs to be coded
+9. reduce xp by 20% and increase gold by 20%
+10. i wasnt able to make the bone armor, the crafting area said it only needed 2 bones per slot, but i also recall i wanted it to require the droppable loot called 'bone armor'  make sure this is listed as well.
+
+
+
 test - magic button didnt work as troll
 test - im not seeing underlings using racial powers, are they hooked up?
+requested -rock throwing should just do damage at +ATK, not affect next attack
 
-test puzzles, traps, 
+test puzzles, traps and all powers, abilities, racial powers, 
 
 
 expand options to do in dungeon: 

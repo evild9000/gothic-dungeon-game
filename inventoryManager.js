@@ -345,23 +345,27 @@ class InventoryManager {
             return false;
         }
         
-        // Unequip current item in slot
-        if (slot.equipped) {
-            this.unequipItem(slot.equipped);
+        // FIRST: Store currently equipped item before making any changes
+        const currentEquipped = slot.equipped;
+        
+        // SECOND: Unequip current item in slot (this will add it back to inventory)
+        if (currentEquipped) {
+            // Temporarily store the old item
+            this.unequipItem(currentEquipped);
         }
         
-        // Equip new item
+        // THIRD: Equip new item
         item.equipped = true;
         slot.equipped = item;
         
-        // Move from inventory to equipment if needed
+        // FOURTH: Move from inventory to equipment if needed
         const invIndex = this.gameState.hero.inventory.findIndex(inv => inv === item);
         if (invIndex !== -1) {
             this.gameState.hero.inventory.splice(invIndex, 1);
             this.gameState.hero.equipment.push(item);
         }
         
-        this.ui.log(`Equipped ${item.name}!`);
+        this.ui.log(`Equipped ${item.name}!${currentEquipped ? ` (Unequipped ${currentEquipped.name})` : ''}`);
         this.ui.showNotification(`Equipped ${item.name}!`, "success");
         return true;
     }

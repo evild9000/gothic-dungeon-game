@@ -263,6 +263,17 @@ class GameController {
                 }
             }
             
+            // Initialize encounter manager
+            console.log('Initializing EncounterManager...');
+            if (typeof EncounterManager === 'undefined') {
+                console.warn('EncounterManager class not found. Check if encounterManager.js is loaded.');
+            } else {
+                if (!this.encounterManager) {
+                    this.encounterManager = new EncounterManager(this);
+                    console.log('EncounterManager initialized successfully');
+                }
+            }
+            
             // Apply initial stat bonuses only if character manager is available
             if (this.characterManager) {
                 this.characterManager.applyStatBonuses();
@@ -1153,28 +1164,35 @@ class GameController {
         }
 
         this.gameState.inDungeon = true;
-        this.gameState.inCombat = true;
         this.gameState.currentScreen = 'dungeon';
-        this.generateEnemies();
         
         // Change to random dungeon background
         this.ui.setBackground('dungeon');
         
-        this.ui.log(`Entering dungeon level ${this.gameState.dungeonLevel}...`);
-        this.ui.log("Enemies appear before you!");
-        // Removed ui.render() to prevent old sprite display from showing
+        // Use encounter manager if available
+        if (this.encounterManager) {
+            this.encounterManager.triggerEncounter(this.gameState.dungeonLevel, 'enter_dungeon');
+        } else {
+            // Fallback to old system
+            this.gameState.inCombat = true;
+            this.generateEnemies();
+            this.ui.log("You enter the dungeon and immediately encounter enemies!");
+            setTimeout(() => this.showCombatInterface(), 500);
+        }
         
-        // Show combat interface
-        // Display initial round indicator
-        setTimeout(() => {
-            this.displayRoundIndicator();
-            this.showCombatInterface();
-        }, 100);
+        this.ui.render();
     }
 
     generateEnemies() {
         // Reset combat round when new enemies are generated
         this.gameState.combatRound = 0;
+        
+        // Reset used abilities for all party members at start of new combat
+        this.gameState.party.forEach(member => {
+            if (member.usedAbilities) {
+                member.usedAbilities = [];
+            }
+        });
         
         // Dynamic enemy count based on dungeon level
         // Level 1-2: 1-3 enemies, Level 3+: 1 to (dungeon level) enemies, max 7
@@ -2426,9 +2444,9 @@ class GameController {
             dungeonXpBonus = this.gameState.dungeonLevel * Math.floor(Math.random() * 5 + 3); // +3-7 per level
         }
         
-        // Calculate final rewards
-        const goldReward = Math.floor((baseGold + dungeonGoldBonus) * goldMultiplier);
-        const xpReward = Math.floor((baseXp + dungeonXpBonus) * xpMultiplier);
+        // Calculate final rewards (20% less XP, 20% more gold)
+        const goldReward = Math.floor((baseGold + dungeonGoldBonus) * goldMultiplier * 1.2); // +20% gold
+        const xpReward = Math.floor((baseXp + dungeonXpBonus) * xpMultiplier * 0.8); // -20% XP
         
         this.gameState.hero.gold += goldReward;
         this.gameState.hero.fame += xpReward;
@@ -2555,6 +2573,12 @@ class GameController {
     }
 
     showCombatInterface() {
+        // Show round indicator if starting combat or new round
+        if (this.gameState.combatRound === 0 || this.gameState.newRoundStarting) {
+            this.displayRoundIndicator();
+            this.gameState.newRoundStarting = false;
+        }
+        
         const enemies = this.gameState.currentEnemies;
         const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
         
@@ -3439,11 +3463,30 @@ class GameController {
         const allTargets = [this.gameState.hero, ...aliveUnderlings];
         
         this.gameState.currentEnemies.forEach(enemy => {
-            // Check if enemy is stunned or paralyzed BEFORE processing status effects
-            if (enemy.statusEffects && (enemy.statusEffects.stunned || enemy.statusEffects.paralyzed)) {
-                const effectName = enemy.statusEffects.stunned ? 'stunned' : 'paralyzed';
-                const effectIcon = this.getStatusEffectInfo()[effectName].icon;
-                this.ui.log(`${enemy.name} is ${effectName} and cannot act! ${effectIcon}`);
+            // Check if enemy is stunned, paralyzed, or knocked down BEFORE processing status effects
+            if (enemy.statusEffects && (enemy.statusEffects.stunned || enemy.statusEffects.paralyzed || enemy.statusEffects.knocked_down)) {
+                let effectName, effectIcon;
+                if (enemy.statusEffects.stunned) {
+                    effectName = 'stunned';
+                    effectIcon = this.getStatusEffectInfo()[effectName].icon;
+                } else if (enemy.statusEffects.paralyzed) {
+                    effectName = 'paralyzed';
+                    effectIcon = this.getStatusEffectInfo()[effectName].icon;
+                } else if (enemy.statusEffects.knocked_down) {
+                    effectName = 'knocked down';
+                    effectIcon = enemy.statusEffects.knocked_down.icon || '🔻';
+                }
+                this.ui.log(`${enemy.name} is ${effectName} and loses their turn! ${effectIcon}`);
+                
+                // Reduce duration of knocked down effect
+                if (enemy.statusEffects.knocked_down) {
+                    enemy.statusEffects.knocked_down.duration--;
+                    if (enemy.statusEffects.knocked_down.duration <= 0) {
+                        delete enemy.statusEffects.knocked_down;
+                        this.ui.log(`${enemy.name} recovers from being knocked down.`);
+                    }
+                }
+                
                 return; // Skip this enemy's turn
             }
             
@@ -3916,7 +3959,13 @@ class GameController {
             },
             {
                 text: "⬇️ Go Deeper",
-                onClick: () => this.goDeeperInDungeon()
+                onClick: () => {
+                    if (this.encounterManager) {
+                        this.encounterManager.goDeeperInDungeon();
+                    } else {
+                        this.goDeeperInDungeon();
+                    }
+                }
             }
         ];
 
@@ -3927,6 +3976,18 @@ class GameController {
                 onClick: () => this.restInDungeon()
             });
         }
+        
+        // Add Explore Current Level button
+        victoryButtons.splice(-1, 0, {
+            text: "🔍 Explore This Level",
+            onClick: () => {
+                if (this.encounterManager) {
+                    this.encounterManager.exploreCurrentLevel();
+                } else {
+                    this.exploreCurrentLevel();
+                }
+            }
+        });
 
         this.ui.createModal("Victory!", victoryContent, victoryButtons);
     }
@@ -4088,12 +4149,11 @@ class GameController {
         
         this.ui.log(`🔍 Exploring deeper into dungeon level ${this.gameState.dungeonLevel}...`);
         
-        // Use event manager to determine what happens
-        if (this.eventManager) {
-            const eventType = this.eventManager.determineRandomEvent(this.gameState.dungeonLevel);
-            this.eventManager.handleRandomEvent(eventType, this.gameState.dungeonLevel);
+        // Use encounter manager if available
+        if (this.encounterManager) {
+            this.encounterManager.triggerEncounter(this.gameState.dungeonLevel, 'explore_current');
         } else {
-            // Fallback to old system if event manager not available
+            // Fallback to old system
             this.gameState.inCombat = true;
             this.generateEnemies();
             this.ui.log("New enemies block your path!");
@@ -4115,12 +4175,11 @@ class GameController {
         // Change to a different random dungeon background
         this.ui.setBackground('dungeon');
         
-        // Use event manager to determine what happens
-        if (this.eventManager) {
-            const eventType = this.eventManager.determineRandomEvent(this.gameState.dungeonLevel);
-            this.eventManager.handleRandomEvent(eventType, this.gameState.dungeonLevel);
+        // Use encounter manager if available
+        if (this.encounterManager) {
+            this.encounterManager.triggerEncounter(this.gameState.dungeonLevel, 'go_deeper');
         } else {
-            // Fallback to old system if event manager not available
+            // Fallback to old system
             this.gameState.inCombat = true;
             this.generateEnemies();
             this.ui.log("New enemies block your path!");
@@ -4569,7 +4628,7 @@ class GameController {
                 id: 'bone_skull_helm', 
                 name: 'Bone Skull Helm', 
                 cost: 70,
-                materials: { bones: 2 },
+                materials: { bones: 2, 'Bone Armor': 1 },
                 description: '+2 Defense, +3 Mana (Head Armor)',
                 type: 'armor',
                 slot: 'head'
@@ -4578,7 +4637,7 @@ class GameController {
                 id: 'bone_arm_guards', 
                 name: 'Bone Arm Guards', 
                 cost: 60,
-                materials: { bones: 2 },
+                materials: { bones: 2, 'Bone Armor': 1 },
                 description: '+2 Defense, +3 Mana (Arm Armor)',
                 type: 'armor',
                 slot: 'arms'
@@ -4587,7 +4646,7 @@ class GameController {
                 id: 'bone_claw_gauntlets', 
                 name: 'Bone Claw Gauntlets', 
                 cost: 55,
-                materials: { bones: 2 },
+                materials: { bones: 2, 'Bone Armor': 1 },
                 description: '+2 Defense, +3 Mana (Hand Armor)',
                 type: 'armor',
                 slot: 'hands'
@@ -4596,7 +4655,7 @@ class GameController {
                 id: 'bone_rib_armor', 
                 name: 'Bone Rib Armor', 
                 cost: 85,
-                materials: { bones: 2 },
+                materials: { bones: 2, 'Bone Armor': 1 },
                 description: '+3 Defense, +5 Mana (Chest Armor)',
                 type: 'armor',
                 slot: 'chest'
@@ -4605,7 +4664,7 @@ class GameController {
                 id: 'bone_leg_plates', 
                 name: 'Bone Leg Plates', 
                 cost: 65,
-                materials: { bones: 2 },
+                materials: { bones: 2, 'Bone Armor': 1 },
                 description: '+2 Defense, +3 Mana (Leg Armor)',
                 type: 'armor',
                 slot: 'legs'
@@ -4614,7 +4673,7 @@ class GameController {
                 id: 'bone_spike_boots', 
                 name: 'Bone Spike Boots', 
                 cost: 50,
-                materials: { bones: 2 },
+                materials: { bones: 2, 'Bone Armor': 1 },
                 description: '+2 Defense, +2 Mana (Foot Armor)',
                 type: 'armor',
                 slot: 'feet'

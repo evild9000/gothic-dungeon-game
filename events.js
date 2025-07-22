@@ -101,8 +101,17 @@ class EventManager {
      * Handle treasure encounter
      */
     handleTreasureEvent(dungeonLevel) {
-        const treasureAmount = Math.floor((dungeonLevel * 10) + Math.random() * 50 + 25);
-        const xpGain = Math.floor(dungeonLevel * 2 + Math.random() * 10);
+        // Use encounter manager for treasure if available
+        if (this.gameController.encounterManager) {
+            this.gameController.encounterManager.createTreasureEncounter(dungeonLevel);
+            return;
+        }
+        
+        // Fallback treasure generation (20% more gold, 20% less XP)
+        const baseGold = Math.floor((dungeonLevel * 10) + Math.random() * 50 + 25);
+        const treasureAmount = Math.floor(baseGold * 1.2); // +20% gold
+        const baseXP = Math.floor(dungeonLevel * 2 + Math.random() * 10);
+        const xpGain = Math.floor(baseXP * 0.8); // -20% XP
         
         this.gameState.gold += treasureAmount;
         this.gameState.experience += xpGain;

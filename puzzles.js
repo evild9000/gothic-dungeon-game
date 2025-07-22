@@ -7,7 +7,6 @@ class PuzzleManager {
         this.gameController = gameController;
         this.currentPuzzle = null;
         this.puzzleTypes = [
-            'riddle',
             'logic',
             'memory',
             'sequence',
@@ -21,26 +20,6 @@ class PuzzleManager {
 
     initializePuzzleDatabase() {
         this.puzzleDatabase = {
-            riddle: [
-                {
-                    id: 'riddle_1',
-                    difficulty: 1,
-                    question: "I have keys but no locks. I have space but no room. You can enter, but you can't go outside. What am I?",
-                    answer: "keyboard",
-                    alternateAnswers: ["a keyboard", "computer keyboard"],
-                    reward: { gold: 50, xp: 25 },
-                    hint: "You use this to type..."
-                },
-                {
-                    id: 'riddle_2',
-                    difficulty: 2,
-                    question: "The more you take, the more you leave behind. What am I?",
-                    answer: "footsteps",
-                    alternateAnswers: ["steps", "footprints"],
-                    reward: { gold: 75, xp: 40 },
-                    hint: "Think about walking..."
-                }
-            ],
             logic: [
                 {
                     id: 'logic_1',
@@ -883,6 +862,11 @@ class PuzzleManager {
         modals.forEach(modal => modal.remove());
         
         this.currentPuzzle = null;
+        
+        // Use encounter manager for continuation if available
+        if (this.gameController.encounterManager) {
+            this.gameController.encounterManager.onPuzzleComplete();
+        }
     }
 }
 

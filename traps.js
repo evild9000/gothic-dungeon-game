@@ -251,12 +251,17 @@ class TrapManager {
     }
 
     /**
-     * Close trap modal
+     * Close trap modal and trigger encounter manager continuation
      */
     closeTrapModal() {
         const modal = document.getElementById('trapModal');
         if (modal) {
             modal.remove();
+        }
+        
+        // Use encounter manager for continuation if available
+        if (this.gameController.encounterManager) {
+            this.gameController.encounterManager.onTrapComplete();
         }
     }
 }
