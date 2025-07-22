@@ -1959,17 +1959,50 @@ class GameController {
             this.gameState.craftingRecipes = {};
         }
         
+        // Add basic weapon crafting recipes
+        const basicWeaponRecipes = {
+            'Iron Sword': { level: 1, unlocked: false, materials: { scrapIron: 1 } },
+            'Elven Bow': { level: 1, unlocked: false, materials: { scrapWood: 1 } },
+            'Arcane Wand': { level: 2, unlocked: false, materials: { bones: 1 } },
+            'Divine Staff': { level: 2, unlocked: false, materials: { scrapWood: 1 } },
+            'Shamanic Ritual Staff': { level: 5, unlocked: false, materials: { 'Shaman Staff': 1, 'Ritual Bones': 1, 'Magic Pouch': 1 } },
+            'Venomous Scout Bow': { level: 6, unlocked: false, materials: { 'Scout Bow': 1, 'Leather Scraps': 1, 'Poison Dart': 1 } },
+            'Mighty Hammer': { level: 7, unlocked: false, materials: { 'Chieftain Crown': 1, 'War Hammer': 1, 'Command Cloak': 1 } },
+            'Raging Axe': { level: 8, unlocked: false, materials: { 'Berserker Axe': 1, 'Battle Scars': 1, 'Rage Potion': 1 } },
+            'Razor Spear': { level: 9, unlocked: false, materials: { 'Scout Spear': 1, 'Tracking Kit': 1, 'Trail Map': 1 } },
+            'Cracked Bone Staff': { level: 10, unlocked: false, materials: { 'Bone Staff': 1, 'Shaman Mask': 1, 'Spirit Pouch': 1 } },
+            'Foul Staff': { level: 12, unlocked: false, materials: { 'Necromancer Staff': 1, 'Death Robes': 1, 'Soul Crystal': 1 } },
+            'Dark Demon Blade': { level: 15, unlocked: false, materials: { 'Imp Wing': 1, 'Sulfur': 1, 'Demonic Essence': 1 } }
+        };
+        
+        // Add basic armor recipes
+        const basicArmorRecipes = {
+            'Silk Robe': { level: 1, unlocked: false, materials: { spiderSilk: 1 } },
+            'Leather Helm': { level: 2, unlocked: false, materials: { animalHide: 1 } },
+            'Bone Arm Guards': { level: 3, unlocked: false, materials: { bones: 2 } },
+            'Chitin Shell Helm': { level: 4, unlocked: false, materials: { chitin: 2 } }
+        };
+        
+        // Merge all recipes
+        Object.assign(this.gameState.craftingRecipes, basicWeaponRecipes, basicArmorRecipes);
+        
         // Add all craftable loot to crafting recipes
-        ['rings', 'cloaks', 'necks', 'offhands'].forEach(category => {
-            Object.entries(this.craftableLootDatabase[category]).forEach(([itemName, itemData]) => {
-                this.gameState.craftingRecipes[itemName] = {
-                    materials: itemData.materials,
-                    level: itemData.level,
-                    category: category,
-                    unlocked: false
-                };
+        if (this.craftableLootDatabase) {
+            ['rings', 'cloaks', 'necks', 'offhands'].forEach(category => {
+                if (this.craftableLootDatabase[category]) {
+                    Object.entries(this.craftableLootDatabase[category]).forEach(([itemName, itemData]) => {
+                        this.gameState.craftingRecipes[itemName] = {
+                            materials: itemData.materials,
+                            level: itemData.level,
+                            category: category,
+                            unlocked: false
+                        };
+                    });
+                }
             });
-        });
+        }
+        
+        console.log(`Initialized ${Object.keys(this.gameState.craftingRecipes).length} crafting recipes`);
     }
     
     // Enhanced loot generation that includes craftable equipment materials
@@ -1989,11 +2022,12 @@ class GameController {
         const materialDrops = this.getEnhancedMaterialDrops(enemy);
         loot.push(...materialDrops);
         
-        // Rare chance for crafting recipe discovery
-        if (Math.random() < 0.1) { // 10% chance
+        // Improved chance for crafting recipe discovery
+        if (Math.random() < 0.25) { // Increased to 25% chance
             const recipe = this.discoverCraftingRecipe(enemy.level);
             if (recipe) {
                 loot.push(`Recipe: ${recipe}`);
+                console.log(`Recipe discovered: ${recipe} from ${enemy.name} (level ${enemy.level})`);
             }
         }
         
@@ -2071,12 +2105,18 @@ class GameController {
             recipe.level <= enemyLevel && !recipe.unlocked
         );
         
-        if (availableRecipes.length === 0) return null;
+        console.log(`Recipe discovery attempt - Enemy level: ${enemyLevel}, Available recipes: ${availableRecipes.length}`);
+        
+        if (availableRecipes.length === 0) {
+            console.log('No available recipes to unlock');
+            return null;
+        }
         
         // Select random recipe to unlock
         const [recipeName, recipe] = availableRecipes[Math.floor(Math.random() * availableRecipes.length)];
         recipe.unlocked = true;
         
+        console.log(`Recipe unlocked: ${recipeName}`);
         return recipeName;
     }
 
@@ -2094,6 +2134,13 @@ class GameController {
             if (typeof loot === 'string') {
                 if (loot.startsWith('Recipe: ')) {
                     const recipeName = loot.substring(8);
+                    // Store discovered recipes
+                    if (!this.gameState.hero.discoveredRecipes) {
+                        this.gameState.hero.discoveredRecipes = [];
+                    }
+                    if (!this.gameState.hero.discoveredRecipes.includes(recipeName)) {
+                        this.gameState.hero.discoveredRecipes.push(recipeName);
+                    }
                     this.ui.log(`${enemy.name} dropped ${loot}!`);
                     this.ui.showNotification(`Discovered ${recipeName} crafting recipe!`, "legendary");
                 } else {
@@ -2104,13 +2151,22 @@ class GameController {
                 }
             } else if (loot.type === 'material') {
                 // Handle material drops
+                if (!this.gameState.hero.materials) {
+                    this.gameState.hero.materials = {};
+                }
                 this.gameState.hero.materials[loot.material] = (this.gameState.hero.materials[loot.material] || 0) + loot.amount;
                 const materialNames = {
                     spiderSilk: 'Spider Silk',
                     animalHide: 'Animal Hide',
                     bones: 'Bones',
                     scrapWood: 'Scrap Wood',
-                    scrapIron: 'Scrap Iron'
+                    scrapIron: 'Scrap Iron',
+                    chitin: 'Chitin',
+                    dragonScale: 'Dragon Scale',
+                    scaleArmor: 'Scale Armor',
+                    ectoplasm: 'Ectoplasm',
+                    spiritEssence: 'Spirit Essence',
+                    ghostlyCloth: 'Ghostly Cloth'
                 };
                 const materialName = materialNames[loot.material] || loot.material;
                 this.ui.log(`${enemy.name} dropped ${loot.amount} ${materialName}!`);
@@ -2181,11 +2237,45 @@ class GameController {
     }
     
     addItemToInventory(itemName) {
-        // Add item to inventory (to be implemented with full inventory system)
+        // Add item to inventory with proper structure
         if (!this.gameState.hero.inventory) {
             this.gameState.hero.inventory = [];
         }
-        this.gameState.hero.inventory.push(itemName);
+        
+        // Create proper item object based on the dropped item name
+        let itemObject;
+        
+        // Check if it's a special crafting material/item
+        if (typeof itemName === 'string') {
+            // Look up the item in the loot database to get proper details
+            if (this.craftableLootDatabase && this.craftableLootDatabase[itemName]) {
+                const lootData = this.craftableLootDatabase[itemName];
+                itemObject = {
+                    name: itemName,
+                    type: lootData.type || 'material',
+                    description: lootData.description || 'A crafting material',
+                    rarity: lootData.rarity || 'common',
+                    icon: lootData.icon || '📦',
+                    value: lootData.value || 10
+                };
+            } else {
+                // Create a basic item object for unknown items
+                itemObject = {
+                    name: itemName,
+                    type: 'material',
+                    description: 'A mysterious item',
+                    rarity: 'common',
+                    icon: '❓',
+                    value: 5
+                };
+            }
+        } else {
+            // Item is already an object
+            itemObject = itemName;
+        }
+        
+        // Add to hero's equipment/inventory
+        this.gameState.hero.equipment.push(itemObject);
     }
 
     // Centralized enemy defeat handler to prevent double rewards
@@ -4651,6 +4741,8 @@ class GameController {
                         <div style="color: #ffd93d; font-weight: bold;">💰 Gold</div>
                         <div style="color: #51cf66;">${this.gameState.hero.gold}</div>
                     </div>
+                    
+                    <!-- Basic Materials -->
                     <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
                         <div style="color: #ffd93d; font-weight: bold;">🕸️ Spider Silk</div>
                         <div style="color: #51cf66;">${this.gameState.hero.materials.spiderSilk || 0}</div>
@@ -4675,6 +4767,8 @@ class GameController {
                         <div style="color: #ffd93d; font-weight: bold;">🪲 Chitin</div>
                         <div style="color: #51cf66;">${this.gameState.hero.materials.chitin || 0}</div>
                     </div>
+                    
+                    <!-- Advanced Materials -->
                     <div style="background: #2a2a3a; padding: 8px; border-radius: 5px;">
                         <div style="color: #ffd93d; font-weight: bold;">🐉 Dragon Scale</div>
                         <div style="color: #51cf66;">${this.gameState.hero.materials.dragonScale || 0}</div>
@@ -4695,6 +4789,43 @@ class GameController {
                         <div style="color: #ffd93d; font-weight: bold;">🌫️ Ghostly Cloth</div>
                         <div style="color: #51cf66;">${this.gameState.hero.materials.ghostlyCloth || 0}</div>
                     </div>
+                    
+                    <!-- Special Drop Materials (will appear as you unlock recipes) -->
+                    ${(this.gameState.hero.materials['Shaman Staff'] || 0) > 0 ? `
+                    <div style="background: #3a2a4a; padding: 8px; border-radius: 5px; border-left: 3px solid #9966cc;">
+                        <div style="color: #cc99ff; font-weight: bold;">🔮 Shaman Staff</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials['Shaman Staff'] || 0}</div>
+                    </div>` : ''}
+                    ${(this.gameState.hero.materials['Scout Bow'] || 0) > 0 ? `
+                    <div style="background: #3a2a4a; padding: 8px; border-radius: 5px; border-left: 3px solid #9966cc;">
+                        <div style="color: #cc99ff; font-weight: bold;">🏹 Scout Bow</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials['Scout Bow'] || 0}</div>
+                    </div>` : ''}
+                    ${(this.gameState.hero.materials['War Hammer'] || 0) > 0 ? `
+                    <div style="background: #3a2a4a; padding: 8px; border-radius: 5px; border-left: 3px solid #9966cc;">
+                        <div style="color: #cc99ff; font-weight: bold;">🔨 War Hammer</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials['War Hammer'] || 0}</div>
+                    </div>` : ''}
+                    ${(this.gameState.hero.materials['Berserker Axe'] || 0) > 0 ? `
+                    <div style="background: #3a2a4a; padding: 8px; border-radius: 5px; border-left: 3px solid #9966cc;">
+                        <div style="color: #cc99ff; font-weight: bold;">🪓 Berserker Axe</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials['Berserker Axe'] || 0}</div>
+                    </div>` : ''}
+                    ${(this.gameState.hero.materials['Necromancer Staff'] || 0) > 0 ? `
+                    <div style="background: #3a2a4a; padding: 8px; border-radius: 5px; border-left: 3px solid #9966cc;">
+                        <div style="color: #cc99ff; font-weight: bold;">💀 Necromancer Staff</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials['Necromancer Staff'] || 0}</div>
+                    </div>` : ''}
+                    ${(this.gameState.hero.materials['Soul Crystal'] || 0) > 0 ? `
+                    <div style="background: #3a2a4a; padding: 8px; border-radius: 5px; border-left: 3px solid #9966cc;">
+                        <div style="color: #cc99ff; font-weight: bold;">💎 Soul Crystal</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials['Soul Crystal'] || 0}</div>
+                    </div>` : ''}
+                    ${(this.gameState.hero.materials['Demon Crown'] || 0) > 0 ? `
+                    <div style="background: #4a2a2a; padding: 8px; border-radius: 5px; border-left: 3px solid #ff6666;">
+                        <div style="color: #ff9999; font-weight: bold;">👑 Demon Crown</div>
+                        <div style="color: #51cf66;">${this.gameState.hero.materials['Demon Crown'] || 0}</div>
+                    </div>` : ''}
                 </div>
             </div>
             
@@ -5067,12 +5198,22 @@ class GameController {
         // Generate species-specific underling names
         const getRandomSpecies = () => {
             const speciesList = Object.keys(this.characterManager.speciesDefinitions);
+            if (speciesList.length === 0) {
+                return 'human'; // Fallback if no species defined
+            }
             return speciesList[Math.floor(Math.random() * speciesList.length)];
         };
 
         const getSpeciesDisplayName = (speciesKey) => {
             const species = this.characterManager.speciesDefinitions[speciesKey];
-            return species ? species.displayName : 'Human';
+            if (species && species.displayName) {
+                return species.displayName;
+            }
+            if (species && species.name) {
+                return species.name;
+            }
+            // Fallback for unknown species
+            return 'Human';
         };
 
         // Define available underlings with their details

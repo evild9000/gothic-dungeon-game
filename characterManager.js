@@ -9,6 +9,7 @@ class CharacterManager {
         this.speciesDefinitions = {
             human: {
                 name: "Human",
+                displayName: "Human",
                 statModifiers: { strength: 0, dexterity: 0, constitution: 0, intelligence: 0, willpower: 0, size: 0 },
                 subspecies: {
                     common: { 
@@ -21,10 +22,56 @@ class CharacterManager {
                 equipmentSlots: "human", // Reference to equipment slot configuration
                 description: "Adaptable and versatile beings",
                 baseStats: { strength: 5, dexterity: 5, constitution: 5, intelligence: 5, willpower: 5, size: 5 }
+            },
+            elf: {
+                name: "Elf",
+                displayName: "Elven",
+                statModifiers: { strength: -1, dexterity: 2, constitution: -1, intelligence: 1, willpower: 1, size: -1 },
+                subspecies: {
+                    wood: {
+                        name: "Wood Elf",
+                        statModifiers: { strength: 0, dexterity: 1, constitution: 0, intelligence: 0, willpower: 0, size: 0 },
+                        description: "Forest dwelling elves with enhanced agility"
+                    }
+                },
+                racialAbilities: [],
+                equipmentSlots: "human", // Uses human equipment slots for now
+                description: "Graceful and magical forest dwellers",
+                baseStats: { strength: 4, dexterity: 7, constitution: 4, intelligence: 6, willpower: 6, size: 4 }
+            },
+            dwarf: {
+                name: "Dwarf",
+                displayName: "Dwarven",
+                statModifiers: { strength: 1, dexterity: -1, constitution: 2, intelligence: 0, willpower: 1, size: -1 },
+                subspecies: {
+                    mountain: {
+                        name: "Mountain Dwarf",
+                        statModifiers: { strength: 1, dexterity: 0, constitution: 1, intelligence: 0, willpower: 0, size: 0 },
+                        description: "Hardy mountain folk with great endurance"
+                    }
+                },
+                racialAbilities: [],
+                equipmentSlots: "human",
+                description: "Stout and resilient mountain folk",
+                baseStats: { strength: 6, dexterity: 4, constitution: 7, intelligence: 5, willpower: 6, size: 4 }
+            },
+            orc: {
+                name: "Orc",
+                displayName: "Orcish",
+                statModifiers: { strength: 2, dexterity: 0, constitution: 1, intelligence: -1, willpower: 0, size: 1 },
+                subspecies: {
+                    tribal: {
+                        name: "Tribal Orc",
+                        statModifiers: { strength: 1, dexterity: 0, constitution: 0, intelligence: 0, willpower: 0, size: 0 },
+                        description: "Fierce tribal warriors"
+                    }
+                },
+                racialAbilities: [],
+                equipmentSlots: "human",
+                description: "Powerful and aggressive warriors",
+                baseStats: { strength: 7, dexterity: 5, constitution: 6, intelligence: 4, willpower: 5, size: 6 }
             }
-            // Framework ready for additional species:
-            // elf: { name: "Elf", statModifiers: { strength: -1, dexterity: 2, constitution: -1, intelligence: 1, willpower: 1, size: -1 }, ... }
-            // dwarf: { name: "Dwarf", statModifiers: { strength: 1, dexterity: -1, constitution: 2, intelligence: 0, willpower: 1, size: -1 }, ... }
+            // Framework ready for additional species like spiders, centaurs, etc.
         };
         
         // Equipment slot definitions for different species
@@ -141,7 +188,14 @@ class CharacterManager {
     // Get display name for a species
     getSpeciesDisplayName(speciesKey) {
         const species = this.speciesDefinitions[speciesKey];
-        return species ? species.displayName : 'Human';
+        if (species && species.displayName) {
+            return species.displayName;
+        }
+        if (species && species.name) {
+            return species.name;
+        }
+        // Fallback for unknown species
+        return 'Human';
     }
     
     // Get character's species display name
