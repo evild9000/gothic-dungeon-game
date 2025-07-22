@@ -260,3 +260,6 @@ class TrapManager {
         }
     }
 }
+
+// Export for use in main game
+window.TrapManager = TrapManager;

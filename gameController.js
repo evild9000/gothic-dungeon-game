@@ -5717,7 +5717,12 @@ class GameController {
             case 'anti_trap_tools':
                 // Add anti-trap tools to inventory
                 if (this.inventoryManager) {
-                    this.inventoryManager.addItem("Anti-Trap Tools", 1);
+                    this.inventoryManager.addItem({
+                        name: "Anti-Trap Tools",
+                        type: "tool",
+                        uses: 10,
+                        description: "Professional kit for disarming traps"
+                    }, 1);
                 } else {
                     // Fallback to equipment if no inventory manager
                     this.gameState.hero.equipment.push({
@@ -6841,21 +6846,12 @@ class GameController {
                             descriptionDiv.innerHTML = `<strong style="color: #d4af37;">${selectedAbility.icon} ${selectedAbility.name}</strong><br>${selectedAbility.description}`;
                             
                             // Show target selection for abilities that need targets
-                            if (selectedAbility.targetType === 'single_enemy' || selectedAbility.targetType === 'single_ally') {
+                            if (selectedAbility.targeting && 
+                                (selectedAbility.targeting.type === 'single' || 
+                                 selectedAbility.targeting.type === 'multiple') &&
+                                selectedAbility.targeting.validTargets !== 'self') {
                                 targetDiv.style.display = 'block';
-                                targetSelect.innerHTML = '<option value="">-- Select Target --</option>';
-                                
-                                if (selectedAbility.targetType === 'single_enemy') {
-                                    this.gameState.currentEnemies.forEach((enemy, index) => {
-                                        targetSelect.innerHTML += `<option value="enemy_${index}">${enemy.name} (${enemy.health}/${enemy.maxHealth} HP)</option>`;
-                                    });
-                                } else if (selectedAbility.targetType === 'single_ally') {
-                                    const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
-                                    targetSelect.innerHTML += `<option value="hero">${this.gameState.hero.name || 'Hero'} (${this.gameState.hero.health}/${this.gameState.hero.maxHealth} HP)</option>`;
-                                    aliveUnderlings.forEach((underling, index) => {
-                                        targetSelect.innerHTML += `<option value="ally_${index}">${underling.name} (${underling.health}/${underling.maxHealth} HP)</option>`;
-                                    });
-                                }
+                                this.updateTargetSelection(selectedAbility, targetDiv, targetSelect);
                             } else {
                                 targetDiv.style.display = 'none';
                             }

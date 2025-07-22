@@ -150,7 +150,7 @@ class EventManager {
         
         // Add to inventory if inventory manager exists
         if (this.gameController.inventoryManager) {
-            this.gameController.inventoryManager.addItem(randomItem.name, 1);
+            this.gameController.inventoryManager.addItem(randomItem, 1);
         }
         
         this.ui.log(`✨ You also found a ${randomItem.name}! ${randomItem.description}`);

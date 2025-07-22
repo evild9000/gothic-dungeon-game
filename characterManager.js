@@ -757,15 +757,41 @@ class CharacterManager {
             this.gameController.ui.log(`${character.name} doesn't have enough stamina to throw a rock! (${staminaCost} required)`);
             return false;
         }
-        
+
+        // Check if in combat
+        if (!this.gameController.gameState.inCombat || !this.gameController.gameState.currentEnemies) {
+            this.gameController.ui.log(`${character.name} can only throw rocks during combat!`);
+            return false;
+        }
+
         character.stamina -= staminaCost;
-        const bonusDamage = 15 + (level * 3); // Base +15 damage, +3 per level
         
-        // This ability modifies the next attack - store the bonus
-        character.nextAttackBonus = bonusDamage;
-        character.nextAttackType = 'rock_throw';
+        // Calculate damage with +15 base attack power
+        const baseDamage = 15 + (level * 3); // Base +15 damage, +3 per level
+        const totalDamage = character.attack + baseDamage;
         
-        this.gameController.ui.log(`${character.name} hurls a massive rock! Next attack deals +${bonusDamage} damage!`);
+        // Select random enemy target
+        const enemies = this.gameController.gameState.currentEnemies.filter(enemy => enemy.currentHP > 0);
+        if (enemies.length === 0) {
+            this.gameController.ui.log("No enemies to target!");
+            return false;
+        }
+        
+        const target = enemies[Math.floor(Math.random() * enemies.length)];
+        const finalDamage = Math.max(1, totalDamage - target.defense);
+        
+        target.currentHP = Math.max(0, target.currentHP - finalDamage);
+        
+        this.gameController.ui.log(`${character.name} hurls a massive rock at ${target.name}!`);
+        this.gameController.ui.log(`💥 ${target.name} takes ${finalDamage} damage!`);
+        
+        if (target.currentHP === 0) {
+            this.gameController.ui.log(`💀 ${target.name} has been defeated!`);
+        }
+        
+        // Update combat display
+        this.gameController.ui.render();
+        
         return true;
     }
     

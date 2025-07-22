@@ -309,6 +309,26 @@ class InventoryManager {
         return true;
     }
     
+    hasItem(itemName) {
+        return this.gameState.hero.inventory.some(item => item.name === itemName);
+    }
+    
+    consumeItem(itemName, quantity = 1) {
+        const item = this.gameState.hero.inventory.find(inv => inv.name === itemName);
+        if (!item) return false;
+        
+        if (item.uses) {
+            item.uses -= quantity;
+            if (item.uses <= 0) {
+                this.gameState.hero.inventory = this.gameState.hero.inventory.filter(inv => inv !== item);
+                this.ui.log(`${itemName} has been used up and removed from inventory.`);
+            }
+            return true;
+        }
+        
+        return this.removeItem(item, quantity);
+    }
+    
     // Equipment management
     equipItem(item) {
         if (!item || !item.type) return false;
@@ -955,7 +975,6 @@ class InventoryManager {
                         <!-- Quick Equipment Summary -->
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px;">
                             <div>
-                                <strong style="color: #51cf66;">Equipped Items:</strong>
                                 ${this.getUnderlingEquippedItemsSummary(underling)}
                             </div>
                             <div>
