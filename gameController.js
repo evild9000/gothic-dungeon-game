@@ -270,6 +270,8 @@ class GameController {
             } else {
                 if (!this.encounterManager) {
                     this.encounterManager = new EncounterManager(this);
+                    // Make encounterManager globally available for onclick handlers
+                    window.encounterManager = this.encounterManager;
                     console.log('EncounterManager initialized successfully');
                 }
             }
@@ -781,7 +783,11 @@ class GameController {
             defendingThisTurn: false,
             // Reset combat states
             warriorTauntActive: false,
-            tauntingWarrior: null
+            tauntingWarrior: null,
+            // Combat control mode
+            combatMode: 'auto', // 'manual' or 'auto'
+            pendingUnderlingActions: [], // For manual mode
+            currentUnderlingIndex: 0 // For manual mode
         };
         
         // Reset combat-related state
@@ -2720,6 +2726,24 @@ class GameController {
                 <!-- Combat Actions -->
                 <div style="background: rgba(42, 42, 58, 0.7); padding: ${this.getResponsivePadding()}; border-radius: ${this.getResponsiveBorderRadius()}; border: 2px solid #4a4a6a;">
                     <h4 style="color: #4ecdc4; margin-bottom: ${this.getResponsiveMargin()}; text-align: center; font-size: ${this.getResponsiveFontSize(16)}px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);">⚡ Choose Your Action</h4>
+                    
+                    <!-- Combat Mode Selection -->
+                    <div style="margin-bottom: ${this.getResponsiveMargin()}; text-align: center; background: rgba(20, 20, 40, 0.6); padding: ${this.getResponsiveMargin()}; border-radius: ${this.getResponsiveBorderRadius()};">
+                        <label style="color: #4ecdc4; font-weight: bold; margin-right: 10px; font-size: ${this.getResponsiveFontSize(12)}px;">Combat Mode:</label>
+                        <label style="color: #ccc; margin-right: 15px; font-size: ${this.getResponsiveFontSize(11)}px;">
+                            <input type="radio" name="combatMode" value="manual" ${this.gameState.combatMode === 'manual' ? 'checked' : ''} onchange="window.game.controller.setCombatMode('manual')" style="margin-right: 5px;">
+                            Manual Control
+                        </label>
+                        <label style="color: #ccc; margin-right: 15px; font-size: ${this.getResponsiveFontSize(11)}px;">
+                            <input type="radio" name="combatMode" value="auto" ${this.gameState.combatMode !== 'manual' ? 'checked' : ''} onchange="window.game.controller.setCombatMode('auto')" style="margin-right: 5px;">
+                            Auto Control
+                        </label>
+                        <button onclick="window.game.controller.autoFight()" 
+                                style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #6a4c93, #9b59b6); border: 2px solid #a569bd; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(10)}px; margin-left: 10px;">
+                            🤖 Auto Fight
+                        </button>
+                    </div>
+                    
                     <div style="display: grid; grid-template-columns: ${this.isMobile ? '1fr 1fr' : '1fr 1fr 1fr'}; gap: ${this.getResponsiveMargin()};">
                         <button class="enhanced-combat-btn attack-btn" onclick="window.game.controller.playerAttack()" 
                                 style="padding: ${this.getResponsiveButtonPadding()}; background: linear-gradient(45deg, #8b0000, #dc143c); border: 2px solid #ff6b6b; color: white; border-radius: ${this.getResponsiveBorderRadius()}; cursor: pointer; font-weight: bold; font-size: ${this.getResponsiveFontSize(12)}px; display: flex; align-items: center; justify-content: center; gap: 4px;">
@@ -2745,7 +2769,7 @@ class GameController {
                     
                     <div style="margin-top: ${this.getResponsiveMargin()}; padding: ${this.getResponsiveMargin()}; background: rgba(26, 26, 42, 0.8); border-radius: ${this.getResponsiveBorderRadius()}; text-align: center;">
                         <div style="font-size: ${this.getResponsiveFontSize(10)}px; color: #ccc; font-style: italic; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);">
-                            💡 Tip: Defend reduces incoming damage by 50% | Use items to heal your party
+                            💡 Manual: Control each underling | Auto: AI controls underlings | Auto Fight: AI runs entire combat
                         </div>
                     </div>
                 </div>
@@ -3015,8 +3039,12 @@ class GameController {
         // Update combat interface instead of sprite animation
         setTimeout(() => this.showCombatInterface(), 200);
 
-        // Process underling turns
-        this.processUnderlingTurns();
+        // Process underling turns based on combat mode
+        if (this.gameState.combatMode === 'manual') {
+            this.startManualUnderlingTurns();
+        } else {
+            this.processUnderlingTurns();
+        }
         
         // Check if main target is defeated (by hero) BEFORE filtering
         if (target.health <= 0) {
@@ -3444,6 +3472,426 @@ class GameController {
 
         // Update combat chat display immediately to show combat results
         this.updateCombatChatDisplay();
+    }
+
+    // Set combat mode (manual vs auto)
+    setCombatMode(mode) {
+        try {
+            this.gameState.combatMode = mode;
+            this.ui.log(`Combat mode set to: ${mode === 'manual' ? 'Manual Control' : 'Auto Control'}`);
+        } catch (error) {
+            console.error('Error in setCombatMode:', error);
+        }
+    }
+
+    // Start manual underling turns
+    startManualUnderlingTurns() {
+        try {
+            const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+            
+            if (aliveUnderlings.length === 0) {
+                // No underlings, proceed to enemy phase
+                this.enemiesAttack();
+                setTimeout(() => this.showCombatInterface(), 1000);
+                return;
+            }
+
+            this.gameState.currentUnderlingIndex = 0;
+            this.gameState.pendingUnderlingActions = [];
+            this.showUnderlingActionSelection(aliveUnderlings[0]);
+        } catch (error) {
+            console.error('Error in startManualUnderlingTurns:', error);
+            // Fallback to auto mode
+            this.processUnderlingTurns();
+        }
+    }
+
+    // Show action selection for a specific underling
+    showUnderlingActionSelection(underling) {
+        const underlingIndex = this.gameState.currentUnderlingIndex;
+        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+        
+        if (underlingIndex >= aliveUnderlings.length) {
+            // All underlings have acted, execute actions and proceed
+            this.executeUnderlingActions();
+            return;
+        }
+
+        const underlingActions = [
+            { name: 'Attack', action: 'attack', icon: '⚔️' },
+            { name: 'Defend', action: 'defend', icon: '🛡️' },
+            { name: 'Use Item', action: 'item', icon: '🧪' }
+        ];
+
+        // Get underling abilities if any
+        const underlingAbilities = this.characterManager.getCharacterRacialAbilities(underling);
+        underlingAbilities.forEach(ability => {
+            if (this.characterManager.isRacialAbilityAvailable(underling, ability.name)) {
+                underlingActions.push({
+                    name: ability.name,
+                    action: 'ability',
+                    icon: '🧬',
+                    abilityData: ability
+                });
+            }
+        });
+
+        this.showDockedCombatPanel(underlingActions, 'underling-actions', underling);
+    }
+
+    // Execute underling action
+    executeUnderlingAction(actionType, underling, targetIndex = null, abilityData = null) {
+        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+        
+        switch (actionType) {
+            case 'attack':
+                this.executeUnderlingAttack(underling);
+                break;
+            case 'defend':
+                this.executeUnderlingDefend(underling);
+                break;
+            case 'item':
+                // Show item selection for this underling
+                this.showUnderlingItemSelection(underling);
+                return; // Don't advance to next underling yet
+            case 'ability':
+                if (abilityData) {
+                    this.executeUnderlingAbility(underling, abilityData, targetIndex);
+                }
+                break;
+            case 'skip':
+                // Skip action - do nothing
+                break;
+        }
+
+        // Move to next underling
+        this.gameState.currentUnderlingIndex++;
+        this.closeDockedCombatPanel();
+        
+        if (this.gameState.currentUnderlingIndex < aliveUnderlings.length) {
+            // Show next underling's action selection
+            setTimeout(() => {
+                this.showUnderlingActionSelection(aliveUnderlings[this.gameState.currentUnderlingIndex]);
+            }, 500);
+        } else {
+            // All underlings have acted, proceed to enemy phase
+            setTimeout(() => {
+                this.enemiesAttack();
+                setTimeout(() => this.showCombatInterface(), 1000);
+            }, 500);
+        }
+    }
+
+    // Show item selection for underling
+    showUnderlingItemSelection(underling) {
+        // Get consumable items from underling's equipment
+        const consumables = underling.equipment ? underling.equipment.filter(item => 
+            item.type === 'consumable' && item.use
+        ) : [];
+
+        if (consumables.length === 0) {
+            this.ui.log(`${underling.name} has no usable items.`);
+            this.executeUnderlingAction('skip', underling);
+            return;
+        }
+
+        // Close current panel
+        this.closeDockedCombatPanel();
+
+        const itemPanel = document.createElement('div');
+        itemPanel.id = 'docked-item-panel';
+        itemPanel.className = 'top-docked-modal-content';
+        itemPanel.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #8B4513;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            z-index: 999999;
+            max-width: 600px;
+            width: 90%;
+            color: #FFD700;
+            font-family: 'Cinzel', serif;
+            text-align: center;
+        `;
+
+        const title = document.createElement('h3');
+        title.textContent = `${underling.name} - Select Item`;
+        title.style.cssText = `
+            margin: 0 0 20px 0;
+            color: #FFD700;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        `;
+        itemPanel.appendChild(title);
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        `;
+
+        consumables.forEach((item, index) => {
+            const button = document.createElement('button');
+            button.textContent = `🧪 ${item.name}`;
+            if (item.description) {
+                button.title = item.description;
+            }
+            button.style.cssText = `
+                background: linear-gradient(145deg, #4B0082, #6A0DAD);
+                color: #FFD700;
+                border: 2px solid #4B0082;
+                padding: 10px 15px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-family: 'Cinzel', serif;
+                font-weight: bold;
+                transition: all 0.3s ease;
+                min-width: 150px;
+            `;
+
+            button.addEventListener('click', () => {
+                this.useUnderlingItem(underling, item);
+                this.closeDockedCombatPanel();
+                this.gameState.currentUnderlingIndex++;
+                
+                const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+                if (this.gameState.currentUnderlingIndex < aliveUnderlings.length) {
+                    setTimeout(() => {
+                        this.showUnderlingActionSelection(aliveUnderlings[this.gameState.currentUnderlingIndex]);
+                    }, 500);
+                } else {
+                    setTimeout(() => {
+                        this.enemiesAttack();
+                        setTimeout(() => this.showCombatInterface(), 1000);
+                    }, 500);
+                }
+            });
+
+            buttonContainer.appendChild(button);
+        });
+
+        itemPanel.appendChild(buttonContainer);
+
+        // Add cancel button
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = '❌ Cancel';
+        cancelButton.style.cssText = `
+            background: linear-gradient(145deg, #666, #888);
+            color: #FFD700;
+            border: 2px solid #666;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Cinzel', serif;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        `;
+
+        cancelButton.addEventListener('click', () => {
+            this.closeDockedCombatPanel();
+            this.showUnderlingActionSelection(underling);
+        });
+
+        itemPanel.appendChild(cancelButton);
+        document.body.appendChild(itemPanel);
+
+        // Make draggable
+        this.makeDraggable(itemPanel);
+    }
+
+    // Use item for underling
+    useUnderlingItem(underling, item) {
+        const result = item.use(underling, null, this.gameState, this);
+        
+        if (result && result.success) {
+            this.ui.log(`${underling.name} uses ${item.name}!`);
+            if (result.message) {
+                this.ui.log(`  ${result.message}`);
+            }
+            
+            // Remove item from inventory
+            const itemIndex = underling.equipment.findIndex(eq => eq === item);
+            if (itemIndex > -1) {
+                underling.equipment.splice(itemIndex, 1);
+            }
+        } else {
+            this.ui.log(`${underling.name} failed to use ${item.name}.`);
+        }
+    }
+
+    // Execute underling attack
+    executeUnderlingAttack(underling) {
+        if (this.gameState.currentEnemies.length === 0) return;
+        
+        const target = this.gameState.currentEnemies[0]; // Attack first enemy
+        const baseAttack = 10 + (underling.level * 2);
+        const statBonus = this.calculateAttackBonus(underling, this.getWeaponType(underling));
+        const critResult = this.calculateCriticalHit(underling);
+        
+        const totalAttack = baseAttack + statBonus;
+        const baseDamage = Math.floor(totalAttack * (0.7 + Math.random() * 0.3));
+        const finalDamage = Math.floor(baseDamage * critResult.multiplier);
+        
+        target.health -= finalDamage;
+        
+        const critText = critResult.isCritical ? ` CRITICAL HIT! (${critResult.multiplier.toFixed(1)}x)` : '';
+        const statText = statBonus > 0 ? ` (+${statBonus} stat)` : '';
+        
+        this.ui.log(`${underling.name} attacks ${target.name} for ${finalDamage} damage!${critText}${statText} (${target.name}: ${Math.max(0, target.health)}/${target.maxHealth} HP)`);
+        
+        if (target.health <= 0) {
+            this.handleEnemyDefeat(target, underling.name);
+            this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.health > 0);
+        }
+    }
+
+    // Execute underling defend
+    executeUnderlingDefend(underling) {
+        this.ui.log(`${underling.name} raises their guard and defends!`);
+        // Set defending flag for this underling (would need to track per character)
+        if (!underling.statusEffects) underling.statusEffects = {};
+        underling.statusEffects.defending = { duration: 1 };
+    }
+
+    // Execute underling ability
+    executeUnderlingAbility(underling, ability, targetIndex) {
+        // Use existing racial ability system
+        this.characterManager.useRacialAbility(underling, ability.name, targetIndex);
+    }
+
+    // Auto fight - AI runs entire combat
+    autoFight() {
+        try {
+            this.ui.log("🤖 Auto fight engaged! AI taking control of combat...");
+            this.gameState.autoFighting = true;
+            this.runAutoFightLoop();
+        } catch (error) {
+            console.error('Error in autoFight:', error);
+            this.gameState.autoFighting = false;
+            this.ui.log("❌ Auto fight failed, returning to manual control.");
+        }
+    }
+
+    // Auto fight loop
+    runAutoFightLoop() {
+        if (!this.gameState.autoFighting || this.gameState.currentEnemies.length === 0) {
+            this.gameState.autoFighting = false;
+            return;
+        }
+
+        // AI chooses best action for hero
+        const heroAction = this.chooseAIAction(this.gameState.hero);
+        this.executeAIAction(this.gameState.hero, heroAction);
+
+        // AI controls all underlings
+        const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+        aliveUnderlings.forEach(underling => {
+            const underlingAction = this.chooseAIAction(underling);
+            this.executeAIAction(underling, underlingAction);
+        });
+
+        // Check if enemies defeated
+        if (this.gameState.currentEnemies.length === 0) {
+            this.ui.log("All enemies defeated! Auto fight complete.");
+            this.checkLevelUp();
+            this.ui.render();
+            this.showVictoryConfirmation();
+            this.gameState.autoFighting = false;
+            return;
+        }
+
+        // Enemies attack
+        this.enemiesAttack();
+
+        // Check if party defeated
+        const alivePartyMembers = [this.gameState.hero, ...this.gameState.hero.underlings.filter(u => u.isAlive)];
+        if (alivePartyMembers.every(member => member.health <= 0)) {
+            this.gameState.autoFighting = false;
+            return;
+        }
+
+        // Continue auto fight after delay
+        setTimeout(() => {
+            this.runAutoFightLoop();
+        }, 1000);
+    }
+
+    // Choose AI action for a character
+    chooseAIAction(character) {
+        const healthPercent = character.health / character.maxHealth;
+        
+        // If low health and has healing items, use item
+        if (healthPercent < 0.3) {
+            const healingItems = character.equipment ? character.equipment.filter(item => 
+                item.type === 'consumable' && item.effect === 'heal'
+            ) : [];
+            if (healingItems.length > 0) {
+                return { type: 'item', item: healingItems[0] };
+            }
+        }
+
+        // Check for available abilities
+        const abilities = this.characterManager.getCharacterRacialAbilities(character);
+        const availableAbilities = abilities.filter(ability => 
+            this.characterManager.isRacialAbilityAvailable(character, ability.name)
+        );
+        
+        if (availableAbilities.length > 0 && Math.random() < 0.3) {
+            return { type: 'ability', ability: availableAbilities[0] };
+        }
+
+        // Default to attack
+        return { type: 'attack' };
+    }
+
+    // Execute AI action
+    executeAIAction(character, action) {
+        switch (action.type) {
+            case 'attack':
+                if (character === this.gameState.hero) {
+                    // Use existing player attack but skip UI updates
+                    const target = this.gameState.currentEnemies[0];
+                    const baseAttack = 15 + (character.level * 3);
+                    const statBonus = this.calculateAttackBonus(character, this.getWeaponType(character));
+                    const critResult = this.calculateCriticalHit(character);
+                    const totalAttack = baseAttack + statBonus;
+                    const baseDamage = Math.floor(totalAttack * (0.7 + Math.random() * 0.3));
+                    const finalDamage = Math.floor(baseDamage * critResult.multiplier);
+                    
+                    target.health -= finalDamage;
+                    this.ui.log(`${character.name || 'Hero'} attacks ${target.name} for ${finalDamage} damage! (${Math.max(0, target.health)}/${target.maxHealth} HP)`);
+                    
+                    if (target.health <= 0) {
+                        this.handleEnemyDefeat(target, character.name || 'Hero');
+                        this.gameState.currentEnemies = this.gameState.currentEnemies.filter(enemy => enemy.health > 0);
+                    }
+                } else {
+                    this.executeUnderlingAttack(character);
+                }
+                break;
+            case 'item':
+                // Use healing item
+                if (action.item) {
+                    character.health = Math.min(character.maxHealth, character.health + action.item.healAmount);
+                    this.ui.log(`${character.name} uses ${action.item.name} and heals for ${action.item.healAmount} HP!`);
+                    // Remove item from inventory
+                    const itemIndex = character.equipment.findIndex(item => item === action.item);
+                    if (itemIndex > -1) {
+                        character.equipment.splice(itemIndex, 1);
+                    }
+                }
+                break;
+            case 'ability':
+                this.executeUnderlingAbility(character, action.ability);
+                break;
+        }
     }
 
     // Check for defeated enemies and process XP/gold/loot (used after spells)
@@ -7632,6 +8080,260 @@ class GameController {
         }
         
         return result.success;
+    }
+
+    // Show docked combat panel for underling actions
+    showDockedCombatPanel(actions, panelType, character) {
+        // Remove any existing docked panel
+        this.closeDockedCombatPanel();
+
+        const dockedPanel = document.createElement('div');
+        dockedPanel.id = 'docked-combat-panel';
+        dockedPanel.className = 'top-docked-modal-content';
+        dockedPanel.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #8B4513;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            z-index: 999999;
+            max-width: 600px;
+            width: 90%;
+            color: #FFD700;
+            font-family: 'Cinzel', serif;
+            text-align: center;
+        `;
+
+        const title = document.createElement('h3');
+        title.textContent = `${character.name} - Choose Action`;
+        title.style.cssText = `
+            margin: 0 0 20px 0;
+            color: #FFD700;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        `;
+        dockedPanel.appendChild(title);
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        `;
+
+        actions.forEach((action, index) => {
+            const button = document.createElement('button');
+            button.textContent = `${action.icon} ${action.name}`;
+            button.style.cssText = `
+                background: linear-gradient(145deg, #8B4513, #A0522D);
+                color: #FFD700;
+                border: 2px solid #8B4513;
+                padding: 10px 15px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-family: 'Cinzel', serif;
+                font-weight: bold;
+                transition: all 0.3s ease;
+                min-width: 120px;
+            `;
+
+            button.addEventListener('mouseenter', () => {
+                button.style.background = 'linear-gradient(145deg, #A0522D, #CD853F)';
+                button.style.transform = 'translateY(-2px)';
+                button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+            });
+
+            button.addEventListener('mouseleave', () => {
+                button.style.background = 'linear-gradient(145deg, #8B4513, #A0522D)';
+                button.style.transform = 'translateY(0)';
+                button.style.boxShadow = 'none';
+            });
+
+            button.addEventListener('click', () => {
+                if (action.action === 'ability' && action.abilityData && action.abilityData.requiresTarget) {
+                    // Show target selection for abilities that need targets
+                    this.showUnderlingTargetSelection(character, action);
+                } else {
+                    this.executeUnderlingAction(action.action, character, null, action.abilityData);
+                }
+            });
+
+            buttonContainer.appendChild(button);
+        });
+
+        dockedPanel.appendChild(buttonContainer);
+
+        // Add skip button
+        const skipButton = document.createElement('button');
+        skipButton.textContent = '⏭️ Skip Turn';
+        skipButton.style.cssText = `
+            background: linear-gradient(145deg, #666, #888);
+            color: #FFD700;
+            border: 2px solid #666;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Cinzel', serif;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        `;
+
+        skipButton.addEventListener('click', () => {
+            this.ui.log(`${character.name} skips their turn.`);
+            this.executeUnderlingAction('skip', character);
+        });
+
+        dockedPanel.appendChild(skipButton);
+        document.body.appendChild(dockedPanel);
+
+        // Make draggable
+        this.makeDraggable(dockedPanel);
+    }
+
+    // Show target selection for underling abilities
+    showUnderlingTargetSelection(character, action) {
+        // Close current panel
+        this.closeDockedCombatPanel();
+
+        const targetPanel = document.createElement('div');
+        targetPanel.id = 'docked-target-panel';
+        targetPanel.className = 'top-docked-modal-content';
+        targetPanel.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #8B4513;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            z-index: 999999;
+            max-width: 600px;
+            width: 90%;
+            color: #FFD700;
+            font-family: 'Cinzel', serif;
+            text-align: center;
+        `;
+
+        const title = document.createElement('h3');
+        title.textContent = `${character.name} - Select Target for ${action.name}`;
+        title.style.cssText = `
+            margin: 0 0 20px 0;
+            color: #FFD700;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        `;
+        targetPanel.appendChild(title);
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        `;
+
+        // Add enemy targets
+        this.gameState.currentEnemies.forEach((enemy, index) => {
+            const button = document.createElement('button');
+            button.textContent = `🎯 ${enemy.name} (${enemy.health}/${enemy.maxHealth} HP)`;
+            button.style.cssText = `
+                background: linear-gradient(145deg, #8B0000, #A52A2A);
+                color: #FFD700;
+                border: 2px solid #8B0000;
+                padding: 10px 15px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-family: 'Cinzel', serif;
+                font-weight: bold;
+                transition: all 0.3s ease;
+                min-width: 200px;
+            `;
+
+            button.addEventListener('click', () => {
+                this.executeUnderlingAction(action.action, character, index, action.abilityData);
+            });
+
+            buttonContainer.appendChild(button);
+        });
+
+        targetPanel.appendChild(buttonContainer);
+
+        // Add cancel button
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = '❌ Cancel';
+        cancelButton.style.cssText = `
+            background: linear-gradient(145deg, #666, #888);
+            color: #FFD700;
+            border: 2px solid #666;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Cinzel', serif;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        `;
+
+        cancelButton.addEventListener('click', () => {
+            this.closeDockedCombatPanel();
+            this.showUnderlingActionSelection(character);
+        });
+
+        targetPanel.appendChild(cancelButton);
+        document.body.appendChild(targetPanel);
+
+        // Make draggable
+        this.makeDraggable(targetPanel);
+    }
+
+    // Close docked combat panel
+    closeDockedCombatPanel() {
+        const existing = document.getElementById('docked-combat-panel');
+        if (existing) existing.remove();
+        
+        const existingTarget = document.getElementById('docked-target-panel');
+        if (existingTarget) existingTarget.remove();
+        
+        const existingItem = document.getElementById('docked-item-panel');
+        if (existingItem) existingItem.remove();
+    }
+
+    // Make element draggable (reuse existing function from encounterManager)
+    makeDraggable(element) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        
+        element.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
     }
 }
 
