@@ -331,71 +331,113 @@ class InventoryManager {
     
     // Equipment management
     equipItem(item) {
-        if (!item || !item.type) return false;
-        
+        if (!item || !item.type) {
+            this.ui.log("equipItem: Invalid item or missing type.");
+            return false;
+        }
+
         // Check if slot exists and is unlocked
         const slot = this.equipmentSlots[item.type];
         if (!slot) {
             this.ui.log(`No equipment slot for ${item.type}!`);
             return false;
         }
-        
+
         if (slot.unlocked === false) {
             this.ui.log(`${slot.name} slot is not unlocked yet!`);
             return false;
         }
-        
+
         // FIRST: Store currently equipped item before making any changes
         const currentEquipped = slot.equipped;
-        
+
         // SECOND: Unequip current item in slot (this will add it back to inventory)
         if (currentEquipped) {
-            // Temporarily store the old item
+            this.ui.log(`[equipItem] Unequipping current item in slot: ${currentEquipped.name}`);
             this.unequipItem(currentEquipped);
+            // Safety: Double-check it is now in inventory
+            if (!this.gameState.hero.inventory.includes(currentEquipped)) {
+                this.ui.log(`[equipItem] Warning: Unequipped item ${currentEquipped.name} was not added to inventory!`);
+            }
         }
-        
+
         // THIRD: Equip new item
         item.equipped = true;
         slot.equipped = item;
-        
+
         // FOURTH: Move from inventory to equipment if needed
         const invIndex = this.gameState.hero.inventory.findIndex(inv => inv === item);
         if (invIndex !== -1) {
             this.gameState.hero.inventory.splice(invIndex, 1);
             this.gameState.hero.equipment.push(item);
+        } else if (!this.gameState.hero.equipment.includes(item)) {
+            // Safety: If item is not in equipment, add it
+            this.ui.log(`[equipItem] Safety: Item ${item.name} was not in inventory or equipment, adding to equipment.`);
+            this.gameState.hero.equipment.push(item);
         }
-        
+
+        // Final safety: Ensure no duplicate items in equipment
+        const equipmentSet = new Set();
+        this.gameState.hero.equipment = this.gameState.hero.equipment.filter(eq => {
+            if (equipmentSet.has(eq)) {
+                this.ui.log(`[equipItem] Duplicate detected for ${eq.name}, removing.`);
+                return false;
+            }
+            equipmentSet.add(eq);
+            return true;
+        });
+
         this.ui.log(`Equipped ${item.name}!${currentEquipped ? ` (Unequipped ${currentEquipped.name})` : ''}`);
         this.ui.showNotification(`Equipped ${item.name}!`, "success");
         return true;
     }
     
     unequipItem(item) {
-        if (!item || !item.equipped) return false;
-        
+        if (!item || !item.equipped) {
+            this.ui.log("unequipItem: Invalid item or item is not equipped.");
+            return false;
+        }
+
         // Check inventory space
         if (this.isInventoryFull()) {
             this.ui.log("Inventory is full! Cannot unequip item.");
             this.ui.showNotification("Inventory full!", "error");
             return false;
         }
-        
+
         // Unequip item
         item.equipped = false;
-        
+
         // Update slot
         const slot = this.equipmentSlots[item.type];
         if (slot && slot.equipped === item) {
             slot.equipped = null;
         }
-        
+
         // Move from equipment to inventory
         const equipIndex = this.gameState.hero.equipment.findIndex(eq => eq === item);
         if (equipIndex !== -1) {
             this.gameState.hero.equipment.splice(equipIndex, 1);
-            this.gameState.hero.inventory.push(item);
+            if (!this.gameState.hero.inventory.includes(item)) {
+                this.gameState.hero.inventory.push(item);
+            } else {
+                this.ui.log(`[unequipItem] Warning: Item ${item.name} already in inventory!`);
+            }
+        } else {
+            this.ui.log(`[unequipItem] Warning: Tried to unequip ${item.name} but it was not found in equipment.`);
         }
-        
+
+        // Final safety: Ensure no duplicate items in inventory
+        const inventorySet = new Set();
+        this.gameState.hero.inventory = this.gameState.hero.inventory.filter(inv => {
+            if (inventorySet.has(inv)) {
+                this.ui.log(`[unequipItem] Duplicate detected for ${inv.name}, removing.`);
+                return false;
+            }
+            inventorySet.add(inv);
+            return true;
+        });
+
         this.ui.log(`Unequipped ${item.name}!`);
         this.ui.showNotification(`Unequipped ${item.name}!`, "info");
         return true;

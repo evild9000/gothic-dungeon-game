@@ -1280,7 +1280,6 @@ class GameController {
                 leader: null,
                 weight: 1
             },
-            
             // Goblin Groups
             'Goblin Raiders': {
                 minLevel: 1,
@@ -1296,7 +1295,6 @@ class GameController {
                 leader: 'Goblin Chieftain',
                 weight: 2
             },
-            
             // Orc Groups
             'Orc Warband': {
                 minLevel: 2,
@@ -1312,73 +1310,57 @@ class GameController {
                 leader: 'Orc Warchief',
                 weight: 2
             },
-            
-            // Beast Groups
-            'Wolf Pack': {
-                minLevel: 1,
-                maxLevel: 6,
-                monsters: ['Wolf', 'Alpha Wolf', 'Dire Wolf'],
-                leader: null,
-                weight: 3
-            },
-            'Beast Riders': {
-                minLevel: 3,
-                maxLevel: 8,
-                monsters: ['Wolf', 'Goblin Wolf Rider', 'Orc Beast Master'],
-                leader: null,
+            // ...existing groups...
+            // --- EXPANDED GROUPS FOR LEVELS 11-50 ---
+            'Dread Knights': {
+                minLevel: 11,
+                maxLevel: 20,
+                monsters: ['Death Knight', 'Wraith', 'Lich'],
+                leader: 'Lich',
                 weight: 2
             },
-            
-            // Spider Groups
-            'Spider Nest': {
-                minLevel: 1,
-                maxLevel: 5,
-                monsters: ['Spider', 'Venomous Spider', 'Web Spinner'],
-                leader: null,
-                weight: 3
+            'Demon Host': {
+                minLevel: 15,
+                maxLevel: 25,
+                monsters: ['Demon Warrior', 'Fire Demon', 'Shadow Demon'],
+                leader: 'Demon Lord',
+                weight: 2
             },
-            'Giant Spider Colony': {
-                minLevel: 4,
-                maxLevel: 8,
-                monsters: ['Giant Spider', 'Brood Mother', 'Phase Spider'],
-                leader: 'Spider Queen',
+            'Dragonflight': {
+                minLevel: 20,
+                maxLevel: 30,
+                monsters: ['Dragonkin', 'Wyvern', 'Young Dragon'],
+                leader: 'Ancient Dragon',
                 weight: 1
             },
-            
-            // Demon Groups
-            'Lesser Demons': {
-                minLevel: 5,
-                maxLevel: 10,
-                monsters: ['Imp', 'Shadow Demon', 'Fire Demon'],
-                leader: null,
-                weight: 2
-            },
-            'Demonic Legion': {
-                minLevel: 7,
-                maxLevel: 10,
-                monsters: ['Demon Warrior', 'Succubus', 'Demon Lord'],
+            'Abyssal Legion': {
+                minLevel: 25,
+                maxLevel: 35,
+                monsters: ['Demon Lord', 'Arch Demon', 'Succubus'],
                 leader: 'Arch Demon',
                 weight: 1
             },
-            
-            // Dragon Groups
-            'Draconic Servants': {
-                minLevel: 6,
-                maxLevel: 10,
-                monsters: ['Kobold', 'Dragonkin', 'Wyvern'],
-                leader: null,
-                weight: 2
+            'Elder Horror': {
+                minLevel: 30,
+                maxLevel: 40,
+                monsters: ['Lich', 'Ancient Dragon', 'Demon Lord'],
+                leader: 'Arch Demon',
+                weight: 1
             },
-            'Dragon\'s Lair': {
-                minLevel: 8,
-                maxLevel: 10,
-                monsters: ['Young Dragon', 'Dragon Cultist'],
-                leader: 'Ancient Dragon',
+            'Celestial Foes': {
+                minLevel: 41,
+                maxLevel: 50,
+                monsters: ['Ancient Dragon', 'Arch Demon', 'Demon Lord'],
+                leader: 'Arch Demon',
                 weight: 1
             }
         };
 
         this.monsterTypes = {
+            // --- EXPANDED MONSTER TYPES FOR LEVELS 11-50 (FALLBACKS) ---
+            'Primordial Horror': { minLevel: 40, maxLevel: 50, stats: { str: 10, dex: 8, con: 12, int: 8, wil: 10, size: 5 }, lootTable: ['Eldritch Relic', 'Void Crystal'], specialAbilities: ['Reality Warp', 'Devour'] },
+            'Void Lord': { minLevel: 45, maxLevel: 50, stats: { str: 12, dex: 10, con: 14, int: 12, wil: 12, size: 6 }, lootTable: ['Void Essence', 'Star Metal'], specialAbilities: ['Void Blast', 'Summon Minions'] },
+            'Celestial Tyrant': { minLevel: 48, maxLevel: 50, stats: { str: 15, dex: 12, con: 16, int: 14, wil: 15, size: 7 }, lootTable: ['Celestial Crown', 'Heavenly Blade'], specialAbilities: ['Judgment', 'Heavenly Wrath'] },
             // Basic Monsters (Levels 1-3)
             'Goblin': { minLevel: 1, maxLevel: 5, stats: { str: -1, dex: 2, con: 0, int: 1, wil: 0, size: -1 }, 
                        lootTable: ['Goblin Dagger', 'Rusty Coin', 'Tattered Cloth'], specialAbilities: [] },
@@ -2537,6 +2519,78 @@ class GameController {
         return 'melee'; // Default for heroes, warriors, and enemies
     }
 
+    // Monster table for up to 50 levels
+    getMonsterForLevel(level) {
+        // Example monster scaling table (expand as needed)
+        const monsterTable = [
+            // 1-10: basic monsters
+            { min: 1, max: 2, monsters: ['Goblin', 'Skeleton', 'Zombie'] },
+            { min: 3, max: 4, monsters: ['Orc', 'Ghoul', 'Bandit'] },
+            { min: 5, max: 6, monsters: ['Wraith', 'Cultist', 'Dire Wolf'] },
+            { min: 7, max: 8, monsters: ['Ogre', 'Vampire Thrall', 'Dark Knight'] },
+            { min: 9, max: 10, monsters: ['Lich Acolyte', 'Troll', 'Dread Archer'] },
+            // 11-20: advanced monsters
+            { min: 11, max: 12, monsters: ['Wight', 'Necromancer', 'Werewolf'] },
+            { min: 13, max: 14, monsters: ['Demonling', 'Banshee', 'Shadow Assassin'] },
+            { min: 15, max: 16, monsters: ['Minotaur', 'Vampire', 'Dark Sorcerer'] },
+            { min: 17, max: 18, monsters: ['Bone Golem', 'Hellhound', 'Death Knight'] },
+            { min: 19, max: 20, monsters: ['Lich', 'Demon Brute', 'Wraith Lord'] },
+            // 21-30: elite monsters
+            { min: 21, max: 22, monsters: ['Frost Giant', 'Specter', 'Blood Mage'] },
+            { min: 23, max: 24, monsters: ['Dread Warden', 'Vampire Lord', 'Abyssal Horror'] },
+            { min: 25, max: 26, monsters: ['Demon Knight', 'Plague Bearer', 'Shadow Reaver'] },
+            { min: 27, max: 28, monsters: ['Ancient Mummy', 'Death Priest', 'Nightmare Beast'] },
+            { min: 29, max: 30, monsters: ['Lich King', 'Demon Prince', 'Void Stalker'] },
+            // 31-40: bosses and rare monsters
+            { min: 31, max: 32, monsters: ['Elder Vampire', 'Archdemon', 'Spectral Dragon'] },
+            { min: 33, max: 34, monsters: ['Dread Overlord', 'Plague Dragon', 'Abyssal Titan'] },
+            { min: 35, max: 36, monsters: ['Death Tyrant', 'Shadow Colossus', 'Infernal Wyrm'] },
+            { min: 37, max: 38, monsters: ['Void Hydra', 'Ancient Lich', 'Demon Emperor'] },
+            { min: 39, max: 40, monsters: ['Eternal Wraith', 'Blood God', 'Nightmare Lord'] },
+            // 41-50: mythic/legendary monsters
+            { min: 41, max: 42, monsters: ['Celestial Reaper', 'Abyssal Leviathan', 'Starborn Horror'] },
+            { min: 43, max: 44, monsters: ['Void Phoenix', 'Elder Godspawn', 'Plague Archon'] },
+            { min: 45, max: 46, monsters: ['Dread Titan', 'Lich Emperor', 'Demon King'] },
+            { min: 47, max: 48, monsters: ['Shadow Dragon', 'Eternal Colossus', 'Abyssal Seraph'] },
+            { min: 49, max: 50, monsters: ['Primordial Horror', 'Void Lord', 'Celestial Tyrant'] },
+        ];
+        for (const entry of monsterTable) {
+            if (level >= entry.min && level <= entry.max) {
+                return entry.monsters[Math.floor(Math.random() * entry.monsters.length)];
+            }
+        }
+        // Fallback
+        return 'Primordial Horror';
+    }
+
+    // Level up logic up to level 50
+    checkLevelUp() {
+        const hero = this.gameState.hero;
+        const xpTable = [0];
+        let xp = 0;
+        // Exponential XP curve for 50 levels
+        for (let lvl = 1; lvl <= 50; lvl++) {
+            xp += Math.floor(50 * Math.pow(1.15, lvl));
+            xpTable[lvl] = xp;
+        }
+        while (hero.level < 50 && hero.experience >= xpTable[hero.level]) {
+            hero.level++;
+            this.ui.log(`<span style='color:#FFD700;font-weight:bold;'>${hero.name} has reached level ${hero.level}!</span>`);
+            // Stat increases per level (customize as needed)
+            hero.strength += 1 + Math.floor(hero.level / 10);
+            hero.dexterity += 1 + Math.floor(hero.level / 10);
+            hero.constitution += 1 + Math.floor(hero.level / 10);
+            hero.intelligence += 1 + Math.floor(hero.level / 15);
+            hero.willpower += 1 + Math.floor(hero.level / 15);
+            // Heal to full on level up
+            hero.health = hero.maxHealth;
+            hero.mana = hero.maxMana;
+            hero.stamina = hero.maxStamina;
+            this.applyCharacterStatBonuses(hero);
+            this.ui.showNotification(`Level Up! ${hero.name} is now level ${hero.level}.`, 'success');
+        }
+    }
+
     applyStatBonuses() {
         // Apply stat bonuses to hero
         this.applyCharacterStatBonuses(this.gameState.hero);
@@ -3039,9 +3093,10 @@ class GameController {
         // Update combat interface instead of sprite animation
         setTimeout(() => this.showCombatInterface(), 200);
 
-        // Process underling turns based on combat mode
+        // After hero acts, allow manual underling control if in manual mode
         if (this.gameState.combatMode === 'manual') {
             this.startManualUnderlingTurns();
+            return;
         } else {
             this.processUnderlingTurns();
         }
@@ -3079,6 +3134,11 @@ class GameController {
         // Update combat chat display immediately
         this.updateCombatChatDisplay();
         
+        // After hero acts, allow manual underling control if in manual mode
+        if (this.gameState.combatMode === 'manual') {
+            this.startManualUnderlingTurns();
+            return;
+        }
         // Enemies attack
         this.enemiesAttack();
         
@@ -3335,6 +3395,12 @@ class GameController {
             return;
         }
 
+        // After hero uses item, allow manual underling control if in manual mode
+        if (this.gameState.combatMode === 'manual') {
+            this.startManualUnderlingTurns();
+            return;
+        }
+
         // Enemies attack after item use
         this.enemiesAttack();
         
@@ -3520,21 +3586,105 @@ class GameController {
         const underlingActions = [
             { name: 'Attack', action: 'attack', icon: '⚔️' },
             { name: 'Defend', action: 'defend', icon: '🛡️' },
-            { name: 'Use Item', action: 'item', icon: '🧪' }
+            { name: 'Use Item', action: 'item', icon: '🧪' },
+            { name: 'Powers/Skills', action: 'show-powers', icon: '✨' }
         ];
 
-        // Get underling abilities if any
-        const underlingAbilities = this.characterManager.getCharacterRacialAbilities(underling);
-        underlingAbilities.forEach(ability => {
-            if (this.characterManager.isRacialAbilityAvailable(underling, ability.name)) {
-                underlingActions.push({
-                    name: ability.name,
-                    action: 'ability',
-                    icon: '🧬',
-                    abilityData: ability
-                });
+        // Get racial abilities
+        const underlingRacialAbilities = this.characterManager.getCharacterRacialAbilities(underling) || [];
+        // Get class abilities (if system exists)
+        let classAbilities = [];
+        if (typeof UnderlingAbilities !== 'undefined' && UnderlingAbilities.getAbilitiesForClass) {
+            const typeMapping = {
+                'ranged': 'skirmisher',
+                'tank': 'warrior',
+                'magic': 'mage',
+                'support': 'priest'
+            };
+            const abilityClass = typeMapping[underling.type];
+            if (abilityClass) {
+                classAbilities = UnderlingAbilities.getAbilitiesForClass(abilityClass, underling.level) || [];
             }
-        });
+        }
+
+        // Handler for showing all powers/skills
+        if (!window._showUnderlingPowersHandler) {
+            window._showUnderlingPowersHandler = (underling) => {
+                // Gather all abilities
+                const racial = this.characterManager.getCharacterRacialAbilities(underling) || [];
+                let classAbils = [];
+                if (typeof UnderlingAbilities !== 'undefined' && UnderlingAbilities.getAbilitiesForClass) {
+                    const typeMapping = {
+                        'ranged': 'skirmisher',
+                        'tank': 'warrior',
+                        'magic': 'mage',
+                        'support': 'priest'
+                    };
+                    const abilityClass = typeMapping[underling.type];
+                    if (abilityClass) {
+                        classAbils = UnderlingAbilities.getAbilitiesForClass(abilityClass, underling.level) || [];
+                    }
+                }
+                const allAbilities = [
+                    ...racial.map(a => ({ ...a, source: 'Racial' })),
+                    ...classAbils.map(a => ({ ...a, source: 'Class' }))
+                ];
+                // Filter for available abilities
+                const availableAbilities = allAbilities.filter(ability => ability.canUse && ability.canUse(underling, this.gameState).canUse);
+                // Build modal content
+                let modalHtml = `<div style="padding:10px;max-width:500px;">
+                    <h3 style='color:#FFD700;text-align:center;'>${underling.name} - Powers & Skills</h3>
+                    <div style='margin-bottom:10px;color:#ccc;'>Select a power or skill to use. Racial abilities are marked 🧬, class skills are marked ✨.</div>
+                    <div style='display:flex;flex-direction:column;gap:10px;'>`;
+                if (availableAbilities.length === 0) {
+                    modalHtml += `<div style='color:#888;text-align:center;'>No available powers or skills.</div>`;
+                } else {
+                    availableAbilities.forEach((ability, idx) => {
+                        modalHtml += `<button style='padding:10px 12px;border-radius:6px;border:2px solid #8B4513;background:linear-gradient(145deg,#4B0082,#6A0DAD);color:#FFD700;font-family:Cinzel,serif;font-weight:bold;cursor:pointer;display:flex;align-items:center;gap:8px;' onclick='window._useUnderlingPowerSkill(${JSON.stringify(underling.id)},${idx})'>${ability.source === 'Racial' ? '🧬' : '✨'} <span>${ability.name}</span></button>`;
+                    });
+                }
+                modalHtml += `</div><div style='margin-top:15px;text-align:center;'><button onclick='window.game.controller.closeDockedCombatPanel()' style='padding:8px 16px;border-radius:5px;background:linear-gradient(145deg,#666,#888);color:#FFD700;border:2px solid #666;font-family:Cinzel,serif;cursor:pointer;'>Cancel</button></div></div>`;
+                // Show modal
+                this.closeDockedCombatPanel();
+                const panel = document.createElement('div');
+                panel.id = 'docked-combat-panel';
+                panel.className = 'top-docked-modal-content';
+                panel.style.cssText = `position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.95);border:2px solid #8B4513;border-radius:10px;padding:20px;box-shadow:0 4px 20px rgba(0,0,0,0.8);z-index:999999;max-width:600px;width:90%;color:#FFD700;font-family:'Cinzel',serif;text-align:center;`;
+                panel.innerHTML = modalHtml;
+                document.body.appendChild(panel);
+                this.makeDraggable(panel);
+                // Handler for using a power/skill
+                window._useUnderlingPowerSkill = (underlingId, idx) => {
+                    const u = this.gameState.hero.underlings.find(u => u.id === underlingId);
+                    const racial = this.characterManager.getCharacterRacialAbilities(u) || [];
+                    let classAbils = [];
+                    if (typeof UnderlingAbilities !== 'undefined' && UnderlingAbilities.getAbilitiesForClass) {
+                        const typeMapping = { 'ranged': 'skirmisher', 'tank': 'warrior', 'magic': 'mage', 'support': 'priest' };
+                        const abilityClass = typeMapping[u.type];
+                        if (abilityClass) {
+                            classAbils = UnderlingAbilities.getAbilitiesForClass(abilityClass, u.level) || [];
+                        }
+                    }
+                    const allAbilities = [
+                        ...racial.map(a => ({ ...a, source: 'Racial' })),
+                        ...classAbils.map(a => ({ ...a, source: 'Class' }))
+                    ];
+                    const availableAbilities = allAbilities.filter(ability => ability.canUse && ability.canUse(u, this.gameState).canUse);
+                    const ability = availableAbilities[idx];
+                    if (ability) {
+                        this.closeDockedCombatPanel();
+                        // If ability requires a target, show target selection
+                        if (ability.targeting && (ability.targeting.type === 'single' || ability.targeting.type === 'multiple') && ability.targeting.validTargets !== 'self') {
+                            // Show target selection for this ability
+                            this.showUnderlingTargetSelection(u, { name: ability.name, abilityData: ability, action: 'ability' });
+                        } else {
+                            // Use ability immediately
+                            this.executeUnderlingAction('ability', u, null, ability);
+                        }
+                    }
+                };
+            };
+        }
 
         this.showDockedCombatPanel(underlingActions, 'underling-actions', underling);
     }
@@ -3556,7 +3706,49 @@ class GameController {
                 return; // Don't advance to next underling yet
             case 'ability':
                 if (abilityData) {
-                    this.executeUnderlingAbility(underling, abilityData, targetIndex);
+                    // Special handling for rock_throw: prompt for target if not provided
+                    if (abilityData.effect === 'rock_throw' && (targetIndex === null || targetIndex === undefined)) {
+                        // Show enemy target selection
+                        const livingEnemies = this.gameState.currentEnemies.filter(e => e.currentHP > 0);
+                        if (livingEnemies.length === 1) {
+                            // Only one target, auto-select
+                            this.executeUnderlingAbility(underling, abilityData, 0);
+                        } else if (livingEnemies.length > 1) {
+                            // Show target selection UI for enemies
+                            this.closeDockedCombatPanel();
+                            const targets = livingEnemies.map((enemy, idx) => ({
+                                name: enemy.name,
+                                health: enemy.currentHP,
+                                maxHealth: enemy.maxHealth,
+                                isEnemy: true,
+                                enemyRef: enemy,
+                                index: idx
+                            }));
+                            this.showDockedCombatPanel(targets, 'targets');
+                            // When a target is selected, call executeUnderlingAbility with the chosen index
+                            // We'll need to hook up the click handler to call executeUnderlingAction again with the selected targetIndex
+                            // This assumes showDockedCombatPanel can be customized for this purpose
+                            // For now, add a global callback:
+                            window.selectRockThrowTarget = (targetIdx) => {
+                                this.executeUnderlingAbility(underling, abilityData, targetIdx);
+                                this.closeDockedCombatPanel();
+                                delete window.selectRockThrowTarget;
+                            };
+                            // Patch the target option buttons to call window.selectRockThrowTarget
+                            setTimeout(() => {
+                                const options = document.querySelectorAll('.docked-target-option');
+                                options.forEach((el, i) => {
+                                    el.onclick = () => window.selectRockThrowTarget(i);
+                                });
+                            }, 50);
+                            return; // Wait for user selection
+                        } else {
+                            this.ui.log('No valid enemy targets for Rock Throw!');
+                            break;
+                        }
+                    } else {
+                        this.executeUnderlingAbility(underling, abilityData, targetIndex);
+                    }
                 }
                 break;
             case 'skip':
@@ -4625,10 +4817,9 @@ class GameController {
     exploreCurrentLevel() {
         // Close any existing combat modals before starting new encounter
         this.closeEnhancedCombatModal();
-        
-        // Close any open modals
-        const existingModals = document.querySelectorAll('.modal-overlay');
-        existingModals.forEach(modal => modal.remove());
+        // Close any open modals (including docked modals)
+        const overlays = document.querySelectorAll('.modal-overlay, .docked-modal');
+        overlays.forEach(modal => modal.remove());
         
         this.ui.log(`🔍 Exploring deeper into dungeon level ${this.gameState.dungeonLevel}...`);
         
@@ -4647,10 +4838,9 @@ class GameController {
     goDeeperInDungeon() {
         // Close any existing combat modals before starting new encounter
         this.closeEnhancedCombatModal();
-        
-        // Close any other open modals
-        const existingModals = document.querySelectorAll('.modal-overlay');
-        existingModals.forEach(modal => modal.remove());
+        // Close any open modals (including docked modals)
+        const overlays = document.querySelectorAll('.modal-overlay, .docked-modal');
+        overlays.forEach(modal => modal.remove());
         
         this.gameState.dungeonLevel++;
         this.ui.log(`Descending to dungeon level ${this.gameState.dungeonLevel}...`);
@@ -4822,6 +5012,16 @@ class GameController {
         
         // Define all craftable items with material requirements
         const craftableItems = [
+            // Bone Armor (Base item for bone set)
+            {
+                id: 'bone_armor',
+                name: 'Bone Armor',
+                cost: 40,
+                materials: { bones: 2 },
+                description: '+1 Defense, +1 Mana (Base Bone Armor)',
+                type: 'armor',
+                slot: 'chest'
+            },
             // Weapons
             { 
                 id: 'iron_sword', 
@@ -5582,6 +5782,13 @@ class GameController {
         }
         
         const items = {
+            bone_armor: {
+                name: "Bone Armor",
+                type: "armor",
+                slot: "chest",
+                stats: { defense: 1, mana: 1 },
+                equipped: false
+            },
             // Weapons
             iron_sword: { 
                 name: "Iron Sword", 
@@ -7262,6 +7469,7 @@ class GameController {
     }
 
     showHeroAbilitySelection() {
+        // NOTE: After hero uses an ability, if in manual mode, call this.startManualUnderlingTurns() in the ability use handler.
         console.log('[Debug] Magic button clicked - checking combat state:', this.gameState.inCombat);
         
         if (!this.gameState.inCombat) {
@@ -7581,19 +7789,16 @@ class GameController {
         // Check if this is a racial ability
         if (selectedAbilityId.startsWith('racial_')) {
             const racialAbilityName = selectedAbilityId.replace('racial_', '');
-            
             // Get target if required
             let target = null;
             const racialAbilities = this.characterManager.getCharacterRacialAbilities(this.gameState.hero);
             const ability = racialAbilities.find(a => a.name === racialAbilityName);
-            
             if (ability && ability.targeting && ability.targeting.type !== 'self' && ability.targeting.type !== 'all') {
                 const selectedTargetId = targetSelect ? targetSelect.value : null;
                 if (!selectedTargetId) {
                     this.ui.showNotification("Please select a target!", "error");
                     return;
                 }
-                
                 // Find the target based on the selected ID
                 if (selectedTargetId === 'hero') {
                     target = this.gameState.hero;
@@ -7605,31 +7810,24 @@ class GameController {
                     const targetId = parseInt(selectedTargetId);
                     target = this.gameState.hero.underlings ? this.gameState.hero.underlings.find(u => u.id === targetId) : null;
                 }
-                
                 if (!target) {
                     this.ui.showNotification("Invalid target selected!", "error");
                     return;
                 }
             }
-            
             // Use racial ability with target
             const success = this.characterManager.useRacialAbility(this.gameState.hero, racialAbilityName, target);
-            
             if (success) {
                 this.ui.showNotification("Racial ability used successfully!", "success");
-                
                 // Close the docked modal
                 const modal = document.querySelector('.docked-modal');
                 if (modal) {
                     modal.remove();
                 }
-                
                 // Update combat interface
                 this.updateCombatChatDisplay();
-                
                 // Check for defeated enemies after racial ability
                 this.checkAndProcessDefeatedEnemies();
-                
                 // Check if all enemies are defeated
                 if (this.gameState.currentEnemies.length === 0) {
                     this.ui.log("All enemies defeated! You can continue deeper or exit the dungeon.");
@@ -7638,7 +7836,11 @@ class GameController {
                     this.showVictoryConfirmation();
                     return;
                 }
-                
+                // If in manual mode, start manual underling turns
+                if (this.gameState.combatMode === 'manual') {
+                    this.startManualUnderlingTurns();
+                    return;
+                }
                 // Continue combat
                 this.enemiesAttack();
                 setTimeout(() => this.showCombatInterface(), 1000);
@@ -7736,19 +7938,15 @@ class GameController {
                 });
             }
             this.ui.showNotification("Ability cast successfully!", "success");
-            
             // Check for defeated enemies after spell casting and process XP/gold/loot
             this.checkAndProcessDefeatedEnemies();
-            
             // Close the docked modal
             const modal = document.querySelector('.docked-modal');
             if (modal) {
                 modal.remove();
             }
-            
             // Update UI first
             this.ui.render();
-            
             // Check if all enemies are defeated before continuing
             if (this.gameState.currentEnemies.length === 0) {
                 this.ui.log("All enemies defeated! You can continue deeper or exit the dungeon.");
@@ -7757,16 +7955,18 @@ class GameController {
                 this.showVictoryConfirmation();
                 return;
             }
-            
+            // If in manual mode, start manual underling turns
+            if (this.gameState.combatMode === 'manual') {
+                this.startManualUnderlingTurns();
+                return;
+            }
             // Hero's turn is over after casting, process underling turns then enemy turns
             setTimeout(() => {
                 // Process underling turns first (similar to playerAttack)
                 this.processUnderlingTurns();
-                
                 // Then enemy turns
                 setTimeout(() => {
                     this.enemiesAttack();
-                    
                     // Update combat interface after enemy attacks
                     setTimeout(() => {
                         this.showCombatInterface();
@@ -7774,11 +7974,9 @@ class GameController {
                     }, 1000);
                 }, 500);
             }, 500);
-            
         } else {
             this.ui.log(result.message || "Failed to cast ability!");
             this.ui.showNotification(result.message || "Failed to cast ability!", "error");
-            
             // Update UI but don't end turn on failed cast
             this.ui.render();
         }

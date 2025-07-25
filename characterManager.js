@@ -358,6 +358,10 @@ class CharacterManager {
         
         // Initialize equipment slots for species
         this.initializeCharacterEquipment(character);
+        // Always update UI to reflect stat changes after species/subspecies change
+        if (this.gameController && this.gameController.ui) {
+            this.gameController.ui.render();
+        }
     }
     
     // Get display name for a species

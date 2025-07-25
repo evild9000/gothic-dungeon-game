@@ -6,22 +6,16 @@ future todo:
 - 
 =============
 submitted: 
-1. ogre brute power - include in the combat if enemy was able to resist or not, if it was knocked down make sure it is losing its turn, and apply a debuff icon to its entity
-2. ogre brute power - the power wasnt usable in the next combat after using it once in a prior combat
-3. a combat should start with ROUND 1 in the log, and a round should advance even when the hero uses a power, it seems like the round indicator is not always advancing, its seems maybe like it is attached only to attacking possibly.
-4. i had a skirmister equip a bow and then it attempted to equip a staff, and then instead of unequipping the other item first and 'swapping' them it simply overwrote the bow and the bow disappeared entirely and was gone. it should not delete the item.  the staff was equipped successfully.
-5. when encountering other special things within the dungeon such as for example a hidden treasure cache (perhaps provide a fun gif or graphic appearing on the screen for this) then also supply the pop up modal to explore the dungeon further or exit, etc that you would normally offer, as at that point the only option is to exit the dungeon.
-6. change the mechanics of dungeon encounters to be run by an overall encounter manager so that when entering the dungeon from the village or chosing 'go deeper' or 'explore this level' the encounter manager decides if the party encounters another battle, a puzzle, a trap or some other special event.  you may already have some of this in place, but this needs to be more consistent from all three of these button choices as well as a funnel point back from any one of these after encountering a trap, puzzle, or other mystery etc.  please get this organized.  
-7. remove the riddles from puzzles
-8. 'i notice something 'suspicious ahead' doesnt do anything, i do not see a trap interface loaded, is there some modal that is supposed to load?  perhaps this needs to be coded
-9. reduce xp by 20% and increase gold by 20%
-10. i wasnt able to make the bone armor, the crafting area said it only needed 2 bones per slot, but i also recall i wanted it to require the droppable loot called 'bone armor'  make sure this is listed as well.
+1. i had a skirmister equip an item and then equipped another item, and then instead of unequipping the other item first and 'swapping' them it simply overwrote the bow and the bow disappeared entirely and was gone. it should not delete the item.  change the mechanics so that before it equips the new items it will automaticall unequip the old item first and return it to inventory BEFORE equipping the new item.
+2. remove all of the riddles from puzzles modal
+probably still screwed up - 3. bone armor now shows an unknown ingredient says undefined, is this due to recipe being unknown or a bug, it should show bone armor and 2 bones required right>?
+4. the hero's modified hp, mana, stamina, etc should be immediately refectled and set to new max after racial species bonuses applied after creation and shown correctly in character management
+5. when i do 'explore this level' from the 'whats next' modal, and combat ensues, the modal doesnt disappear, it should close if combat spawns.
+6. giant rock throwing - i am still not offered a target drop down list, cant you make it coded like like ice shard
+7. when i chose manual control of underlings, i cannot choose their action unless i chose attack with my hero, if i chose Powers, then the underling auto attacks
+8. underling spells, skills and powers for class and species need to be available as buttons under choose action under manual mode, add this button and all pertinent powers along with necessary targetting dropdowns
 
 
-
-test - magic button didnt work as troll
-test - im not seeing underlings using racial powers, are they hooked up?
-requested -rock throwing should just do damage at +ATK, not affect next attack
 
 test puzzles, traps and all powers, abilities, racial powers, 
 
@@ -29,30 +23,36 @@ test puzzles, traps and all powers, abilities, racial powers,
 expand options to do in dungeon: 
 puzzles, traps, mysteries, rituals, magical pools, etc, genies, wandering tinkerers, nodes
 ====
+lets move a base stat system where everyone has base stats of 5 and you receive bonuses from both class and species.  hp, mana, stamina, atk, def, etc all start at base for the class, but should still be modified up or down by species stats or gear
+convert the set class stats to bonuses in the following manner:  
+1. warriors receive +3 str, -1 dex, +3 con, -1 int, +1 wil
+2. skirmishers receive -1 str, +3 dex, +1 int, +1 con, +1 wil
+3. mages receive -2 str, +2 dex, -1 con, +3 int, +3 wil
+4. priest receive -2 str, +1 con, +2 int, +4 wil
 
-
+also convert the species select and application of stats from that choice to a bonus based system applying bonuses to the class template
 
 add species (stat and slot variability)
-- elf str 4 dex 7 con 4 int 6 wil 6 siz 4
-- dwarf str 6 dex 4 con 7wil 6 siz 4
-- gnome str 3  dex 7  int 6 wil 6 siz 3
-- orc  str 7 int 4 con 6 siz 6
-- goblin str 4 dex 7 con 6 siz 4
+- elf str -1 dex +2 con -1 int +1 wil +1 siz -1
+- dwarf str +1 dex -1 con +2 wil +1 siz -1
+- gnome str -2  dex +2  int +1 wil +1 siz -2
+- orc  str +2 int -1 con +1 siz +1
+- goblin str -1 dex +2 int -1 con +1 siz -1
 - giantkin
-	ogre  str 9 dex 4 con 7 int 3 wil 4 siz 9 
-	troll str 8 con 8 int 3 wil 3 siz 9 
-	giant str 12 dex 3 con 10 int 4 wil 4 siz 10
-- yeti str 8 dex 4 con 6 int 4 wil 6 siz 6
+	ogre  str +4 dex -1 con +2 int -2 wil -1 siz +4
+	troll str +3 con +3 int -2 wil -2 siz +4
+	giant str +7 dex -2 con +5 int -1 wil -1 siz +5
+- yeti str +3 dex -1 con +1 int -1 wil +1 siz +1
 
-- beastling
-	bull
-	bear
-	snake
-	tiger
-	rat
-	wolf
-	spider
-- plantfolk
+- beastling (see the following for subspecies info)
+	bull str +3 dex -1 con +2 int -1 wil +1 siz +2  (racial power: Charge, ability: knockdown works same as ogre brute power)
+	bear str +2 dex -1 con +2 int -1 wil +2 siz +2  (racial power: Claw Slash, ability: two high ATK attacks that apply bleed)
+	snake dex +2 wil +2  (racial power: Venemous Bite, ability that does damage and applies a high damage poison DOT to the target)
+	tiger str +1 dex +2 siz +1 (racial power: Claw Slash, ability: two high ATK attacks that apply bleed)
+	rat  str -2 dex +4 int -1 wil -1 siz -2 (racial power: Dodge ability: passive dodge power, when attacked has a 25% chance to avoid a hit outright, will require special code)
+	wolf dex +1 con +1 wil +1 (racial power: Howl, ability: will cause fear and panic in non undead, affects all foes, targets get a willpower saving throw to resist otherwise lose a round, will require special code)
+	spider str -1 dex +3 con -1 int +1 wil +1 siz -2  (racial powers: Web and Poison Bite abilties: same as the spider monster gets) also  (spider subspecies get special equipment slots: 8 legs, 4 hands, 4 feet, no arms, no cloak)
+- plantfolk dex -2 con +3 wil +3 siz +2  (racial power:  Spores, ability, targets all enemies, does small damage over time to all and has a resistable stun effect based on con as the resistant effect.  undead are immune to the damage and stun, this will need coding)
 - planar
 	-elemental fire
 	-elemental earth

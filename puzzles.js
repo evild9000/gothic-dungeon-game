@@ -6,12 +6,8 @@ class PuzzleManager {
         this.gameState = gameState;
         this.gameController = gameController;
         this.currentPuzzle = null;
+        // Only keep non-riddle puzzle types
         this.puzzleTypes = [
-            'logic',
-            'memory',
-            'sequence',
-            'math',
-            'wordplay',
             'safecracker',
             'tileslider'
         ];
@@ -20,60 +16,7 @@ class PuzzleManager {
 
     initializePuzzleDatabase() {
         this.puzzleDatabase = {
-            logic: [
-                {
-                    id: 'logic_1',
-                    difficulty: 1,
-                    question: "Three goblins guard three doors. One always tells the truth, one always lies, and one sometimes tells the truth. Which door leads to treasure?",
-                    options: ["Left Door", "Middle Door", "Right Door"],
-                    correctAnswer: 1, // Middle Door
-                    reward: { gold: 100, xp: 50 },
-                    hint: "The truthful goblin points to the middle door..."
-                }
-            ],
-            memory: [
-                {
-                    id: 'memory_1',
-                    difficulty: 1,
-                    sequence: [1, 3, 2, 4, 1, 3],
-                    question: "Remember this sequence and repeat it:",
-                    reward: { gold: 60, xp: 30 },
-                    hint: "Take your time to memorize the pattern..."
-                }
-            ],
-            sequence: [
-                {
-                    id: 'sequence_1',
-                    difficulty: 1,
-                    pattern: [2, 4, 6, 8, '?'],
-                    question: "What comes next in this sequence: 2, 4, 6, 8, ?",
-                    answer: "10",
-                    reward: { gold: 40, xp: 20 },
-                    hint: "Look for the pattern in the numbers..."
-                }
-            ],
-            math: [
-                {
-                    id: 'math_1',
-                    difficulty: 1,
-                    question: "A dungeon has 5 levels. Each level has twice as many rooms as the level above it. If the top level has 3 rooms, how many rooms are on the bottom level?",
-                    answer: "48",
-                    alternateAnswers: ["48 rooms"],
-                    reward: { gold: 80, xp: 35 },
-                    hint: "Start with 3 and keep doubling..."
-                }
-            ],
-            wordplay: [
-                {
-                    id: 'wordplay_1',
-                    difficulty: 1,
-                    question: "Rearrange these letters to form a word related to dungeons: DRAGONWS",
-                    answer: "dungeons",
-                    alternateAnswers: ["dungeon"],
-                    reward: { gold: 45, xp: 25 },
-                    hint: "Think about where you are..."
-                }
-            ],
+            // Only keep non-riddle puzzle types
             safecracker: [
                 {
                     id: 'safecracker_1',
