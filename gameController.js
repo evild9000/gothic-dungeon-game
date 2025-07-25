@@ -3686,7 +3686,38 @@ class GameController {
             };
         }
 
-        this.showDockedCombatPanel(underlingActions, 'underling-actions', underling);
+        // Custom docked panel for underling actions with working Powers/Skills button
+        this.closeDockedCombatPanel();
+        const panel = document.createElement('div');
+        panel.id = 'combat-docked-panel';
+        panel.className = 'combat-docked-panel';
+        panel.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.97);border:2px solid #8B4513;border-radius:10px;padding:20px;z-index:999999;max-width:400px;width:90%;color:#FFD700;font-family:Cinzel,serif;text-align:center;';
+        let html = `<h3 style='color:#FFD700;'>${underling.name} - Choose Action</h3><div style='display:flex;flex-direction:column;gap:12px;margin:18px 0;'>`;
+        underlingActions.forEach(action => {
+            if(action.action === 'show-powers') {
+                html += `<button style='padding:10px 12px;border-radius:6px;border:2px solid #8B4513;background:linear-gradient(145deg,#4B0082,#6A0DAD);color:#FFD700;font-family:Cinzel,serif;font-weight:bold;cursor:pointer;display:flex;align-items:center;gap:8px;' id='powers-skills-btn'>${action.icon} <span>${action.name}</span></button>`;
+            } else {
+                html += `<button style='padding:10px 12px;border-radius:6px;border:2px solid #8B4513;background:linear-gradient(145deg,#333,#444);color:#FFD700;font-family:Cinzel,serif;font-weight:bold;cursor:pointer;display:flex;align-items:center;gap:8px;' data-action='${action.action}'>${action.icon} <span>${action.name}</span></button>`;
+            }
+        });
+        html += `</div><button onclick='window.game.controller.closeDockedCombatPanel()' style='padding:8px 16px;border-radius:5px;background:linear-gradient(145deg,#666,#888);color:#FFD700;border:2px solid #666;font-family:Cinzel,serif;cursor:pointer;'>Cancel</button>`;
+        panel.innerHTML = html;
+        document.body.appendChild(panel);
+        // Wire up action buttons
+        panel.querySelectorAll('button[data-action]').forEach(btn => {
+            btn.onclick = () => {
+                const action = btn.getAttribute('data-action');
+                this.executeUnderlingAction(action, underling);
+            };
+        });
+        // Wire up Powers/Skills button
+        const powersBtn = panel.querySelector('#powers-skills-btn');
+        if(powersBtn) {
+            powersBtn.onclick = () => {
+                if(window._showUnderlingPowersHandler) window._showUnderlingPowersHandler(underling);
+            };
+        }
+        this.makeDraggable(panel);
     }
 
     // Execute underling action
@@ -3701,47 +3732,64 @@ class GameController {
                 this.executeUnderlingDefend(underling);
                 break;
             case 'item':
-                // Show item selection for this underling
                 this.showUnderlingItemSelection(underling);
-                return; // Don't advance to next underling yet
+                return;
             case 'ability':
                 if (abilityData) {
                     // Special handling for rock_throw: prompt for target if not provided
                     if (abilityData.effect === 'rock_throw' && (targetIndex === null || targetIndex === undefined)) {
                         // Show enemy target selection
-                        const livingEnemies = this.gameState.currentEnemies.filter(e => e.currentHP > 0);
+                        const livingEnemies = this.gameState.currentEnemies.filter(e => e.health > 0);
                         if (livingEnemies.length === 1) {
-                            // Only one target, auto-select
                             this.executeUnderlingAbility(underling, abilityData, 0);
                         } else if (livingEnemies.length > 1) {
-                            // Show target selection UI for enemies
                             this.closeDockedCombatPanel();
                             const targets = livingEnemies.map((enemy, idx) => ({
                                 name: enemy.name,
-                                health: enemy.currentHP,
+                                health: enemy.health,
                                 maxHealth: enemy.maxHealth,
                                 isEnemy: true,
                                 enemyRef: enemy,
                                 index: idx
                             }));
-                            this.showDockedCombatPanel(targets, 'targets');
-                            // When a target is selected, call executeUnderlingAbility with the chosen index
-                            // We'll need to hook up the click handler to call executeUnderlingAction again with the selected targetIndex
-                            // This assumes showDockedCombatPanel can be customized for this purpose
-                            // For now, add a global callback:
-                            window.selectRockThrowTarget = (targetIdx) => {
-                                this.executeUnderlingAbility(underling, abilityData, targetIdx);
-                                this.closeDockedCombatPanel();
-                                delete window.selectRockThrowTarget;
-                            };
-                            // Patch the target option buttons to call window.selectRockThrowTarget
-                            setTimeout(() => {
-                                const options = document.querySelectorAll('.docked-target-option');
-                                options.forEach((el, i) => {
-                                    el.onclick = () => window.selectRockThrowTarget(i);
-                                });
-                            }, 50);
-                            return; // Wait for user selection
+                            // Show a simple target selection modal
+                            let html = `<div style='padding:10px;max-width:400px;'><h3 style='color:#FFD700;text-align:center;'>Select Target for Giant Rock Throw</h3><div style='display:flex;flex-direction:column;gap:10px;'>`;
+                            targets.forEach((t, i) => {
+                                html += `<button class='docked-target-option' style='padding:10px 12px;border-radius:6px;border:2px solid #8B4513;background:linear-gradient(145deg,#333,#444);color:#FFD700;font-family:Cinzel,serif;font-weight:bold;cursor:pointer;display:flex;align-items:center;gap:8px;' data-idx='${i}'>${t.name} (${t.health}/${t.maxHealth} HP)</button>`;
+                            });
+                            html += `</div></div>`;
+                            const panel = document.createElement('div');
+                            panel.id = 'docked-combat-panel';
+                            panel.className = 'top-docked-modal-content';
+                            panel.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.97);border:2px solid #8B4513;border-radius:10px;padding:20px;z-index:999999;max-width:400px;width:90%;color:#FFD700;font-family:Cinzel,serif;text-align:center;';
+                            panel.innerHTML = html;
+                            document.body.appendChild(panel);
+                            panel.querySelectorAll('.docked-target-option').forEach(btn => {
+                                btn.onclick = () => {
+                                    const idx = parseInt(btn.getAttribute('data-idx'));
+                                    this.closeDockedCombatPanel();
+                                    this.executeUnderlingAbility(underling, abilityData, idx);
+                                    // Continue to next underling after action
+                                    this.gameState.currentUnderlingIndex++;
+                                    const aliveUnderlings = this.gameState.hero.underlings.filter(u => u.isAlive);
+                                    if (this.gameState.currentUnderlingIndex < aliveUnderlings.length) {
+                                        setTimeout(() => {
+                                            this.showUnderlingActionSelection(aliveUnderlings[this.gameState.currentUnderlingIndex]);
+                                        }, 500);
+                                    } else {
+                                        // All underlings have acted, check for victory
+                                        if (this.gameState.currentEnemies.every(e => e.health <= 0)) {
+                                            this.showVictoryConfirmation();
+                                        } else {
+                                            setTimeout(() => {
+                                                this.enemiesAttack();
+                                                setTimeout(() => this.showCombatInterface(), 1000);
+                                            }, 500);
+                                        }
+                                    }
+                                };
+                            });
+                            return;
                         } else {
                             this.ui.log('No valid enemy targets for Rock Throw!');
                             break;
@@ -3752,25 +3800,26 @@ class GameController {
                 }
                 break;
             case 'skip':
-                // Skip action - do nothing
                 break;
         }
 
         // Move to next underling
         this.gameState.currentUnderlingIndex++;
         this.closeDockedCombatPanel();
-        
         if (this.gameState.currentUnderlingIndex < aliveUnderlings.length) {
-            // Show next underling's action selection
             setTimeout(() => {
                 this.showUnderlingActionSelection(aliveUnderlings[this.gameState.currentUnderlingIndex]);
             }, 500);
         } else {
-            // All underlings have acted, proceed to enemy phase
-            setTimeout(() => {
-                this.enemiesAttack();
-                setTimeout(() => this.showCombatInterface(), 1000);
-            }, 500);
+            // All underlings have acted, check for victory
+            if (this.gameState.currentEnemies.every(e => e.health <= 0)) {
+                this.showVictoryConfirmation();
+            } else {
+                setTimeout(() => {
+                    this.enemiesAttack();
+                    setTimeout(() => this.showCombatInterface(), 1000);
+                }, 500);
+            }
         }
     }
 
